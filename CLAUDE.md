@@ -9,7 +9,7 @@ a language model.
 
 The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `sections.md`,
 `interests.md`, `feeds.yaml`, `inbox.md` and `paper.yaml` are theirs; `issues/`, `digests/`,
-`threads.jsonl`, `reads.jsonl`, `feed.json`, `.feed.json` and `cache/` are written by the run and the
+`threads.jsonl`, `reads.jsonl`, `candidates.json`, `.feed.json` and `cache/` are written by the run and the
 server.
 
 When the user asks to set this up, follow `.claude/skills/setup/SKILL.md`.

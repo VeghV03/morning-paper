@@ -13,8 +13,9 @@ to fix.
 
 Use only the tools this repository allows without asking, so the morning run never waits at a
 prompt: `uv run paper …` in the shell, from the folder you start in, with no `cd`, pipe or
-redirect; Read for files; WebSearch to find articles and WebFetch to open them; Write and Edit
-for the issue, digests and threads. Never curl, cat, sed or python.
+redirect; Read for files; WebSearch to find articles; `uv run paper read <url>` to open one;
+Write and Edit for the issue, digests and threads. Never WebFetch, a subagent, curl, cat, sed
+or python.
 
 ## 1. Read the state
 
@@ -29,7 +30,7 @@ uv run paper feed
 ```
 
 It takes a few minutes (the engine downloads every outlet's feed); give it a 10-minute
-timeout. It writes the candidates to `$PAPER_HOME/feed.json` and prints how many of each kind
+timeout. It writes the candidates to `$PAPER_HOME/candidates.json` and prints how many of each kind
 there are; read the file with Read. The candidates: `news` (stories since the last issue from the reader's
 `outlets.json`, ranked by `k`, the number of independent outlets, and for the top stories
 `primary` documents: the acts, rulings and statements they rest on), `follow` (new posts from
@@ -99,8 +100,9 @@ headline you write from its page, at most eight an issue (the rest wait for the 
 {"id":"r-2026-11-18-12","saved":true,"url":"https://…","head":"…"}
 ```
 
-Before choosing, open each candidate article with WebFetch. A page that does not load whole without an
-account is not a piece.
+Before choosing, open each candidate with `uv run paper read <url>`. It prints the article as
+the reader will see it, or says there is none: then it is not a piece, however good the page
+looks in a browser.
 
 ## 3. Learn from the reader
 
@@ -134,7 +136,12 @@ once.
 
 ## 6. Report
 
-Three lines, never more: how many pieces in which sections, what you changed from the reading
-record, and every warning from `feed` or `publish`. When nobody is watching (the morning run),
-never stop to ask: where this leaves a choice, take the one it recommends and add each
-assumption to the report.
+Your last message is the report: three lines, nothing before or after them.
+
+1. The pieces by section: `World 3 · Science 1 · Saved 2`.
+2. What you changed because of the reading record, or `no change`.
+3. Every warning from `feed` and `publish`, and each choice you made where this skill left one,
+   a few words each; `none` when there are none.
+
+When nobody is watching (the morning run), never stop to ask: take the choice this skill
+recommends and name it in line 3.

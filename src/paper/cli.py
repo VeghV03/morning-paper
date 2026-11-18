@@ -60,13 +60,23 @@ def init(args) -> int:
 
 
 def feed(args) -> int:
-    """Writes the candidates to $PAPER_HOME/feed.json (too long to print) and prints what is in it."""
+    """Writes the candidates to $PAPER_HOME/candidates.json (too long to print) and prints what is in it."""
     h = home()
     data = feed_mod.feed(h)
-    out = h.root / "feed.json"
+    out = h.root / "candidates.json"
     out.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     _print({"file": str(out), **{k: len(v) for k, v in data.items() if isinstance(v, list) and k != "warnings"},
             "warnings": data.get("warnings", [])})
+    return 0
+
+
+def read(args) -> int:
+    """The article at a URL as the reader view will show it, or why there is none."""
+    found = server.extract(args.url)
+    if not found:
+        _print({"url": args.url, "error": "no article: the site refused, or the page is a wall or a teaser"})
+        return 1
+    _print({"url": args.url, **{k: found[k] for k in ("title", "author", "date", "words", "text")}})
     return 0
 
 
@@ -183,6 +193,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("init")
     sub.add_parser("feed")
     sub.add_parser("check")
+    r = sub.add_parser("read")
+    r.add_argument("url")
     sub.add_parser("context")
     pub = sub.add_parser("publish")
     pub.add_argument("--date", help="YYYY-MM-DD, default today")
@@ -192,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
     d = sub.add_parser("dashboard")
     d.add_argument("--no-open", action="store_true")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "dashboard": dashboard, "check": check}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "dashboard": dashboard, "check": check, "read": read}[args.cmd](args)
 
 
 if __name__ == "__main__":

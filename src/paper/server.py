@@ -33,28 +33,35 @@ def _host(url: str) -> str:
 # the article
 
 
+def extract(url: str) -> dict:
+    """{title, author, date, html, text, words} of the article at `url`, as the reader view shows
+    it; {} when the site refuses or the page holds no article."""
+    if _host(url) in NO_FETCH:
+        return {}
+    import trafilatura
+
+    try:
+        raw = net.fetch(url).decode("utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 - any failure means: read it on the site
+        return {}
+    body = trafilatura.extract(raw, url=url, output_format="html", include_comments=False,
+                               include_tables=True, include_images=False, include_links=False)
+    text = trafilatura.extract(raw, url=url, include_comments=False) or ""
+    if not body or len(text) < MIN_TEXT:
+        return {}
+    meta = trafilatura.extract_metadata(raw, default_url=url)
+    return {"title": getattr(meta, "title", None), "author": getattr(meta, "author", None),
+            "date": getattr(meta, "date", None), "html": body, "text": text, "words": len(text.split())}
+
+
 def article(h: Home, piece: dict) -> dict | None:
-    """{title, author, date, html} of the piece's article, from the cache or fetched now; None
-    when the site refuses or the page holds no article."""
+    """The piece's article from the cache, or extracted now and cached; None when there is none."""
     path = h.cache / f"{piece['id']}.json"
     if path.exists():
         cached = json.loads(path.read_text(encoding="utf-8"))
         return cached or None
-    import trafilatura
-
-    found: dict = {}
-    if _host(piece["url"]) not in NO_FETCH:
-        try:
-            raw = net.fetch(piece["url"]).decode("utf-8", errors="replace")
-            body = trafilatura.extract(raw, url=piece["url"], output_format="html", include_comments=False,
-                                       include_tables=True, include_images=False, include_links=False)
-            text = trafilatura.extract(raw, url=piece["url"], include_comments=False) or ""
-            if body and len(text) >= MIN_TEXT:
-                meta = trafilatura.extract_metadata(raw, default_url=piece["url"])
-                found = {"title": getattr(meta, "title", None), "author": getattr(meta, "author", None),
-                         "date": getattr(meta, "date", None), "html": body, "words": len(text.split())}
-        except Exception:  # noqa: BLE001 - any failure means: read it on the site
-            found = {}
+    found = extract(piece["url"])
+    found.pop("text", None)
     h.cache.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(found, ensure_ascii=False), encoding="utf-8")
     return found or None
