@@ -1,11 +1,11 @@
-"""paper: a morning paper for Claude to write and for the reader to read on localhost.
+"""paper: a morning paper for Claude to write and for the reader to read on their Mac and phone.
 
   paper init       the home folder ($PAPER_HOME, default ~/paper) from the example
   paper check      which outlets and feeds answer, as JSON
   paper feed       every candidate since the last issue, written to candidates.json
   paper context    what the reader did and marked, written to context.json
   paper publish    check issues/<date>.jsonl, move the feed cursor, open the issue
-  paper serve      the issue, the reader and settings on http://localhost:4747
+  paper serve      the issue, the reader and settings on http://localhost:4747 and a paired phone
   paper read URL   the article at URL as the reader will see it, as JSON
   paper install    keep `paper serve` running from login (macOS)
 

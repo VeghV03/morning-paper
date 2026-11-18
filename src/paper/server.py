@@ -29,6 +29,7 @@ from .issue import DAY, Invalid, all_pieces, days, kind, load, sections, threads
 
 PORT = int(os.environ.get("PAPER_PORT") or 4747)
 ICON = Path(__file__).with_name("icon.png")
+MAX_BODY = 64_000  # bytes; settings with every section and interest fit many times over
 MIN_TEXT = 400  # characters; less is a cookie wall or a teaser, not the article
 NO_FETCH = {"24.hu"}
 e = html.escape
@@ -313,8 +314,12 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(403, _page(h, "Morning paper", "", f"<p class=empty>{e(t['unpaired'])}</p>"))
 
     def _body_json(self):
+        """The request's JSON body; None when it is not JSON or longer than any write needs."""
         try:
-            return json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+            n = int(self.headers.get("Content-Length") or 0)
+            if not 0 <= n <= MAX_BODY:
+                return None
+            return json.loads(self.rfile.read(n) or b"{}")
         except ValueError:
             return None
 
@@ -563,7 +568,7 @@ READER_JS = """<script>
     const part = ev.target.closest("mark[data-id]");
     if (part) { pick(null); return open([[t.remove, () => { unmark(part.dataset.id); part.replaceWith(...part.childNodes); }]]); }
     const block = ev.target.closest(BLOCKS);
-    if (!block || !article.contains(block) || block === picked) return close();
+    if (!block || !blocks.includes(block) || block === picked) return close();
     const text = squash(block.textContent);
     if (text.length < 3) return close();
     pick(block);

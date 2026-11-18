@@ -83,6 +83,15 @@ class PairTest(unittest.TestCase):
         self.assertEqual(self.ask("GET", "/settings", host="evil.example", cookie=f"paper={key}")[0], 200)
         self.assertEqual(self.ask("GET", "/pair", host="evil.example")[0], 200)  # tells nothing
 
+    def test_a_huge_body_is_not_read(self):
+        c = http.client.HTTPConnection("127.0.0.1", self.port)
+        c.putrequest("POST", "/pair", skip_host=True)
+        c.putheader("Host", f"localhost:{self.port}")
+        c.putheader("Content-Length", str(10**9))
+        c.endheaders()
+        self.assertEqual(c.getresponse().status, 400)
+        c.close()
+
     def test_only_the_mac_makes_a_new_code(self):
         key = phone.key(Home(self.root))
         self.assertEqual(self.ask("PUT", "/settings/phone", {}, host="mac.local", cookie=f"paper={key}")[0], 403)
