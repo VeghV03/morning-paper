@@ -38,7 +38,7 @@ there are; read the file with Read. The candidates: `news` (stories since the la
 `primary` documents: the acts, rulings and statements they rest on), `follow` (new posts from
 their `feeds.yaml`), `inbox` (links they saved) and `interests`. It reports the same items
 until `paper publish` succeeds, so run it again freely. Its `warnings` are for your report,
-not for the reader. A story told in two languages arrives as two stories: count it once.
+not for the reader. A story told in two languages, or split by its angles (a summit, and each leader at it), can arrive as several stories: count it once.
 
 `context` has every piece of the last two weeks (`seen`, `looked`, `opened`, `finished`,
 `kept`, `min`, and `topic` and `fit` in steered sections), minutes per section this week, the

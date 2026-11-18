@@ -73,11 +73,12 @@ folder; nothing else runs without a prompt. Without them, the run waits for appr
 
 Write it now, with them watching, by `${CLAUDE_PLUGIN_ROOT}/skills/today/SKILL.md`, quick:
 
-- Run `~/paper/.tools/bin/paper feed`, and read only `news`: no feeds, inbox or web search.
+- Skip `paper context`: there is no reading yet. Run `~/paper/.tools/bin/paper feed`, and read
+  only `news`: no feeds, inbox or web search.
 - One piece a section, two at most, from the top stories by `k`; open only the article you
   choose. A section beyond the news gets a piece only when a top story fits it.
 - No answers, cards, games or threads: there is nothing to build them on yet.
-- Publish, and open http://localhost:4747.
+- Publish, and open http://localhost:4747. No report: they are watching.
 
 Then tell them in three sentences how it reads: a piece opens in a clean reader with Next at
 its end; tapping a paragraph offers Highlight and Question, and questions are answered in the
