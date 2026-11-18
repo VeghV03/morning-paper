@@ -12,7 +12,7 @@ slot. Everything goes through `uv run paper` in this repository; its errors say 
 to fix.
 
 Use only the tools this repository allows without asking, so the morning run never waits at a
-prompt: `uv run paper …` in the shell, from the folder you start in, with no `cd`, pipe or
+prompt: `uv run paper …` in the shell, from this repository's folder, where the morning run starts, with no `cd`, pipe or
 redirect; Read for files; WebSearch to find articles; `uv run paper read <url>` to open one;
 Write and Edit for the issue, digests and threads. Never WebFetch, a subagent, curl, cat, sed
 or python.
@@ -85,11 +85,12 @@ What each kind of section takes:
   (a paywalled outlet, or one the reader marked as never the piece) counts in `k` and is never
   the piece;
   when a story has no other source, find the piece on the web or leave the story out.
-- **Every other section**: articles you find on the web, fresh each issue, that fit its line
+- **Every other section**: articles you find on the web that were never in an issue before (any age), that fit its line
   in `sections.md` and `interests.md`, found with WebSearch: essays, research written for
   readers, reporting with a finding. Prefer the piece with an argument or a finding over the piece with an opinion. No
   paywalled pages, never the same site twice in an issue. The best new posts from
-  `feed.follow` go where they belong.
+  `feed.follow` go where they belong; a post that fits no section, or is not an article, is
+  left out.
 
 A **digest** is the one piece you write: for an article worth reading in a language the reader
 does not read (`paper.yaml` and `interests.md` say which they do). In the reader's language,
@@ -114,7 +115,9 @@ looks in a browser.
 A section is **steered** when its line in `sections.md` lists topics after a `|`. Every piece
 in it carries `topic`, the one topic on that list it is mostly about, and `fit`: `fits` when it
 follows what the reader reads, `tries` when it tests a topic they have not shown interest in.
-About a third of an issue's steered pieces are `tries`, placed where you think they fit.
+A topic counts as shown interest when `context.steer` has it `opened` or `good` in that
+section. About a third of an issue's steered pieces are `tries`, placed where you think they
+fit; when only untried topics have strong pieces, more is fine (rule 1).
 
 `context.steer` gives, per steered section over 28 days, each topic's showings (`shown`: its
 headline was on screen for 2 seconds, or it was opened), `opened` and `good` (finished, kept or
@@ -139,6 +142,8 @@ What the reader marks in the reader comes back to them.
   `uv run paper read` and answer it: `{"id":"a-<today>-<n>","answer":"<mark id>","text":"…"}`,
   in the page's language, 120 words at most, plain sentences that start from the passage. Say
   what the passage means and what the reader needed to know; never pad.
+Answers and cards are lines of the issue file, after its pieces.
+
 - **Cards.** For each mark not `carded`, one or two cards on what it says. For each piece in
   `to_card`, one card on its main finding. At most 12 an issue; marks first, newest first.
 
@@ -156,7 +161,8 @@ one after each finished piece, on a schedule the reader's answers set.
 
 ## 4. Threads: `$PAPER_HOME/threads.jsonl`
 
-A story that runs for days gets a thread: `{"id":"t-<slug>","title","body","since","updated"}`.
+A story that runs for days gets a thread: `{"id":"t-<slug>","title","body","since","updated"}`;
+`since` is the day the story was first in an issue, `updated` the last day its `body` changed.
 `body` is the story so far up to but not including today's news: who, what is at stake, what
 happened in order, in plain words in the page's language (`paper.yaml`), one paragraph, 600 bytes at most.
 The reader sees it above the piece, open when its text is new to them, so change the text
@@ -174,8 +180,8 @@ uv run paper publish
 
 It checks the issue and the threads, moves the feed cursor, takes the saved links out of
 `inbox.md`, and prints the page's address. When it refuses, fix what it names and run it
-again. Once it succeeds the issue is out: never change it. When it says the server is not running, tell the reader to run `uv run paper install`
-once.
+again. Once it succeeds the issue is out: never change it. When it says the server is not running, line 3 of the report tells the reader to run
+`uv run paper install` once.
 
 ## 6. Report
 
@@ -183,8 +189,8 @@ Your last message is the report: three lines, nothing before or after them.
 
 1. The pieces by section, then answers and cards: `World 3 · Science 1 · Saved 2 · 1 answer · 4 cards`.
 2. Each steering rule that changed a choice, or `no change`.
-3. Every warning from `feed` and `publish`, and each choice you made where this skill left one,
-   a few words each; `none` when there are none.
+3. What the reader has to do, such as starting the server, in one sentence; else `nothing to do`.
 
-When nobody is watching (the morning run), never stop to ask: take the choice this skill
-recommends and name it in line 3.
+Each line is one sentence of 30 words at most. Feed warnings, stories left out and the choices
+you made stay out of the report: the issue shows them. When nobody is watching (the morning
+run), never stop to ask: take the choice this skill recommends.
