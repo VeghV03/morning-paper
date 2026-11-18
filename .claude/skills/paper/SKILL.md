@@ -1,6 +1,6 @@
 ---
 name: paper
-description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, keep the running stories' threads, and publish the page on localhost. Use when the user says paper, news, today's issue, or when the morning run starts.
+description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, answer the reader's questions and write cards from what they marked and finished, keep the running stories' threads, and publish the page on localhost. Use when the user says paper, news, today's issue, or when the morning run starts.
 ---
 
 # paper
@@ -38,8 +38,11 @@ their `feeds.yaml`), `inbox` (links they saved) and `interests`. It reports the 
 until `paper publish` succeeds, so run it again freely. Its `warnings` are for your report,
 not for the reader. A story told in two languages arrives as two stories: count it once.
 
-`context` has every piece of the last two weeks (`seen`, `opened`, `finished`, `kept`, `min`),
-minutes per section this week, and the threads.
+`context` has every piece of the last two weeks (`seen`, `looked`, `opened`, `finished`,
+`kept`, `min`, and `topic` and `fit` in steered sections), minutes per section this week, the
+threads, the reader's `marks` (highlights and questions, with `answered` and `carded`),
+`to_card` (finished pieces with no mark and no card), `cards` (how many, due, reviewed this
+week) and `steer` (step 3).
 
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
 `feeds.yaml`, `inbox.md`, `outlets.json` and `paper.yaml` are theirs: follow them, never edit
@@ -106,10 +109,48 @@ looks in a browser.
 
 ## 3. Learn from the reader
 
-From `context.pieces` and `context.minutes`: sections, topics and outlets the reader passes
-over or leaves unfinished get fewer pieces; finished and kept ones the better slots. A piece
-not `seen` was never in front of them; it says nothing about the piece. An `opened` piece that
-is not `finished` was started and left. Say in your report what you changed because of it.
+A section is **steered** when its line in `sections.md` lists topics after a `|`. Every piece
+in it carries `topic`, the one topic on that list it is mostly about, and `fit`: `fits` when it
+follows what the reader reads, `tries` when it tests a topic they have not shown interest in.
+About a third of an issue's steered pieces are `tries`, placed where you think they fit.
+
+`context.steer` gives, per steered section over 28 days, each topic's showings (`shown`: on an
+issue page they opened), `looked` (its headline on screen for 2 seconds), `opened` and `good`
+(finished, kept or marked), and three lists. Apply these rules, in this order:
+
+1. **Worth first.** The rules choose only between pieces of similar worth. They never let a
+   weak piece in, and never keep a strong one out.
+2. A topic in `passed_over` (its last four showings neither looked at nor opened) is picked
+   only as a `tries`. One of its `tries` opened brings it back; nothing is shut out for good.
+3. A topic in `good` takes the better slot, between pieces of similar worth.
+4. A `silent` section (seven showings or more, none opened) gets one piece. An open restores
+   three.
+
+News sections are not steered: they stay ranked by `k`. A piece not `seen` was never in front
+of the reader and says nothing. Name each rule that changed a choice in your report.
+
+## Answers and cards
+
+What the reader marks in the reader comes back to them.
+
+- **Answers.** For each mark with `kind` `question` and not `answered`, open its piece with
+  `uv run paper read` and answer it: `{"id":"a-<today>-<n>","answer":"<mark id>","text":"…"}`,
+  in the page's language, 120 words at most, plain sentences that start from the passage. Say
+  what the passage means and what the reader needed to know; never pad.
+- **Cards.** For each mark not `carded`, one or two cards on what it says. For each piece in
+  `to_card`, one card on its main finding. At most 12 an issue; marks first, newest first.
+
+```json
+{"id":"c-2026-11-18-1","card":"flip","front":"What did the 1998 supernova surveys show?","back":"The expansion of the universe is speeding up: the first evidence for dark energy.","from":"h-…"}
+{"id":"c-2026-11-18-2","card":"choice","prompt":"About how much of the universe's energy is dark energy?","options":["5%","25%","70%"],"answer":2,"from":"r-2026-11-17-4"}
+```
+
+One fact a card, in the page's language, answerable without the article open. A `flip` front
+is a question of 25 words at most, its back the answer in one or two sentences. A `choice` has
+three options of the same kind and length, the wrong two ones a reader could believe; `answer`
+is the right one's index. `from` is the mark or piece it comes from. A card on a passing
+detail, or one that only tests the wording, is worse than none. Cards come due in the reader,
+one after each finished piece, on a schedule the reader's answers set.
 
 ## 4. Threads: `$PAPER_HOME/threads.jsonl`
 
@@ -138,8 +179,8 @@ once.
 
 Your last message is the report: three lines, nothing before or after them.
 
-1. The pieces by section: `World 3 · Science 1 · Saved 2`.
-2. What you changed because of the reading record, or `no change`.
+1. The pieces by section, then answers and cards: `World 3 · Science 1 · Saved 2 · 1 answer · 4 cards`.
+2. Each steering rule that changed a choice, or `no change`.
 3. Every warning from `feed` and `publish`, and each choice you made where this skill left one,
    a few words each; `none` when there are none.
 

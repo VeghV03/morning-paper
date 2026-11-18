@@ -8,7 +8,7 @@ ranked by how many independent newsrooms carry each story. Read it, close it, do
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/issue-dark.png">
-    <img src="docs/issue-light.png" alt="An issue: sections Britain, World and Science, three headlines each with a one-line lead and the outlet" width="640">
+    <img src="docs/issue-light.png" alt="An issue: the answer to a question the reader marked yesterday, above the day's first section" width="640">
   </picture>
 </p>
 
@@ -18,7 +18,7 @@ A feed never ends, so it never tells you when you are informed. A paper does: it
 page. Morning paper gives you one issue every morning, up to three pieces a section, and
 nothing goes in to fill a slot. The next morning, a new issue takes the front page.
 
-Three things make the choice better than a feed's:
+Three things make it better than a feed:
 
 - **Independent sources decide what is news.** Every morning the news engine reads your
   outlets, groups their headlines into stories and counts the newsrooms behind each one (`k`).
@@ -26,14 +26,23 @@ Three things make the choice better than a feed's:
 - **One article a story, the best one.** For each story Claude picks the single best account
   you can read whole without paying, usually from the outlet that did the reporting. When a
   story rests on a law, a ruling or a statement, the document itself can be the piece.
-- **It learns what you actually read.** Pieces open in a clean reader on your Mac that notes
-  what you opened, finished and kept. The next issue gives more room to what you finish and
-  less to what you skip. Running stories get a short "story so far" above them.
+- **You keep what you read.** Pieces open one at a time in a clean reader, with the next one
+  at the end and a last page after the last. Select a passage to highlight it or ask about it:
+  the next issue answers your question, and cards from what you marked and finished come due,
+  one after each piece you finish, on a spaced-repetition schedule. Beyond the news, what you
+  look at, open and finish steers which topics come back.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/reader-dark.png">
-    <img src="docs/reader-light.png" alt="The reader view: a 'story so far' box about the Crimean Bridge above a BBC article" width="640">
+    <img src="docs/reader-light.png" alt="The reader view: a passage highlighted and another marked as a question, in a Quanta article" width="640">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/card-dark.png">
+    <img src="docs/card-light.png" alt="A card at the end of a finished piece, with the next headline below it" width="640">
   </picture>
 </p>
 
@@ -62,10 +71,10 @@ flowchart LR
   A[Claude app, every morning] --> B["/paper"]
   B --> C["paper context<br/>what you read"]
   B --> D["paper feed<br/>your outlets → stories by k<br/>your feeds, saved links"]
-  C & D --> E[Claude chooses ≤3 a section<br/>writes headline and lead]
+  C & D --> E[Claude chooses ≤3 a section<br/>answers your questions, writes cards]
   E --> F[paper publish]
-  F --> G["localhost:4747<br/>issue · reader · kept"]
-  G -->|opened, finished, kept| C
+  F --> G["localhost:4747<br/>issue · reader · cards · settings"]
+  G -->|looked, opened, finished, marked| C
 ```
 
 Your files and your reading record live in `~/paper` on your Mac. Each morning Claude reads
@@ -75,27 +84,23 @@ them to choose the issue, as it reads anything in a conversation. The reader pag
 ## Make it yours
 
 Everything the paper knows about you is a plain file in `~/paper`. Ask Claude to change it, edit
-it yourself, or open the dashboard:
-
-```bash
-uv run paper dashboard
-```
+it yourself, or open Settings at the foot of any issue.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/dashboard-dark.png">
-    <img src="docs/dashboard-light.png" alt="The dashboard: the paper's sections, each with a line saying what belongs in it" width="640">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/settings-dark.png">
+    <img src="docs/settings-light.png" alt="Settings: each section with what belongs in it and its topics" width="640">
   </picture>
 </p>
 
 | File | What it is |
 |---|---|
 | `outlets.json` | The newsrooms the engine reads and counts. Two presets in `presets/`: World (English) and Hungary. |
-| `sections.md` | One line per section, in page order: `Name: what belongs in it`. Eight at most. |
+| `sections.md` | One line per section, in page order: `Name: what belongs in it`, and topics after a `\|` for a section your reading steers. Eight at most. |
 | `interests.md` | What you care about and what you are tired of, in your own words. |
 | `feeds.yaml` | Blogs, journals and newsletters you follow; their best new posts go where they fit. |
 | `inbox.md` | A link a line; it arrives in the next issue under Saved. |
-| `paper.yaml` | The page's language (English or Hungarian) and the morning run's time. |
+| `paper.yaml` | The page's language, English or Hungarian. |
 
 ## Commands
 
@@ -104,7 +109,6 @@ uv run paper dashboard
 | `/setup` | The interview. |
 | `/paper` | Write today's issue now. |
 | `uv run paper check` | Which outlets and feeds answer. |
-| `uv run paper dashboard` | Edit your files in the browser. |
 
 ## Where it comes from
 

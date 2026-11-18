@@ -45,6 +45,12 @@ Second round, what they want beyond the day's news. Offer sections from what the
 eight in all. Ask what they are tired of reading, and which writers, journals or newsletters
 they already like.
 
+Third round, the topics. Every section that is not the day's news is steered by what they
+read: draft three to six topics for each from what they said (plain, a few words each, far
+apart: `incentives and markets`, `mind and brain`) and ask for their yes or their changes.
+The paper tracks which topics they look at, open and finish, and gives the ones they pass over
+fewer chances.
+
 Stop asking when you could state in one sentence what their paper is for and they would agree.
 
 ## 3. Outlets: `~/paper/outlets.json`
@@ -87,14 +93,17 @@ uv run paper check
 
 Write, in their words where they gave them:
 
-- `~/paper/sections.md`: one line per section, `Name: what belongs in it`, in page order.
+- `~/paper/sections.md`: one line per section, `Name: what belongs in it`, in page order;
+  a steered section adds its topics after a `|`:
+  `Ideas: essays with an argument | power and institutions, mind and brain, how we know`.
 - `~/paper/interests.md`: what they care about and what they are tired of, a short brief.
 - `~/paper/feeds.yaml`: the blogs, journals and newsletters they named, with feeds you found
   and `paper check` passed.
 - `~/paper/paper.yaml`: `language` (`en` or `hu`) and `morning` (`"HH:MM"`).
 
-Show them `uv run paper dashboard` (http://localhost:8745): the same files, to change later
-without you.
+The same files can be changed later without you, at http://localhost:4747/settings (the link
+at the foot of every issue). Outlets are only removed there; adding one goes through you, so it
+is tested first.
 
 ## 5. The reader server
 
@@ -110,7 +119,10 @@ allowed without a prompt.
 ## 6. The first issue
 
 Write it now with them watching: follow `.claude/skills/paper/SKILL.md` from step 1. They
-approve its tools as they come up. Open http://localhost:4747 when it is published.
+approve its tools as they come up. Open http://localhost:4747 when it is published, and tell
+them in three sentences how it reads: a piece opens in a clean reader with Next at its end;
+selecting text there offers Highlight and Question, and questions are answered in the next
+issue; after a finished piece, a card from earlier reading may come due.
 
 ## 7. The morning run
 
