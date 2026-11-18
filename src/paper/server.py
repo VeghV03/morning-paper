@@ -265,7 +265,8 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
     title = re.sub(r"\s+[|–—]\s+[^|–—]+$", "", art.get("title") or "") or piece["head"]  # "Title | Site"
     link = game and kind(game) == "link"
     head = (f'<header><a href="/{piece["day"]}">← {e(config.short_date(h, piece["day"]))}</a></header>'
-            f'{box if link else ""}{thread}<h1 class=title>{e(title)}</h1>'
+            f'{box if link else ""}{thread}' + (f'<h1 class=title data-title="{e(title)}">{e(piece["head"])}</h1>'
+                                                if asking and not link else f"<h1 class=title>{e(title)}</h1>")
             + (f"<p class=byline>{byline}</p>" if byline else "") + ("" if link else box))
     try:
         seq = order(h, piece["day"])
@@ -294,7 +295,8 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
             data["game"].update(answer=game.get("answer"), pick=played.get("pick"))
     script = f"<script>const PAPER = {_json(data)};</script>{READER_JS}"
     article = f"<article{' hidden' if asking else ''}>{_body(art['html'], title)}</article><div id=reveal></div><div id=card></div>"
-    return _page(h, title, head, article, foot, script)
+    # an outlet's title often states the finding: a prediction shows the paper's own headline until answered
+    return _page(h, piece["head"] if asking and not link else title, head, article, foot, script)
 
 
 def kept_page(h: Home) -> str:
@@ -653,6 +655,8 @@ READER_JS = """<script>
         const got = res && res.ok ? await res.json() : {};
         box.replaceChildren();
         article.hidden = false;
+        const h1 = document.querySelector("h1.title");
+        if (h1.dataset.title) h1.textContent = h1.dataset.title;
         const thread = document.querySelector("details.thread");
         if (thread) { thread.hidden = false; thread.open = true; }
         live = true; last = active = Date.now(); measure();

@@ -20,7 +20,7 @@ import hashlib
 import json
 from datetime import date, datetime, timedelta
 
-from . import learn
+from . import crossword, learn
 from .home import Home
 from .issue import all_pieces, all_rows, sections
 
@@ -186,10 +186,12 @@ def _games(h: Home, first: str, carded: set) -> list[dict]:
             if g["day"] < first:
                 continue
             got = played.get(gid, {})
-            if what == "crossword":
+            if what == "crossword":  # the words on the grid; missed only once the reader started it
                 words = g.get("crossword") or []
-                out.append({"id": gid, "kind": what, "issue": g["day"], "entries": len(words),
-                            "missed": [w.get("answer") for i, w in enumerate(words) if i not in got.get("solved", ())]})
+                placed = [x["i"] for x in crossword.layout([w.get("answer") for w in words])["entries"]]
+                solved = got.get("solved", set())
+                out.append({"id": gid, "kind": what, "issue": g["day"], "entries": len(placed), "solved": len(solved),
+                            "missed": [words[i].get("answer") for i in placed if i not in solved] if solved else []})
                 continue
             row = {"id": gid, "kind": what, "issue": g["day"], "piece": g.get(what), "prompt": g.get("prompt"),
                    "answer": (g.get("options") or [None] * 3)[g.get("answer") or 0]}

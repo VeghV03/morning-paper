@@ -148,7 +148,8 @@ Answers and cards are lines of the issue file, after its pieces.
 
 - **Cards.** For each mark not `carded`, one or two cards on what it says. For each piece in
   `to_card`, one card on its main finding. For each game in `context.games` with `right` false
-  and not `carded`, one card on the right answer, `from` the game's id. At most 12 an issue;
+  and not `carded`, one card on the right answer, `from` the game's id; its piece then gets no
+  `to_card` card, which would ask the same thing. At most 12 an issue;
   marks first, then missed games, newest first.
 
 ```json
@@ -170,8 +171,8 @@ reading, which is what makes the reading stick; a game on a detail is worse than
 
 - **Predictions.** On up to three pieces with one clear finding (a study's result, a vote's
   outcome, a number), ask what it is before the piece opens. The reader picks, reads, and sees
-  the answer at the end. The question shows under the article's own title, so a finding
-  that title or your headline gives away makes no prediction.
+  the answer at the end. Until then the reader sees your headline, not the article's own
+  title, so on a predicted piece neither `head` nor `lead` may give the finding away.
 - **Links.** When a piece carries a thread and `context.pieces` has an earlier piece of that
   story the reader `opened`, ask what happened in it. The story so far follows the answer.
   One game a piece: never a link and a prediction on the same one.

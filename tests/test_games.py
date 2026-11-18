@@ -146,6 +146,8 @@ class PlayTest(Base):
         status, page = self.ask("GET", f"/read/r-{SUN}-1")
         self.assertEqual(status, 200)
         self.assertIn("<article hidden>", page)
+        self.assertIn('<h1 class=title data-title="Head 1">Head 1</h1>', page)
+        self.assertIn("<title>Head 1</title>", page)
         self.assertNotIn('"answer"', page.split("const PAPER")[1].split("</script>")[0])
         self.assertEqual(self.ask("POST", "/game", {"id": f"p-{SUN}-1", "pick": 0}), (200, '{"answer": 1}'))
         self.assertEqual(self.ask("POST", "/game", {"id": f"p-{SUN}-1", "pick": 1})[0], 200)
@@ -181,7 +183,9 @@ class PlayTest(Base):
         self.assertEqual(reading.games(self.h)[x], {"solved": {3}})
         self.assertEqual(sum(1 for e in reading.events(self.h) if e.get("ev") == "game"), 1)
         games = reading.context(self.h, datetime(2026, 11, 22).date())["games"]
-        self.assertNotIn("VOTE", next(g for g in games if g["id"] == x)["missed"])
+        got = next(g for g in games if g["id"] == x)
+        self.assertNotIn("VOTE", got["missed"])
+        self.assertEqual(got["entries"] - 1, len(got["missed"]))
 
 
 if __name__ == "__main__":
