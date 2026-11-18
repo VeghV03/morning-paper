@@ -50,36 +50,37 @@ Three things make it better than a feed:
 
 ## Set up
 
-You need a Mac, the [Claude app](https://claude.com/download) and [Homebrew](https://brew.sh).
+You need a Mac and the [Claude app](https://claude.com/download) on a paid plan. In the app's
+Code tab, type:
 
-```bash
-git clone https://github.com/VeghV03/morning-paper.git ~/morning-paper
+```
+/plugin install paper --marketplace VeghV03/morning-paper
 ```
 
-In the Claude app, open the Code tab, choose the `morning-paper` folder and say **set this
-up**. Claude interviews you: where you live and which places you follow,
-the languages you read, what you want beyond the news, the writers and journals you like.
-It finds outlets and feeds for you and tests each one, writes your files, starts the reader,
-writes your first issue while you watch, and schedules the next one for the morning.
+Then `/paper:setup`. Claude asks three things: where you live, the languages you read, and what
+you want beyond the news. It installs the paper's own tools in `~/paper` (nothing system-wide,
+no password), starts the reader, writes a quick first issue while you watch, and schedules the
+full one for every morning.
 
-After that, open <http://localhost:4747> with your coffee, or read it on your phone: scan the
-code in Settings with the phone's camera, then add the page to your home screen. The first time
-the icon opens, type the six digits shown under the code.
+Open <http://localhost:4747> with your coffee, or read it on your phone: scan the code in
+Settings with the phone's camera, then add the page to your home screen. The first time the
+icon opens, type the six digits shown under the code.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/phone-dark.png">
     <img src="docs/phone-light.png" alt="The reader on a phone: a highlighted paragraph, and the next one tapped, with Highlight and Question at the bottom" width="320">
   </picture>
-</p> The morning run needs the Claude
-app open, or runs when you next open it, and each issue uses your Claude plan: Claude
-searches the web and opens every article it considers.
+</p>
+
+The morning run needs the Claude app open and the Mac awake, or runs when you next open it.
+Each issue uses your Claude plan: Claude searches the web and opens every article it considers.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-  A[Claude app, every morning] --> B["/paper"]
+  A[Claude app, every morning] --> B["/paper:today"]
   B --> C["paper context<br/>what you read"]
   B --> D["paper feed<br/>your outlets → stories by k<br/>your feeds, saved links"]
   C & D --> E[Claude chooses ≤3 a section<br/>answers your questions, writes cards]
@@ -118,9 +119,9 @@ it yourself, or open Settings at the foot of any issue.
 
 | | |
 |---|---|
-| `/setup` | The interview. |
-| `/paper` | Write today's issue now. |
-| `uv run paper check` | Which outlets and feeds answer. |
+| `/paper:setup` | Set up, or set up again. |
+| `/paper:today` | Write today's issue now. |
+| `~/paper/.tools/bin/paper check` | Which outlets and feeds answer. |
 
 ## Where it comes from
 

@@ -55,14 +55,14 @@ def check_node() -> str | None:
     """A warning if Node 22+ is not available, else None."""
     node = shutil.which("node")
     if not node:
-        return f"news: Node.js not found; install Node {NODE_MAJOR}+ (brew install node)"
+        return "news: Node.js not found; run /paper:setup to install the paper's tools"
     try:
         version = subprocess.run([node, "--version"], capture_output=True, text=True, timeout=30).stdout.strip()
         major = int(version.lstrip("v").split(".")[0])
     except (OSError, ValueError, subprocess.SubprocessError):
         return f"news: {node} --version failed; reinstall Node {NODE_MAJOR}+"
     if major < NODE_MAJOR:
-        return f"news: Node {version} is too old; install Node {NODE_MAJOR}+ (brew upgrade node)"
+        return f"news: Node {version} is too old; run /paper:setup to install the paper's tools"
     return None
 
 

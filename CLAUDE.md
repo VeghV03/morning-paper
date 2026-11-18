@@ -5,7 +5,10 @@ reader's outlets and ranks stories by how many independent outlets carry them; `
 (`src/paper/`) wraps it, reads their feeds and saved links, checks the issue Claude writes,
 and serves it on http://localhost:4747: the issue, a reader view where the reader highlights
 and asks, the cards that come due after a finished piece, and settings. The
-writing is the `/paper` skill; a new reader starts with `/setup`. The `paper` tool never calls
+repo is also the `paper` plugin and its own marketplace (`.claude-plugin/`): the writing is
+`skills/today` (`/paper:today`), a new reader starts with `skills/setup` (`/paper:setup`), and
+`scripts/install.sh` puts uv, Node, Python and a copy of this repo in `~/paper/.tools`, run
+again by the session-start hook in `hooks/` when the plugin changes. The `paper` tool never calls
 a language model.
 
 The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `sections.md`,
@@ -13,7 +16,7 @@ The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `s
 `threads.jsonl`, `reads.jsonl`, `marks.jsonl`, `context.json`, `candidates.json`, `.feed.json` and `cache/` are written by the run and the
 server.
 
-When the user asks to set this up, follow `.claude/skills/setup/SKILL.md`.
+When the user asks to set this up, follow `skills/setup/SKILL.md`.
 
 ## Vendored
 

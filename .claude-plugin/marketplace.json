@@ -1,0 +1,7 @@
+{
+  "name": "morning-paper",
+  "owner": {"name": "VeghV03"},
+  "plugins": [
+    {"name": "paper", "source": "./", "description": "A morning paper your own Claude writes from the outlets you trust, read on your Mac and phone."}
+  ]
+}

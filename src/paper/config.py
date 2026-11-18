@@ -10,7 +10,7 @@ LABELS = {
     "en": {
         "saved": "Saved", "kept": "Kept", "keep": "Keep", "keeping": "Kept", "original": "Original",
         "empty": "Nothing to read today.", "nothing_kept": "Nothing yet.",
-        "no_issue": "No issue yet. Run /paper in Claude Code.", "digest": "Digest of",
+        "no_issue": "No issue yet. Run /paper:today in Claude Code.", "digest": "Digest of",
         "months": "January February March April May June July August September October November December",
         "days": "Monday Tuesday Wednesday Thursday Friday Saturday Sunday",
         "answers": "Answers", "done": "That's the issue.", "settings": "Settings", "next": "Next",
@@ -26,7 +26,7 @@ LABELS = {
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
         "empty": "Ma nincs mit olvasni.", "nothing_kept": "Még semmi.",
-        "no_issue": "Még nincs szám. Futtasd a /paper-t a Claude Code-ban.", "digest": "Összefoglaló:",
+        "no_issue": "Még nincs szám. Futtasd a /paper:today-t a Claude Code-ban.", "digest": "Összefoglaló:",
         "months": "január február március április május június július augusztus szeptember október november december",
         "days": "hétfő kedd szerda csütörtök péntek szombat vasárnap",
         "answers": "Válaszok", "done": "Ennyi volt a mai szám.", "settings": "Beállítások", "next": "Következő",

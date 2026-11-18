@@ -1,5 +1,5 @@
 ---
-name: paper
+name: today
 description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, answer the reader's questions and write cards from what they marked and finished, set the day's games, keep the running stories' threads, and publish the page on localhost. Use when the user says paper, news, today's issue, or when the morning run starts.
 ---
 
@@ -8,19 +8,19 @@ description: Write today's issue of the reader's morning paper. Fetch and rank t
 Every run you write one issue: for each section, up to three articles worth the reader's
 time, chosen by you and written by other people. An issue is finite and it leaves: tomorrow's
 replaces it, and what the reader did not read or keep is gone. So nothing goes in to fill a
-slot. Everything goes through `uv run paper` in this repository; its errors say exactly what
-to fix.
+slot. Everything goes through `~/paper/.tools/bin/paper`; its errors say exactly what to fix.
+When it is missing, the paper is not set up: say to run `/paper:setup`, and stop.
 
-Use only the tools this repository allows without asking, so the morning run never waits at a
-prompt: `uv run paper …` in the shell, from this repository's folder, where the morning run starts, with no `cd`, pipe or
-redirect; Read for files; WebSearch to find articles; `uv run paper read <url>` to open one;
+Use only the tools the reader allowed at setup, so the morning run never waits at a prompt:
+`~/paper/.tools/bin/paper …` in the shell, written exactly so, with no `cd`, pipe or redirect;
+Read for files; WebSearch to find articles; `~/paper/.tools/bin/paper read <url>` to open one;
 Write and Edit for the issue, digests and threads. Never WebFetch, a subagent, curl, cat, sed
 or python.
 
 ## 1. Read the state
 
 ```bash
-uv run paper context
+~/paper/.tools/bin/paper context
 ```
 
 It writes what the reader did to `$PAPER_HOME/context.json` and prints a summary; read the
@@ -28,7 +28,7 @@ file with Read. When `published_today` is true, today's issue is out: say so and
 issue a day.
 
 ```bash
-uv run paper feed
+~/paper/.tools/bin/paper feed
 ```
 
 It takes a few minutes (the engine downloads every outlet's feed); give it a 10-minute
@@ -107,7 +107,7 @@ headline you write from its page, at most eight an issue (the rest wait for the 
 {"id":"r-2026-11-18-12","saved":true,"url":"https://…","head":"…"}
 ```
 
-Before choosing, open each candidate with `uv run paper read <url>`. It prints the article as
+Before choosing, open each candidate with `~/paper/.tools/bin/paper read <url>`. It prints the article as
 the reader will see it, or says there is none: then it is not a piece, however good the page
 looks in a browser.
 
@@ -140,7 +140,7 @@ screen was never in front of them and says nothing. Name each rule that changed 
 What the reader marks in the reader comes back to them.
 
 - **Answers.** For each mark with `kind` `question` and not `answered`, open its piece with
-  `uv run paper read` and answer it: `{"id":"a-<today>-<n>","answer":"<mark id>","text":"…"}`,
+  `~/paper/.tools/bin/paper read` and answer it: `{"id":"a-<today>-<n>","answer":"<mark id>","text":"…"}`,
   in the page's language, 120 words at most, plain sentences that start from the passage. A
   mark is the whole paragraph the reader tapped, so a question is the wish to have it
   explained: say what the passage means and what the reader needed to know; never pad.
@@ -210,13 +210,13 @@ carries `"thread":"t-<slug>"`. Drop a thread that had no news for two weeks; 32 
 ## 5. Publish
 
 ```bash
-uv run paper publish
+~/paper/.tools/bin/paper publish
 ```
 
 It checks the issue and the threads, moves the feed cursor, takes the saved links out of
 `inbox.md`, and prints the page's address. When it refuses, fix what it names and run it
 again. Once it succeeds the issue is out: never change it. When it says the server is not running, line 3 of the report tells the reader to run
-`uv run paper install` once.
+`~/paper/.tools/bin/paper install` once.
 
 ## 6. Report
 
