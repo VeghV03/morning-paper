@@ -18,7 +18,8 @@ LABELS = {
         "show": "Show", "again": "Again", "good": "Got it",
         "sections": "Sections", "interests": "Interests", "feeds": "Feeds", "outlets": "Outlets",
         "language": "Language", "save_link": "Save a link", "add": "Add", "name": "Name", "what": "What belongs",
-        "topics": "Topics", "url": "Address",
+        "topics": "Topics", "url": "Address", "phone": "Phone", "new_code": "New code",
+        "unpaired": "Scan the code in Settings on your Mac.",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -31,7 +32,8 @@ LABELS = {
         "show": "Mutasd", "again": "Újra", "good": "Megvan",
         "sections": "Rovatok", "interests": "Érdeklődés", "feeds": "Hírcsatornák", "outlets": "Lapok",
         "language": "Nyelv", "save_link": "Link mentése", "add": "Hozzáadás", "name": "Név", "what": "Mi kerül bele",
-        "topics": "Témák", "url": "Cím",
+        "topics": "Témák", "url": "Cím", "phone": "Telefon", "new_code": "Új kód",
+        "unpaired": "Olvasd be a kódot a Mac Beállításaiban.",
     },
 }
 
@@ -59,3 +61,10 @@ def dateline(h: Home, day: str) -> str:
     if lang == "hu":
         return f"{d.year}. {month} {d.day}., {weekday}"
     return f"{weekday} {d.day} {month} {d.year}"
+
+
+def short_date(h: Home, day: str) -> str:
+    """The day and month, for links: the page's own heading carries the full date."""
+    d, lang = date.fromisoformat(day), language(h)
+    month = LABELS[lang]["months"].split()[d.month - 1]
+    return f"{month} {d.day}." if lang == "hu" else f"{d.day} {month}"

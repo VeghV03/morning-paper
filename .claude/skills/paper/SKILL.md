@@ -140,8 +140,9 @@ What the reader marks in the reader comes back to them.
 
 - **Answers.** For each mark with `kind` `question` and not `answered`, open its piece with
   `uv run paper read` and answer it: `{"id":"a-<today>-<n>","answer":"<mark id>","text":"…"}`,
-  in the page's language, 120 words at most, plain sentences that start from the passage. Say
-  what the passage means and what the reader needed to know; never pad.
+  in the page's language, 120 words at most, plain sentences that start from the passage. A
+  mark is the whole paragraph the reader tapped, so a question is the wish to have it
+  explained: say what the passage means and what the reader needed to know; never pad.
 Answers and cards are lines of the issue file, after its pieces.
 
 - **Cards.** For each mark not `carded`, one or two cards on what it says. For each piece in

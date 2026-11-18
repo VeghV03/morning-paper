@@ -9,21 +9,26 @@
   screen long enough, `POST /mark` a highlight or question (or its removal), `GET /card?after=<id>`
   the card due after a finished piece and `POST /review` its answer, `PUT /settings/<part>`.
 
-Only localhost is served: the log is the reader's own.
+The Mac is let in by its own address; a phone on the Wi-Fi pairs once with the QR code in
+settings (`/pair`) and is let in by its key (phone.py). Everyone else gets the page that says so.
 """
 
 import html
 import json
 import os
 import re
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-from . import config, learn, net, reading, settings
+from http.cookies import SimpleCookie
+
+from . import config, learn, net, phone, reading, settings
 from .home import Home, home
 from .issue import DAY, Invalid, all_pieces, days, kind, load, sections, threads
 
 PORT = int(os.environ.get("PAPER_PORT") or 4747)
+ICON = Path(__file__).with_name("icon.png")
 MIN_TEXT = 400  # characters; less is a cookie wall or a teaser, not the article
 NO_FETCH = {"24.hu"}
 e = html.escape
@@ -170,22 +175,23 @@ def issue_page(h: Home, day: str) -> str:
         body.append(f"<section><h2>{e(t['saved'])}</h2><ol>{''.join(item(p, False) for p in saved)}</ol></section>")
     if not body:
         body.append(f"<p class=empty>{e(t['empty'])}</p>")
-    left = f'<a href="/{prev_day}">← {e(dateline(prev_day))}</a>' if prev_day else "<span></span>"
-    right = f'<a href="/{next_day}">{e(dateline(next_day))} →</a>' if next_day else "<span></span>"
+    short = lambda d: config.short_date(h, d)  # noqa: E731
+    left = f'<a href="/{prev_day}">← {e(short(prev_day))}</a>' if prev_day else "<span></span>"
+    right = f'<a href="/{next_day}">{e(short(next_day))} →</a>' if next_day else "<span></span>"
     mid = f'<span class=links><a href="/kept">{e(t["kept"])}</a><a href="/settings">{e(t["settings"])}</a></span>'
     return _page(h, dateline(day), f"<h1>{e(dateline(day))}</h1>", "".join(body),
-                 f"<nav>{left}{mid}{right}</nav>", LOOK_JS)
+                 f"<nav>{left}{mid}{right}</nav>", LOOK_JS + ANSWERS_JS)
 
 
 def done_page(h: Home, day: str) -> str:
     t, dateline = config.labels(h), config.dateline(h, day)
-    nav = (f'<nav><a href="/{day}">← {e(dateline)}</a><span class=links>'
+    nav = (f'<nav><a href="/{day}">← {e(config.short_date(h, day))}</a><span class=links>'
            f'<a href="/kept">{e(t["kept"])}</a><a href="/settings">{e(t["settings"])}</a></span><span></span></nav>')
     return _page(h, t["done"], f"<h1>{e(dateline)}</h1>", f"<p class=end>{e(t['done'])}</p>", nav)
 
 
 def reader_page(h: Home, piece: dict, art: dict) -> str:
-    t, dateline = config.labels(h), lambda d: config.dateline(h, d)
+    t = config.labels(h)
     st = reading.state(h).get(piece["id"])
     thread = ""
     if piece.get("thread"):
@@ -197,13 +203,12 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
             thread = (f"<details class=thread{' open' if fresh else ''}><summary>{e(th['title'])}</summary>"
                       f"<p>{e(str(th['body']))}</p></details>")
     kept = reading.kept(piece, st)
-    byline = " · ".join(e(str(x)) for x in (art.get("author"), art.get("date")) if x)
+    byline = " · ".join(e(str(x)) for x in (_host(piece["url"]), art.get("author"), art.get("date")) if x)
     if art.get("digest"):
         byline = f'{e(t["digest"])} <a href="{e(piece["url"])}">{e(_host(piece["url"]))}</a>'
 
     title = re.sub(r"\s+[|–—]\s+[^|–—]+$", "", art.get("title") or "") or piece["head"]  # "Title | Site"
-    head = (f'<header><a href="/{piece["day"]}">← {e(dateline(piece["day"]))}</a>'
-            f'<a href="{e(piece["url"])}">{e(_host(piece["url"]))} ↗</a></header>{thread}'
+    head = (f'<header><a href="/{piece["day"]}">← {e(config.short_date(h, piece["day"]))}</a></header>{thread}'
             f"<h1 class=title>{e(title)}</h1>" + (f"<p class=byline>{byline}</p>" if byline else ""))
     try:
         seq = order(h, piece["day"])
@@ -239,17 +244,20 @@ def kept_page(h: Home) -> str:
     ]
     body = f"<ol>{''.join(items)}</ol>" if items else f"<p class=empty>{e(t['nothing_kept'])}</p>"
     latest = days(h)[-1:] or [None]
-    nav = f'<nav><a href="/{latest[0]}">← {e(dateline(latest[0]))}</a></nav>' if latest[0] else ""
+    nav = f'<nav><a href="/{latest[0]}">← {e(config.short_date(h, latest[0]))}</a></nav>' if latest[0] else ""
     return _page(h, t["kept"], f"<h1>{e(t['kept'])}</h1>", body, nav)
 
 
-def settings_page(h: Home) -> str:
+def settings_page(h: Home, mac: bool = False) -> str:
     t = config.labels(h)
     latest = days(h)[-1:] or [None]
-    back = f'<nav><a href="/{latest[0]}">← {e(config.dateline(h, latest[0]))}</a></nav>' if latest[0] else ""
+    back = f'<nav><a href="/{latest[0]}">← {e(config.short_date(h, latest[0]))}</a></nav>' if latest[0] else ""
     data = {"state": settings.state(h), "t": {k: t[k] for k in (
         "sections", "interests", "feeds", "outlets", "language", "save_link", "add", "name", "what",
-        "topics", "url", "remove", "saved")}}
+        "topics", "url", "remove", "saved", "phone", "new_code")}}
+    if mac:
+        url = phone.pair_url(h, PORT)
+        data["phone"] = {"qr": phone.qr_svg(url), "address": phone.address(PORT)}
     body = "<div id=settings></div>"
     return _page(h, t["settings"], f"<h1>{e(t['settings'])}</h1>", body, back,
                  f"<script>const PAPER = {_json(data)};</script>{SETTINGS_JS}")
@@ -272,18 +280,37 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _send_bytes(self, data: bytes, ctype: str):
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "max-age=86400")
+        self.end_headers()
+        self.wfile.write(data)
+
     def _json_reply(self, data, code: int = 200):
         return self._send(code, json.dumps(data, ensure_ascii=False), "application/json; charset=utf-8")
 
-    def _local(self) -> bool:
-        host = (self.headers.get("Host") or "").split(":")[0]
-        return host in {"localhost", "127.0.0.1"}
+    def _mac(self) -> bool:
+        return phone.is_mac(self.client_address[0], self.headers.get("Host"))
 
-    def _same_origin(self) -> bool:
-        """A write comes from this page or from no page: another site's script cannot mark, review
-        or change settings, which the unattended run would then read."""
-        origin = self.headers.get("Origin")
-        return self._local() and (not origin or urlsplit(origin).hostname in {"localhost", "127.0.0.1"})
+    def _cookie_key(self) -> str | None:
+        jar = SimpleCookie()
+        try:
+            jar.load(self.headers.get("Cookie") or "")
+        except Exception:  # noqa: BLE001 - a bad cookie is no cookie
+            return None
+        return jar[phone.COOKIE].value if phone.COOKIE in jar else None
+
+    def _allowed(self, h: Home) -> bool:
+        return phone.allowed(h, self.client_address[0], self.headers.get("Host"), self._cookie_key())
+
+    def _may_write(self, h: Home) -> bool:
+        return self._allowed(h) and phone.same_origin(self.headers.get("Origin"), self.headers.get("Host"))
+
+    def _unpaired(self, h: Home):
+        t = config.labels(h)
+        return self._send(403, _page(h, "Morning paper", "", f"<p class=empty>{e(t['unpaired'])}</p>"))
 
     def _body_json(self):
         try:
@@ -292,10 +319,14 @@ class Handler(BaseHTTPRequestHandler):
             return None
 
     def do_GET(self):
-        if not self._local():
-            return self._send(403, "localhost only")
         h, url = home(), urlsplit(self.path)
         path = url.path.rstrip("/") or "/"
+        if path == "/pair":
+            return self._send(200, PAIR_PAGE)
+        if path == "/icon.png":
+            return self._send_bytes(ICON.read_bytes(), "image/png")
+        if not self._allowed(h):
+            return self._unpaired(h)
         try:
             if path == "/":
                 all_days = days(h)
@@ -313,7 +344,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/kept":
                 return self._send(200, kept_page(h))
             if path == "/settings":
-                return self._send(200, settings_page(h))
+                return self._send(200, settings_page(h, self._mac()))
             if path == "/card":
                 after = (parse_qs(url.query).get("after") or [""])[0]
                 card = learn.due(h, reading.reviews(h), after)
@@ -335,12 +366,20 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, "Not found.", "text/plain; charset=utf-8")
 
     def do_POST(self):
-        if not self._same_origin():
-            return self._send(403, "localhost only")
         h, path = home(), urlsplit(self.path).path
         data = self._body_json()
         if not isinstance(data, dict):
             return self._send(400, "not JSON", "text/plain")
+        if path == "/pair":
+            if not phone.same_origin(self.headers.get("Origin"), self.headers.get("Host")) or not phone.paired(h, str(data.get("key") or "")):
+                return self._send(403, "", "text/plain")
+            self.send_response(204)
+            self.send_header("Set-Cookie", f"{phone.COOKIE}={phone.key(h)}; Max-Age=315360000; Path=/; HttpOnly; SameSite=Lax")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+        if not self._may_write(h):
+            return self._send(403, "", "text/plain")
         pieces = all_pieces(h)
         if path == "/log" and data.get("id") in pieces:
             ms = max(0, min(int(data.get("ms") or 0), 120_000))  # a heartbeat covers at most two minutes
@@ -366,9 +405,14 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, "", "text/plain")
 
     def do_PUT(self):
-        if not self._same_origin():
-            return self._send(403, "localhost only")
         h, part = home(), urlsplit(self.path).path.removeprefix("/settings/")
+        if not self._may_write(h):
+            return self._send(403, "", "text/plain")
+        if part == "phone":
+            if not self._mac():
+                return self._send(403, "", "text/plain")
+            phone.new_key(h)
+            return self._json_reply({})
         data = self._body_json()
         save = settings.SAVE.get(part)
         if not save or not isinstance(data, dict):
@@ -381,8 +425,25 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def serve(port: int = PORT) -> None:
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
 
+
+ANSWERS_JS = """<script>
+document.querySelectorAll("li.answer blockquote").forEach(q => q.addEventListener("click", () => q.classList.toggle("open")));
+</script>"""
+
+PAIR_PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morning paper</title></head><body>
+<script>
+(async () => {
+  const key = location.hash.slice(1);
+  history.replaceState(null, "", "/pair");
+  if (key) await fetch("/pair", {method: "POST", body: JSON.stringify({key})}).catch(() => null);
+  location.replace("/");
+})();
+</script></body></html>
+"""
 
 LOOK_JS = """<script>
 (() => {
@@ -446,9 +507,11 @@ READER_JS = """<script>
     keep.textContent = kept ? t.keeping : t.keep;
   });
 
-  // marks: highlights and questions, kept by their text
+  // marks: a tap on a paragraph highlights it or asks about it; a mark is kept by its text
   const BLOCKS = "p, li, blockquote, h2, h3, h4, td, th, figcaption";
   const squash = s => s.replace(/\\s+/g, " ").trim();
+  const blocks = [...article.querySelectorAll(BLOCKS)].filter(b => !b.querySelector(BLOCKS));
+  const on = new Map();  // block -> its marks
   const place = (block, text) => {
     const nodes = [], map = [];
     let s = "", space = true;
@@ -466,58 +529,57 @@ READER_JS = """<script>
     r.setStart(...map[at]); r.setEnd(map[at + text.length - 1][0], map[at + text.length - 1][1] + 1);
     return r;
   };
-  const wrap = m => {
-    for (const block of article.querySelectorAll(BLOCKS)) {
-      const r = place(block, m.text);
+  const paint = (block, m) => { block.classList.add("m-" + m.kind); on.set(block, [...(on.get(block) || []), m]); };
+  const draw = m => {
+    const whole = blocks.find(b => squash(b.textContent) === m.text);
+    if (whole) return paint(whole, m);
+    for (const b of blocks) {  // an older mark holds part of a paragraph
+      const r = place(b, m.text);
       if (!r) continue;
       const el = document.createElement("mark");
       el.className = m.kind; el.dataset.id = m.id;
       el.appendChild(r.extractContents()); r.insertNode(el);
-      return el;
+      return;
     }
   };
-  PAPER.marks.forEach(wrap);
+  PAPER.marks.forEach(draw);
 
   const bar = document.createElement("div");
   bar.className = "bar"; bar.hidden = true; document.body.appendChild(bar);
-  const show = (rect, buttons) => {
-    bar.replaceChildren(...buttons.map(([label, fn]) => {
+  let picked = null;
+  const pick = b => { picked?.classList.remove("picked"); picked = b; b?.classList.add("picked"); };
+  const close = () => { bar.hidden = true; pick(null); };
+  const open = acts => {
+    bar.replaceChildren(...acts.map(([label, fn]) => {
       const b = document.createElement("button"); b.textContent = label;
-      b.addEventListener("mousedown", ev => ev.preventDefault());
-      b.addEventListener("click", () => { bar.hidden = true; fn(); });
+      b.addEventListener("click", () => { close(); fn(); });
       return b;
     }));
     bar.hidden = false;
-    bar.style.top = (scrollY + rect.top - bar.offsetHeight - 10) + "px";
-    bar.style.left = Math.max(8, Math.min(innerWidth - bar.offsetWidth - 8, rect.left + rect.width / 2 - bar.offsetWidth / 2)) + "px";
   };
-  const selection = () => {
-    const sel = getSelection();
-    if (!sel.rangeCount || sel.isCollapsed) return null;
-    const r = sel.getRangeAt(0);
-    const block = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer.closest(BLOCKS) : r.commonAncestorContainer.parentElement.closest(BLOCKS);
-    const text = squash(sel.toString());
-    if (!block || !article.contains(block) || text.length < 3) return null;
-    return {r, text};
-  };
-  const mark = async (kind, text) => {
-    getSelection().removeAllRanges();
-    const res = await post("/mark", {piece: id, kind, text});
-    if (res.ok) wrap(await res.json());
-  };
-  document.addEventListener("mouseup", ev => {
-    if (bar.contains(ev.target)) return;
-    setTimeout(() => {
-      const s = selection();
-      if (s) return show(s.r.getBoundingClientRect(), [[t.highlight, () => mark("highlight", s.text)], [t.question, () => mark("question", s.text)]]);
-      const m = ev.target.closest && ev.target.closest("mark[data-id]");
-      if (m) return show(m.getBoundingClientRect(), [[t.remove, async () => {
-        await post("/mark", {id: m.dataset.id, deleted: true});
-        m.replaceWith(...m.childNodes);
-      }]]);
-      bar.hidden = true;
-    });
+  const unmark = mid => post("/mark", {id: mid, deleted: true});
+  article.addEventListener("click", ev => {
+    if (!getSelection().isCollapsed) return;
+    const part = ev.target.closest("mark[data-id]");
+    if (part) { pick(null); return open([[t.remove, () => { unmark(part.dataset.id); part.replaceWith(...part.childNodes); }]]); }
+    const block = ev.target.closest(BLOCKS);
+    if (!block || !article.contains(block) || block === picked) return close();
+    const text = squash(block.textContent);
+    if (text.length < 3) return close();
+    pick(block);
+    const has = on.get(block) || [];
+    const acts = [["highlight", t.highlight], ["question", t.question]].filter(([k]) => !has.some(m => m.kind === k))
+      .map(([kind, label]) => [label, async () => {
+        const res = await post("/mark", {piece: id, kind, text});
+        if (res.ok) paint(block, await res.json());
+      }]);
+    if (has.length) acts.push([t.remove, () => {
+      has.forEach(m => { unmark(m.id); block.classList.remove("m-" + m.kind); });
+      on.delete(block);
+    }]);
+    open(acts);
   });
+  document.addEventListener("click", ev => { if (!article.contains(ev.target) && !bar.contains(ev.target)) close(); });
 
   // one due card after a finished piece
   const el = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; };
@@ -641,7 +703,15 @@ SETTINGS_JS = """<script>
     return block(t.save_link, el("div", {class: "row link"}, input, add), err);
   };
 
-  root.append(sections(), interests(), feeds(), outlets(), language(), link());
+  const pairing = () => {
+    const qr = el("div", {class: "qr"});
+    qr.innerHTML = PAPER.phone.qr;
+    const fresh = el("button", {class: "quiet", onclick: async () => {
+      if ((await fetch("/settings/phone", {method: "PUT", body: "{}"})).ok) location.reload();
+    }}, t.new_code);
+    return block(t.phone, qr, el("p", {class: "addr"}, PAPER.phone.address), fresh);
+  };
+  root.append(sections(), interests(), feeds(), outlets(), language(), link(), ...(PAPER.phone ? [pairing()] : []));
 })();
 </script>"""
 
@@ -649,7 +719,12 @@ PAGE = """<!doctype html>
 <html lang="{lang}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161617" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-title" content="Paper">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="/icon.png">
 <title>{title}</title>
 <style>
 :root {{ --bg: #fbfbfa; --ink: #1d1d1f; --muted: #6e6e73; --faint: #a1a1a6; --rule: #e8e8e6; --chip: #f0f0ee;
@@ -662,9 +737,10 @@ PAGE = """<!doctype html>
 body {{ margin: 0; background: var(--bg); color: var(--ink);
   font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased; }}
-main {{ max-width: 640px; margin: 0 auto; padding: 64px 20px 96px; }}
+main {{ max-width: 640px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 20px calc(120px + env(safe-area-inset-bottom)); }}
+@media (min-width: 700px) {{ main {{ padding-top: 64px; }} }}
 a {{ color: inherit; }}
-h1 {{ font-size: 15px; font-weight: 500; color: var(--muted); margin: 0 0 48px; letter-spacing: .01em; }}
+h1 {{ font-size: 15px; font-weight: 500; color: var(--muted); margin: 0 0 40px; letter-spacing: .01em; }}
 section {{ margin: 0 0 48px; }}
 h2 {{ font-size: 13px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: .08em;
   margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }}
@@ -677,16 +753,19 @@ li p {{ margin: 6px 0 0; color: var(--muted); }}
 li span {{ display: block; margin-top: 6px; font-size: 13px; color: var(--faint); }}
 li span a {{ font-size: 13px; font-weight: 400; }}
 li.done a, li.done p {{ color: var(--faint); }}
-li.answer blockquote {{ margin: 0 0 8px; padding-left: 14px; border-left: 2px solid var(--q); color: var(--muted); }}
+li.answer blockquote {{ margin: 0 0 8px; padding-left: 14px; border-left: 2px solid var(--q); color: var(--muted); cursor: pointer;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }}
+li.answer blockquote.open {{ display: block; }}
 li.answer p {{ color: var(--ink); }}
 nav, footer {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; }}
 nav .links {{ display: flex; gap: 20px; }}
-nav a, footer a, header a {{ color: var(--muted); font-size: 15px; text-decoration: none; }}
+nav a, footer a, header a {{ color: var(--muted); font-size: 15px; text-decoration: none; padding: 10px 0; }}
 nav a:hover, footer a:hover, header a:hover {{ color: var(--ink); }}
 header {{ display: flex; justify-content: space-between; margin-bottom: 40px; }}
 h1.title {{ font-size: 32px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; color: var(--ink); margin: 0 0 8px; }}
 .byline {{ color: var(--faint); font-size: 15px; margin: 0 0 32px; }}
-article {{ font-size: 19px; line-height: 1.65; margin: 32px 0 48px; overflow-wrap: break-word; }}
+article {{ font: 19px/1.6 ui-serif, "New York", Georgia, serif; margin: 32px 0 48px; overflow-wrap: break-word; }}
+article h2 {{ font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }}
 article h2 {{ font-size: 21px; color: var(--ink); text-transform: none; letter-spacing: -.01em; border: 0; margin: 40px 0 8px; padding: 0; }}
 article li {{ border: 0; padding: 4px 0; }}
 article blockquote {{ margin: 24px 0; padding-left: 20px; border-left: 2px solid var(--rule); color: var(--muted); }}
@@ -695,10 +774,14 @@ article td, article th {{ border: 1px solid var(--rule); padding: 4px 8px; }}
 mark {{ color: inherit; border-radius: 3px; cursor: pointer; }}
 mark.highlight {{ background: var(--hl); }}
 mark.question {{ background: var(--q); }}
-.bar {{ position: absolute; z-index: 2; display: flex; gap: 4px; padding: 4px; border-radius: 999px;
-  background: var(--ink); box-shadow: 0 4px 16px rgba(0,0,0,.18); }}
+article .m-highlight, article .m-question, article .picked {{ border-radius: 4px; }}
+article .m-highlight {{ background: var(--hl); box-shadow: 0 0 0 6px var(--hl); }}
+article .m-question {{ background: var(--q); box-shadow: 0 0 0 6px var(--q); }}
+article .picked {{ outline: 1px solid var(--faint); outline-offset: 6px; }}
+.bar {{ position: fixed; z-index: 2; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom));
+  display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: var(--ink); box-shadow: 0 6px 24px rgba(0,0,0,.22); }}
 .bar[hidden] {{ display: none; }}
-.bar button {{ background: transparent; color: var(--bg); padding: 6px 14px; }}
+.bar button {{ background: transparent; color: var(--bg); padding: 12px 20px; font-size: 16px; white-space: nowrap; }}
 .bar button:hover {{ background: rgba(127,127,127,.25); }}
 .thread {{ background: var(--chip); border-radius: 10px; padding: 14px 18px; margin: 0 0 32px; }}
 .thread summary {{ cursor: pointer; font-weight: 600; font-size: 15px; }}
@@ -739,6 +822,8 @@ a.next:hover span {{ text-decoration: none; }}
 #settings .chip {{ display: inline-flex; align-items: center; background: var(--chip); border-radius: 999px; padding: 2px 4px 2px 14px; font-size: 15px; }}
 #settings .chip button {{ padding: 4px 10px; }}
 #settings .choice {{ display: flex; gap: 8px; }}
+#settings .qr svg {{ display: block; width: 180px; height: 180px; border-radius: 10px; }}
+#settings .addr {{ color: var(--muted); font-size: 15px; margin: 12px 0 0; }}
 #settings .err {{ color: var(--muted); font-size: 14px; margin: 8px 0 0; min-height: 1em; }}
 .empty {{ color: var(--muted); }}
 </style>

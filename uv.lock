@@ -426,6 +426,7 @@ dependencies = [
     { name = "httpx" },
     { name = "lxml" },
     { name = "pyyaml" },
+    { name = "segno" },
     { name = "trafilatura" },
 ]
 
@@ -436,6 +437,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "lxml", specifier = ">=5.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "segno", specifier = ">=1.6.6" },
     { name = "trafilatura", specifier = ">=2.0" },
 ]
 
@@ -608,6 +610,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/01/68/c7f456fcd0679d852c19d47a09e76a7b4faa8d01ee3ff3d904da427339d4/regex-2026.11.15-cp315-cp315t-win32.whl", hash = "sha256:3232156a2b62a063f21aa155154e9cc943ca05eeae1d1a00dca7910c7cc1976c", size = 277670, upload-time = "2026-11-15T17:04:11.704Z" },
     { url = "https://files.pythonhosted.org/packages/f8/10/a321539a2b282d5d1260b2e9adeb2b31fc42d4e2e8b216b4a0d0f239e3af/regex-2026.11.15-cp315-cp315t-win_amd64.whl", hash = "sha256:dcb2f4ce63699ba4606d928ccf1e9f81557ba8b2ff263c52610253324856e199", size = 287267, upload-time = "2026-11-15T17:04:13.264Z" },
     { url = "https://files.pythonhosted.org/packages/19/f1/4560498211212996ac0ff3d32501929c5bd91d0258bf0eafa5466f44f818/regex-2026.11.15-cp315-cp315t-win_arm64.whl", hash = "sha256:c5d722af534ac05fea28db7876d45aaae1f8b6c504cf82a5ab27cd80e543e9fe", size = 286791, upload-time = "2026-11-15T17:04:14.499Z" },
+]
+
+[[package]]
+name = "segno"
+version = "1.6.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/2e/b396f750c53f570055bf5a9fc1ace09bed2dff013c73b7afec5702a581ba/segno-1.6.6.tar.gz", hash = "sha256:e60933afc4b52137d323a4434c8340e0ce1e58cec71439e46680d4db188f11b3", size = 1628586, upload-time = "2025-03-12T22:12:53.324Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/02/12c73fd423eb9577b97fc1924966b929eff7074ae6b2e15dd3d30cb9e4ae/segno-1.6.6-py3-none-any.whl", hash = "sha256:28c7d081ed0cf935e0411293a465efd4d500704072cdb039778a2ab8736190c7", size = 76503, upload-time = "2025-03-12T22:12:48.106Z" },
 ]
 
 [[package]]

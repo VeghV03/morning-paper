@@ -20,7 +20,7 @@ from .issue import all_rows
 
 NEW_A_DAY = 10
 KINDS = ("highlight", "question")
-MARK_CHARS = 1200
+MARK_CHARS = 4000  # a long paragraph, whole
 # A card comes back after a day at the soonest: the paper is read once a day, so FSRS's
 # minute-long learning steps would only ever fall inside the same sitting.
 SCHEDULER = Scheduler(learning_steps=(), relearning_steps=(), enable_fuzzing=False)

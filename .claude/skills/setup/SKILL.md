@@ -111,9 +111,11 @@ is tested first.
 uv run paper install
 ```
 
-It keeps the page running from login. Tell them in two sentences what this repository lets
-Claude do without asking (`.claude/settings.json`): search and fetch the web, run `paper`,
-and edit `~/paper`. That is what lets the morning run finish unattended; nothing else is
+It keeps the page running from login, and reaches the phone on the home Wi-Fi; when macOS asks
+whether Python may accept incoming connections, Allow is what lets the phone in. Run it again
+after updating this repository, so the running server is the new one. Tell them in two
+sentences what this repository lets Claude do without asking (`.claude/settings.json`): search
+the web, run `paper`, and edit `~/paper`. That is what lets the morning run finish unattended; nothing else is
 allowed without a prompt.
 
 ## 6. The first issue
@@ -121,10 +123,18 @@ allowed without a prompt.
 Write it now with them watching: follow `.claude/skills/paper/SKILL.md` from step 1. They
 approve its tools as they come up. Open http://localhost:4747 when it is published, and tell
 them in three sentences how it reads: a piece opens in a clean reader with Next at its end;
-selecting text there offers Highlight and Question, and questions are answered in the next
-issue; after a finished piece, a card from earlier reading may come due.
+tapping a paragraph there offers Highlight and Question, and questions are answered in the
+next issue; after a finished piece, a card from earlier reading may come due.
 
-## 7. The morning run
+## 7. The phone
+
+Ask whether they want it on their phone too. If so: Settings on the Mac shows a code; they scan
+it with the phone's camera, which opens the paper and pairs that phone, then Share, Add to Home
+Screen. Say once, plainly: it reads on the home Wi-Fi, where the page is not encrypted, so on a
+shared network someone capturing its traffic could read it. A new code in Settings unpairs
+every phone.
+
+## 8. The morning run
 
 The scheduled-tasks tool is in the Claude app's Code tab. Without it (a terminal session),
 tell them to open this folder there and say "schedule the morning run", which starts here.

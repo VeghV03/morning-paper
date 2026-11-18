@@ -27,7 +27,7 @@ Three things make it better than a feed:
   you can read whole without paying, usually from the outlet that did the reporting. When a
   story rests on a law, a ruling or a statement, the document itself can be the piece.
 - **You keep what you read.** Pieces open one at a time in a clean reader, with the next one
-  at the end and a last page after the last. Select a passage to highlight it or ask about it:
+  at the end and a last page after the last. Tap a paragraph to highlight it or ask about it:
   the next issue answers your question, and cards from what you marked and finished come due,
   one after each piece you finish, on a spaced-repetition schedule. Beyond the news, what you
   look at, open and finish steers which topics come back.
@@ -35,7 +35,7 @@ Three things make it better than a feed:
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/reader-dark.png">
-    <img src="docs/reader-light.png" alt="The reader view: a passage highlighted and another marked as a question, in a Quanta article" width="640">
+    <img src="docs/reader-light.png" alt="The reader view: a paragraph highlighted and a passage marked as a question, in a Quanta article" width="640">
   </picture>
 </p>
 
@@ -60,7 +60,15 @@ the languages you read, what you want beyond the news, the writers and journals 
 It finds outlets and feeds for you and tests each one, writes your files, starts the reader,
 writes your first issue while you watch, and schedules the next one for the morning.
 
-After that, open <http://localhost:4747> with your coffee. The morning run needs the Claude
+After that, open <http://localhost:4747> with your coffee, or read it on your phone: scan the
+code in Settings with the phone's camera, then add the page to your home screen.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/phone-dark.png">
+    <img src="docs/phone-light.png" alt="The reader on a phone: a highlighted paragraph, and the next one tapped, with Highlight and Question at the bottom" width="320">
+  </picture>
+</p> The morning run needs the Claude
 app open, or runs when you next open it, and each issue uses your Claude plan: Claude
 searches the web and opens every article it considers.
 
@@ -78,8 +86,9 @@ flowchart LR
 ```
 
 Your files and your reading record live in `~/paper` on your Mac. Each morning Claude reads
-them to choose the issue, as it reads anything in a conversation. The reader page answers only
-`localhost`.
+them to choose the issue, as it reads anything in a conversation. The page answers your Mac and
+the phones you paired by scanning that code, and no one else. On your Wi-Fi it travels
+unencrypted, so on a shared network someone capturing traffic could read it.
 
 ## Make it yours
 
