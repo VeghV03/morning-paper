@@ -2,8 +2,8 @@
 
   paper init       the home folder ($PAPER_HOME, default ~/paper) from the example
   paper check      which outlets and feeds answer, as JSON
-  paper feed       every candidate since the last issue, as JSON
-  paper context    what the reader did with the last two weeks' pieces, as JSON
+  paper feed       every candidate since the last issue, written to candidates.json
+  paper context    what the reader did and marked, written to context.json
   paper publish    check issues/<date>.jsonl, move the feed cursor, open the issue
   paper serve      the issue, the reader and settings on http://localhost:4747
   paper read URL   the article at URL as the reader will see it, as JSON
@@ -121,7 +121,11 @@ def context(args) -> int:
     except issue.Invalid as e:
         out["threads"] = []
         out["warnings"] = e.errors
-    _print(out)
+    path = h.root / "context.json"
+    path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    _print({"file": str(path), "today": out["today"], "published_today": out["published_today"],
+            **{k: len(out[k]) for k in ("pieces", "marks", "to_card", "threads")},
+            "warnings": out.get("warnings", [])})
     return 0
 
 

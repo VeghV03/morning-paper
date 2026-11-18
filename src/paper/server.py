@@ -113,8 +113,8 @@ def order(h: Home, day: str) -> list[dict]:
     secs = sections(h)
     pieces = [r for r in load(h, day) if kind(r) == "piece"]
     rank = {s.id: n for n, s in enumerate(secs)}
-    placed = [p for p in pieces if not p.get("saved") and p.get("section") in rank]
-    placed.sort(key=lambda p: rank[p["section"]])
+    placed = [p for p in pieces if not p.get("saved")]
+    placed.sort(key=lambda p: rank.get(p.get("section"), len(rank)))  # a renamed section's pieces last
     return placed + [p for p in pieces if p.get("saved")]
 
 
@@ -160,10 +160,11 @@ def issue_page(h: Home, day: str) -> str:
             where = f'<span><a href="/read/{e(src["id"])}">{e(src["head"])}</a></span>' if src else ""
             items.append(f"<li class=answer>{quote}<p>{e(str(a.get('text', '')))}</p>{where}</li>")
         body.append(f"<section><h2>{e(t['answers'])}</h2><ol>{''.join(items)}</ol></section>")
-    for sec in secs:
-        mine = [p for p in pieces if p.get("section") == sec.id and not p.get("saved")]
-        if mine:
-            body.append(f"<section><h2>{e(sec.name)}</h2><ol>{''.join(map(item, mine))}</ol></section>")
+    named = {s.id: s.name for s in secs}
+    for sid in dict.fromkeys(p.get("section") for p in pieces if not p.get("saved")):
+        mine = [p for p in pieces if p.get("section") == sid and not p.get("saved")]
+        name = named.get(sid) or str(sid).replace("-", " ").capitalize()
+        body.append(f"<section><h2>{e(name)}</h2><ol>{''.join(map(item, mine))}</ol></section>")
     saved = [p for p in pieces if p.get("saved")]
     if saved:
         body.append(f"<section><h2>{e(t['saved'])}</h2><ol>{''.join(item(p, False) for p in saved)}</ol></section>")
@@ -278,6 +279,12 @@ class Handler(BaseHTTPRequestHandler):
         host = (self.headers.get("Host") or "").split(":")[0]
         return host in {"localhost", "127.0.0.1"}
 
+    def _same_origin(self) -> bool:
+        """A write comes from this page or from no page: another site's script cannot mark, review
+        or change settings, which the unattended run would then read."""
+        origin = self.headers.get("Origin")
+        return self._local() and (not origin or urlsplit(origin).hostname in {"localhost", "127.0.0.1"})
+
     def _body_json(self):
         try:
             return json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
@@ -328,7 +335,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, "Not found.", "text/plain; charset=utf-8")
 
     def do_POST(self):
-        if not self._local():
+        if not self._same_origin():
             return self._send(403, "localhost only")
         h, path = home(), urlsplit(self.path).path
         data = self._body_json()
@@ -359,7 +366,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, "", "text/plain")
 
     def do_PUT(self):
-        if not self._local():
+        if not self._same_origin():
             return self._send(403, "localhost only")
         h, part = home(), urlsplit(self.path).path.removeprefix("/settings/")
         data = self._body_json()

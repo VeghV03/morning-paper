@@ -23,7 +23,9 @@ or python.
 uv run paper context
 ```
 
-When `published_today` is true, today's issue is out: say so and stop. One issue a day.
+It writes what the reader did to `$PAPER_HOME/context.json` and prints a summary; read the
+file with Read. When `published_today` is true, today's issue is out: say so and stop. One
+issue a day.
 
 ```bash
 uv run paper feed
@@ -114,20 +116,20 @@ in it carries `topic`, the one topic on that list it is mostly about, and `fit`:
 follows what the reader reads, `tries` when it tests a topic they have not shown interest in.
 About a third of an issue's steered pieces are `tries`, placed where you think they fit.
 
-`context.steer` gives, per steered section over 28 days, each topic's showings (`shown`: on an
-issue page they opened), `looked` (its headline on screen for 2 seconds), `opened` and `good`
-(finished, kept or marked), and three lists. Apply these rules, in this order:
+`context.steer` gives, per steered section over 28 days, each topic's showings (`shown`: its
+headline was on screen for 2 seconds, or it was opened), `opened` and `good` (finished, kept or
+marked), and three lists. Apply these rules, in this order:
 
 1. **Worth first.** The rules choose only between pieces of similar worth. They never let a
    weak piece in, and never keep a strong one out.
-2. A topic in `passed_over` (its last four showings neither looked at nor opened) is picked
+2. A topic in `passed_over` (its last four showings, none opened) is picked
    only as a `tries`. One of its `tries` opened brings it back; nothing is shut out for good.
 3. A topic in `good` takes the better slot, between pieces of similar worth.
-4. A `silent` section (seven showings or more, none opened) gets one piece. An open restores
-   three.
+4. A `silent` section (shown for 28 days, nothing opened in them) gets one piece. An open
+   restores three.
 
-News sections are not steered: they stay ranked by `k`. A piece not `seen` was never in front
-of the reader and says nothing. Name each rule that changed a choice in your report.
+News sections are not steered: they stay ranked by `k`. A headline the reader never had on
+screen was never in front of them and says nothing. Name each rule that changed a choice in your report.
 
 ## Answers and cards
 

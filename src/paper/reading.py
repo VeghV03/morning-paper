@@ -28,8 +28,7 @@ RECENT = 14  # days of pieces in `news context`
 WEEK = 7  # days of minutes per section
 LOOK_MS = 2000  # a headline on screen this long, with the page in front, was looked at (x4r U16)
 STEER = 28  # days of showings the steering rules count (x4r U9)
-PASSED = 4  # a topic whose last PASSED showings were neither looked at nor opened is passed over
-SILENT = 7  # showings before a section with no open counts as silent
+PASSED = 4  # a topic whose last PASSED showings were not opened is passed over (x4r U18)
 
 
 def now() -> str:
@@ -163,19 +162,21 @@ def context(h: Home, today: date | None = None) -> dict:
 
 
 def steer(h: Home, everything: dict, st: dict, marked: set, today: date) -> dict:
-    """Per steered section, over the last STEER days: each topic's showings, looks, opens and good
-    outcomes (finished, kept or marked); the topics passed over (their last PASSED showings neither
-    looked at nor opened); the topics with a good outcome; and whether the section is silent (no
-    piece opened in SILENT showings or more)."""
+    """Per steered section, over the last STEER days: each topic's showings (its headline was on
+    screen for LOOK_MS, or it was opened), opens and good outcomes (finished, kept or marked); the
+    topics passed over (their last PASSED showings not opened); the topics with a good outcome;
+    and whether the section is silent: shown for STEER days or more, with nothing opened in the
+    last STEER (x4r U21)."""
     first = (today - timedelta(days=STEER - 1)).isoformat()
     out = {}
     for sec in sections(h):
         if not sec.topics:
             continue
-        shown = sorted((p for p in everything.values()
-                        if p.get("section") == sec.id and p["day"] >= first and st.get(p["id"], {}).get("seen")),
-                       key=lambda p: (p["day"], p["id"]))
-        topics = {t: {"shown": 0, "looked": 0, "opened": 0, "good": 0} for t in sec.topics}
+        ever = sorted((p for p in everything.values()
+                       if p.get("section") == sec.id and st.get(p["id"], {}).get("looked")),
+                      key=lambda p: (p["day"], p["id"]))
+        shown = [p for p in ever if p["day"] >= first]
+        topics = {t: {"shown": 0, "opened": 0, "good": 0} for t in sec.topics}
         last: dict[str, list[bool]] = {t: [] for t in sec.topics}
         for p in shown:
             t, s = p.get("topic"), st[p["id"]]
@@ -183,14 +184,13 @@ def steer(h: Home, everything: dict, st: dict, marked: set, today: date) -> dict
                 continue
             good = finished(h, p["id"], s) or kept(p, s) or p["id"] in marked
             topics[t]["shown"] += 1
-            topics[t]["looked"] += s["looked"]
             topics[t]["opened"] += s["opened"]
             topics[t]["good"] += good
-            last[t].append(s["looked"] or s["opened"])
+            last[t].append(s["opened"])
         out[sec.id] = {
             "topics": topics,
             "passed_over": [t for t, xs in last.items() if len(xs) >= PASSED and not any(xs[-PASSED:])],
             "good": [t for t, x in topics.items() if x["good"]],
-            "silent": len(shown) >= SILENT and not any(st[p["id"]]["opened"] for p in shown),
+            "silent": bool(ever) and ever[0]["day"] < first and not any(st[p["id"]]["opened"] for p in shown),
         }
     return out
