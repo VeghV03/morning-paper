@@ -13,6 +13,12 @@ LABELS = {
         "no_issue": "No issue yet. Run /paper in Claude Code.", "digest": "Digest of",
         "months": "January February March April May June July August September October November December",
         "days": "Monday Tuesday Wednesday Thursday Friday Saturday Sunday",
+        "answers": "Answers", "done": "That's the issue.", "settings": "Settings", "next": "Next",
+        "highlight": "Highlight", "question": "Question", "remove": "Remove",
+        "show": "Show", "again": "Again", "good": "Got it",
+        "sections": "Sections", "interests": "Interests", "feeds": "Feeds", "outlets": "Outlets",
+        "language": "Language", "save_link": "Save a link", "add": "Add", "name": "Name", "what": "What belongs",
+        "topics": "Topics", "url": "Address",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -20,6 +26,12 @@ LABELS = {
         "no_issue": "Még nincs szám. Futtasd a /paper-t a Claude Code-ban.", "digest": "Összefoglaló:",
         "months": "január február március április május június július augusztus szeptember október november december",
         "days": "hétfő kedd szerda csütörtök péntek szombat vasárnap",
+        "answers": "Válaszok", "done": "Ennyi volt a mai szám.", "settings": "Beállítások", "next": "Következő",
+        "highlight": "Kiemelés", "question": "Kérdés", "remove": "Törlés",
+        "show": "Mutasd", "again": "Újra", "good": "Megvan",
+        "sections": "Rovatok", "interests": "Érdeklődés", "feeds": "Hírcsatornák", "outlets": "Lapok",
+        "language": "Nyelv", "save_link": "Link mentése", "add": "Hozzáadás", "name": "Név", "what": "Mi kerül bele",
+        "topics": "Témák", "url": "Cím",
     },
 }
 

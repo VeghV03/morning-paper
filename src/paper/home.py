@@ -56,6 +56,11 @@ class Home:
         return self.root / "reads.jsonl"
 
     @property
+    def marks(self) -> Path:
+        """The reader's highlights and questions (learn.py)."""
+        return self.root / "marks.jsonl"
+
+    @property
     def cache(self) -> Path:
         """Article text the reader view extracted, one file a piece."""
         return self.root / "cache"

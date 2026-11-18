@@ -5,8 +5,8 @@
   paper feed       every candidate since the last issue, as JSON
   paper context    what the reader did with the last two weeks' pieces, as JSON
   paper publish    check issues/<date>.jsonl, move the feed cursor, open the issue
-  paper serve      the issue and the reader on http://localhost:4747
-  paper dashboard  edit sections, interests, feeds and saved links on http://localhost:8745
+  paper serve      the issue, the reader and settings on http://localhost:4747
+  paper read URL   the article at URL as the reader will see it, as JSON
   paper install    keep `paper serve` running from login (macOS)
 
 The tool never calls a language model; Claude does the choosing.
@@ -35,7 +35,6 @@ from .home import commit_pending, home, pending
 REPO = Path(__file__).resolve().parents[2]
 EXAMPLE = REPO / "example"
 PRESETS = REPO / "presets"
-DASHBOARD = REPO / "dashboard" / "dashboard.py"  # the x4r dashboard, copied unmodified
 LABEL = "local.morning-paper.serve"
 AGENT = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 
@@ -157,11 +156,6 @@ def serve(args) -> int:
     return 0
 
 
-def dashboard(args) -> int:
-    cmd = [sys.executable, str(DASHBOARD), "--home", str(home().root), "--title", "Morning paper"]
-    return subprocess.run(cmd + (["--no-open"] if args.no_open else [])).returncode
-
-
 def install(args) -> int:
     if sys.platform != "darwin":
         print("install is for macOS; elsewhere run `paper serve` yourself", file=sys.stderr)
@@ -201,10 +195,8 @@ def main(argv: list[str] | None = None) -> int:
     pub.add_argument("--open", action="store_true", help="open the issue in the browser")
     sub.add_parser("serve")
     sub.add_parser("install")
-    d = sub.add_parser("dashboard")
-    d.add_argument("--no-open", action="store_true")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "dashboard": dashboard, "check": check, "read": read}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read}[args.cmd](args)
 
 
 if __name__ == "__main__":
