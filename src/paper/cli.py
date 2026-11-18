@@ -60,7 +60,13 @@ def init(args) -> int:
 
 
 def feed(args) -> int:
-    _print(feed_mod.feed(home()))
+    """Writes the candidates to $PAPER_HOME/feed.json (too long to print) and prints what is in it."""
+    h = home()
+    data = feed_mod.feed(h)
+    out = h.root / "feed.json"
+    out.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    _print({"file": str(out), **{k: len(v) for k, v in data.items() if isinstance(v, list) and k != "warnings"},
+            "warnings": data.get("warnings", [])})
     return 0
 
 

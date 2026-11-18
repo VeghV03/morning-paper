@@ -11,6 +11,11 @@ replaces it, and what the reader did not read or keep is gone. So nothing goes i
 slot. Everything goes through `uv run paper` in this repository; its errors say exactly what
 to fix.
 
+Use only the tools this repository allows without asking, so the morning run never waits at a
+prompt: `uv run paper …` in the shell, from the folder you start in, with no `cd`, pipe or
+redirect; Read for files; WebSearch to find articles and WebFetch to open them; Write and Edit
+for the issue, digests and threads. Never curl, cat, sed or python.
+
 ## 1. Read the state
 
 ```bash
@@ -24,7 +29,8 @@ uv run paper feed
 ```
 
 It takes a few minutes (the engine downloads every outlet's feed); give it a 10-minute
-timeout. `feed` has the candidates: `news` (stories since the last issue from the reader's
+timeout. It writes the candidates to `$PAPER_HOME/feed.json` and prints how many of each kind
+there are; read the file with Read. The candidates: `news` (stories since the last issue from the reader's
 `outlets.json`, ranked by `k`, the number of independent outlets, and for the top stories
 `primary` documents: the acts, rulings and statements they rest on), `follow` (new posts from
 their `feeds.yaml`), `inbox` (links they saved) and `interests`. It reports the same items
@@ -74,8 +80,8 @@ What each kind of section takes:
   the piece;
   when a story has no other source, find the piece on the web or leave the story out.
 - **Every other section**: articles you find on the web, fresh each issue, that fit its line
-  in `sections.md` and `interests.md`: essays, research written for readers, reporting with a
-  finding. Prefer the piece with an argument or a finding over the piece with an opinion. No
+  in `sections.md` and `interests.md`, found with WebSearch: essays, research written for
+  readers, reporting with a finding. Prefer the piece with an argument or a finding over the piece with an opinion. No
   paywalled pages, never the same site twice in an issue. The best new posts from
   `feed.follow` go where they belong.
 
@@ -93,7 +99,7 @@ headline you write from its page, at most eight an issue (the rest wait for the 
 {"id":"r-2026-11-18-12","saved":true,"url":"https://…","head":"…"}
 ```
 
-Before choosing, open each candidate article. A page that does not load whole without an
+Before choosing, open each candidate article with WebFetch. A page that does not load whole without an
 account is not a piece.
 
 ## 3. Learn from the reader
@@ -123,12 +129,12 @@ uv run paper publish
 
 It checks the issue and the threads, moves the feed cursor, takes the saved links out of
 `inbox.md`, and prints the page's address. When it refuses, fix what it names and run it
-again. When it says the server is not running, tell the reader to run `uv run paper install`
+again. Once it succeeds the issue is out: never change it. When it says the server is not running, tell the reader to run `uv run paper install`
 once.
 
 ## 6. Report
 
-Three lines at most: how many pieces in which sections, what you changed from the reading
+Three lines, never more: how many pieces in which sections, what you changed from the reading
 record, and every warning from `feed` or `publish`. When nobody is watching (the morning run),
 never stop to ask: where this leaves a choice, take the one it recommends and add each
 assumption to the report.
