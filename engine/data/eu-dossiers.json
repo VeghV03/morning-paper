@@ -1,0 +1,32 @@
+{
+  "_mit": "Figyelt uniós dossziék. NEM az egész Hivatalos Lap: az naponta több száz dokumentum, és abból évente néhány kell. Ez a lista szerkesztői döntés, kézzel gondozott.",
+  "_hogyan": "Minden dossziéhoz megadunk egy alapaktust CELEX-szel. A figyelés arra megy, hogy megjelent-e ÚJ mű, ami erre hivatkozik — módosítás, végrehajtási aktus, bizottsági javaslat, jelentés. Az, hogy egy rendelet létezik, nem hír; az, hogy mozdul körülötte valami, lehet az.",
+  "_celex": "A CELEX-számot az EUR-Lexen a dokumentum adatlapján találod. 3=jogszabály, 5=előkészítő aktus. Példa: 32024R1689 = 2024/1689 rendelet.",
+  "dossiers": [
+    {
+      "id": "ai-act",
+      "nev": "MI-rendelet (AI Act)",
+      "celex": "32024R1689",
+      "miert": "Az 50. cikk átláthatósági kötelezettsége 2026. augusztus 2. óta alkalmazandó.",
+      "figyelt_cikkek": ["50. cikk", "6. cikk", "5. cikk"]
+    },
+    {
+      "id": "chat-control",
+      "nev": "CSAR — a gyermekek szexuális bántalmazása elleni rendeletjavaslat",
+      "celex": "52022PC0209",
+      "miert": "Előkészítő aktus, évek óta vitatott. A magánüzenetek átvizsgálásának kötelezettsége hazai politikai vitákban is előkerül."
+    },
+    {
+      "id": "gdpr",
+      "nev": "Általános adatvédelmi rendelet",
+      "celex": "32016R0679",
+      "miert": "Hazai hatósági határozatok rendszeresen hivatkoznak rá; ha egy magyar döntés mellé kell a hiteles uniós szöveg, innen jön."
+    },
+    {
+      "id": "dsa",
+      "nev": "Digitális szolgáltatásokról szóló rendelet (DSA)",
+      "celex": "32022R2065",
+      "miert": "Platformszabályozás; a magyar sajtó- és platformügyek visszatérő jogi háttere."
+    }
+  ]
+}

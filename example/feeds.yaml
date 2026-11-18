@@ -1,0 +1,6 @@
+# Feeds you follow. Their best new posts go into the sections they fit.
+max_per_feed: 2
+feeds:
+  - {name: Quanta Magazine, url: "https://www.quantamagazine.org/feed/"}
+  - {name: Aeon, url: "https://aeon.co/feed.rss"}
+  - {name: ProPublica, url: "https://www.propublica.org/feeds/propublica/main"}

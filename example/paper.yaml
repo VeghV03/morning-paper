@@ -1,0 +1,4 @@
+# language: the page's own words (en or hu). Articles keep their own language.
+# morning: when the morning run writes the issue, local time.
+language: en
+morning: "05:07"

@@ -1,0 +1,221 @@
+[
+ {
+  "id": "aljazeera",
+  "org": "Al Jazeera",
+  "kind": "rss",
+  "urls": [
+   "https://www.aljazeera.com/xml/rss/all.xml"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "politico-eu",
+  "org": "Politico Europe",
+  "kind": "rss",
+  "urls": [
+   "https://www.politico.eu/feed/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "euractiv",
+  "org": "Euractiv",
+  "kind": "rss",
+  "urls": [
+   "https://www.euractiv.com/feed/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "bbc",
+  "org": "BBC",
+  "kind": "rss",
+  "urls": [
+   "https://feeds.bbci.co.uk/news/world/rss.xml"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "dw",
+  "org": "Deutsche Welle",
+  "kind": "rss",
+  "urls": [
+   "https://rss.dw.com/rdf/rss-en-world"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "guardian",
+  "org": "The Guardian",
+  "kind": "rss",
+  "urls": [
+   "https://www.theguardian.com/world/rss",
+   "https://www.theguardian.com/international/rss"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "spiegel",
+  "org": "Der Spiegel",
+  "kind": "rss",
+  "urls": [
+   "https://www.spiegel.de/international/index.rss",
+   "https://www.spiegel.de/schlagzeilen/index.rss"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "nyt",
+  "org": "The New York Times",
+  "kind": "rss",
+  "urls": [
+   "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+   "https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml",
+   "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+   "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "lemonde",
+  "org": "Le Monde",
+  "kind": "rss",
+  "urls": [
+   "https://www.lemonde.fr/en/international/rss_full.xml",
+   "https://www.lemonde.fr/international/rss_full.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "france24",
+  "org": "France 24",
+  "kind": "rss",
+  "urls": [
+   "https://www.france24.com/en/rss"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "ft",
+  "org": "Financial Times",
+  "kind": "rss",
+  "urls": [
+   "https://www.ft.com/world?format=rss"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "wsj",
+  "org": "The Wall Street Journal",
+  "kind": "rss",
+  "urls": [
+   "https://feeds.a.dj.com/rss/RSSWorldNews.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "economist",
+  "org": "The Economist",
+  "kind": "rss",
+  "urls": [
+   "https://www.economist.com/europe/rss.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "timesofisrael",
+  "org": "The Times of Israel",
+  "kind": "rss",
+  "urls": [
+   "https://www.timesofisrael.com/feed/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "haaretz",
+  "org": "Haaretz",
+  "kind": "rss",
+  "urls": [
+   "https://www.haaretz.com/srv/haaretz-latest-headlines"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "kyivindependent",
+  "org": "The Kyiv Independent",
+  "kind": "rss",
+  "urls": [
+   "https://kyivindependent.com/news-archive/rss/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "pravda-ua",
+  "org": "Ukrainska Pravda",
+  "kind": "rss",
+  "urls": [
+   "https://www.pravda.com.ua/eng/rss/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "npr",
+  "org": "NPR",
+  "kind": "rss",
+  "urls": [
+   "https://feeds.npr.org/1004/rss.xml"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "propublica",
+  "org": "ProPublica",
+  "kind": "rss",
+  "urls": [
+   "https://www.propublica.org/feeds/propublica/main"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "abc-au",
+  "org": "ABC News (Australia)",
+  "kind": "rss",
+  "urls": [
+   "https://www.abc.net.au/news/feed/2942460/rss.xml"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "cbc",
+  "org": "CBC News",
+  "kind": "rss",
+  "urls": [
+   "https://www.cbc.ca/webfeed/rss/rss-world"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "scmp",
+  "org": "South China Morning Post",
+  "kind": "rss",
+  "urls": [
+   "https://www.scmp.com/rss/91/feed"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "thehindu",
+  "org": "The Hindu",
+  "kind": "rss",
+  "urls": [
+   "https://www.thehindu.com/news/international/feeder/default.rss"
+  ],
+  "lang": "en"
+ }
+]

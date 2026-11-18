@@ -1,0 +1,374 @@
+[
+ {
+  "id": "telex",
+  "org": "Telex",
+  "kind": "rss",
+  "urls": [
+   "https://telex.hu/rss"
+  ],
+  "lang": "hu",
+  "article_fetch": "ok"
+ },
+ {
+  "id": "444",
+  "org": "444",
+  "kind": "rss",
+  "urls": [
+   "https://444.hu/feed"
+  ],
+  "lang": "hu",
+  "article_fetch": "ok"
+ },
+ {
+  "id": "hvg",
+  "org": "HVG",
+  "kind": "rss",
+  "urls": [
+   "https://hvg.hu/rss"
+  ],
+  "lang": "hu",
+  "article_fetch": "ok"
+ },
+ {
+  "id": "portfolio",
+  "org": "Portfolio",
+  "kind": "rss",
+  "urls": [
+   "https://www.portfolio.hu/rss/all.xml",
+   "https://www.portfolio.hu/rss/gazdasag.xml"
+  ],
+  "lang": "hu",
+  "article_fetch": "ok"
+ },
+ {
+  "id": "24",
+  "org": "24.hu",
+  "kind": "rss",
+  "urls": [
+   "https://24.hu/feed/"
+  ],
+  "lang": "hu",
+  "article_fetch": "blocked"
+ },
+ {
+  "id": "index",
+  "org": "Index",
+  "kind": "rss",
+  "urls": [
+   "https://index.hu/24ora/rss/"
+  ],
+  "lang": "hu",
+  "piece": false
+ },
+ {
+  "id": "magyarnemzet",
+  "org": "Magyar Nemzet",
+  "kind": "rss",
+  "urls": [
+   "https://magyarnemzet.hu/feed"
+  ],
+  "lang": "hu",
+  "piece": false
+ },
+ {
+  "id": "mandiner",
+  "org": "Mandiner",
+  "kind": "rss",
+  "urls": [
+   "https://mandiner.hu/rss"
+  ],
+  "lang": "hu",
+  "piece": false
+ },
+ {
+  "id": "origo",
+  "org": "Origo",
+  "kind": "rss",
+  "urls": [
+   "https://www.origo.hu/publicapi/hu/rss/origo/articles"
+  ],
+  "lang": "hu",
+  "piece": false
+ },
+ {
+  "id": "nepszava",
+  "org": "Népszava",
+  "kind": "rss",
+  "urls": [
+   "https://nepszava.hu/feed/"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "vg",
+  "org": "Világgazdaság",
+  "kind": "rss",
+  "urls": [
+   "https://www.vg.hu/feed"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "economx",
+  "org": "Economx",
+  "kind": "rss",
+  "urls": [
+   "https://www.economx.hu/feed"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "merce",
+  "org": "Mérce",
+  "kind": "rss",
+  "urls": [
+   "https://merce.hu/feed/"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "atlatszo",
+  "org": "Átlátszó",
+  "kind": "rss",
+  "urls": [
+   "https://atlatszo.hu/feed/"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "direkt36",
+  "org": "Direkt36",
+  "kind": "rss",
+  "urls": [
+   "https://www.direkt36.hu/feed/"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "mti",
+  "org": "MTI",
+  "kind": "html",
+  "urls": [
+   "https://mti.hu/"
+  ],
+  "lang": "hu"
+ },
+ {
+  "id": "aljazeera",
+  "org": "Al Jazeera",
+  "kind": "rss",
+  "urls": [
+   "https://www.aljazeera.com/xml/rss/all.xml"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "politico-eu",
+  "org": "Politico Europe",
+  "kind": "rss",
+  "urls": [
+   "https://www.politico.eu/feed/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "euractiv",
+  "org": "Euractiv",
+  "kind": "rss",
+  "urls": [
+   "https://www.euractiv.com/feed/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "bbc",
+  "org": "BBC",
+  "kind": "rss",
+  "urls": [
+   "https://feeds.bbci.co.uk/news/world/rss.xml"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "dw",
+  "org": "Deutsche Welle",
+  "kind": "rss",
+  "urls": [
+   "https://rss.dw.com/rdf/rss-en-world"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "guardian",
+  "org": "The Guardian",
+  "kind": "rss",
+  "urls": [
+   "https://www.theguardian.com/world/rss",
+   "https://www.theguardian.com/international/rss"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "spiegel",
+  "org": "Der Spiegel",
+  "kind": "rss",
+  "urls": [
+   "https://www.spiegel.de/international/index.rss",
+   "https://www.spiegel.de/schlagzeilen/index.rss"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "nyt",
+  "org": "The New York Times",
+  "kind": "rss",
+  "urls": [
+   "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+   "https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml",
+   "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+   "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "lemonde",
+  "org": "Le Monde",
+  "kind": "rss",
+  "urls": [
+   "https://www.lemonde.fr/en/international/rss_full.xml",
+   "https://www.lemonde.fr/international/rss_full.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "france24",
+  "org": "France 24",
+  "kind": "rss",
+  "urls": [
+   "https://www.france24.com/en/rss"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "ft",
+  "org": "Financial Times",
+  "kind": "rss",
+  "urls": [
+   "https://www.ft.com/world?format=rss"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "wsj",
+  "org": "The Wall Street Journal",
+  "kind": "rss",
+  "urls": [
+   "https://feeds.a.dj.com/rss/RSSWorldNews.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "economist",
+  "org": "The Economist",
+  "kind": "rss",
+  "urls": [
+   "https://www.economist.com/europe/rss.xml"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "lefigaro",
+  "org": "Le Figaro",
+  "kind": "rss",
+  "urls": [
+   "https://www.lefigaro.fr/rss/figaro_international.xml"
+  ],
+  "lang": "fr",
+  "paywalled": true
+ },
+ {
+  "id": "faz",
+  "org": "Frankfurter Allgemeine",
+  "kind": "rss",
+  "urls": [
+   "https://www.faz.net/rss/aktuell/politik/ausland/"
+  ],
+  "lang": "de",
+  "paywalled": true
+ },
+ {
+  "id": "timesofisrael",
+  "org": "The Times of Israel",
+  "kind": "rss",
+  "urls": [
+   "https://www.timesofisrael.com/feed/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "haaretz",
+  "org": "Haaretz",
+  "kind": "rss",
+  "urls": [
+   "https://www.haaretz.com/srv/haaretz-latest-headlines"
+  ],
+  "lang": "en",
+  "paywalled": true
+ },
+ {
+  "id": "kyivindependent",
+  "org": "The Kyiv Independent",
+  "kind": "rss",
+  "urls": [
+   "https://kyivindependent.com/news-archive/rss/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "pravda-ua",
+  "org": "Ukrainska Pravda",
+  "kind": "rss",
+  "urls": [
+   "https://www.pravda.com.ua/eng/rss/"
+  ],
+  "lang": "en"
+ },
+ {
+  "id": "kormany",
+  "org": "kormany.hu",
+  "kind": "html",
+  "urls": [
+   "https://kormany.hu/hirek"
+  ],
+  "lang": "hu",
+  "role": "OFFICIAL_STATEMENT"
+ },
+ {
+  "id": "kozlony",
+  "org": "Magyar Közlöny",
+  "kind": "html",
+  "urls": [
+   "https://magyarkozlony.hu/"
+  ],
+  "lang": "hu",
+  "constitutive": true,
+  "role": "OFFICIAL_RECORD"
+ },
+ {
+  "id": "eurlex",
+  "org": "Az Európai Unió Hivatalos Lapja",
+  "kind": "external",
+  "urls": [
+   "http://publications.europa.eu/resource/celex/"
+  ],
+  "lang": "hu",
+  "constitutive": true,
+  "skip_snapshot": true,
+  "role": "OFFICIAL_RECORD"
+ }
+]

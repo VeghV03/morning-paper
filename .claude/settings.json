@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run paper:*)",
+      "WebSearch",
+      "WebFetch",
+      "Read(~/paper/**)",
+      "Edit(~/paper/**)",
+      "Write(~/paper/**)"
+    ]
+  }
+}
