@@ -1,6 +1,6 @@
 ---
 name: paper
-description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, answer the reader's questions and write cards from what they marked and finished, keep the running stories' threads, and publish the page on localhost. Use when the user says paper, news, today's issue, or when the morning run starts.
+description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, answer the reader's questions and write cards from what they marked and finished, set the day's games, keep the running stories' threads, and publish the page on localhost. Use when the user says paper, news, today's issue, or when the morning run starts.
 ---
 
 # paper
@@ -44,7 +44,8 @@ not for the reader. A story told in two languages arrives as two stories: count 
 `kept`, `min`, and `topic` and `fit` in steered sections), minutes per section this week, the
 threads, the reader's `marks` (highlights and questions, with `answered` and `carded`),
 `to_card` (finished pieces with no mark and no card), `cards` (how many, due, reviewed this
-week) and `steer` (step 3).
+week), `games` (what the reader picked in each prediction and link, or that they skipped it,
+and the crossword words they did not solve) and `steer` (step 3).
 
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
 `feeds.yaml`, `inbox.md`, `outlets.json` and `paper.yaml` are theirs: follow them, never edit
@@ -146,7 +147,9 @@ What the reader marks in the reader comes back to them.
 Answers and cards are lines of the issue file, after its pieces.
 
 - **Cards.** For each mark not `carded`, one or two cards on what it says. For each piece in
-  `to_card`, one card on its main finding. At most 12 an issue; marks first, newest first.
+  `to_card`, one card on its main finding. For each game in `context.games` with `right` false
+  and not `carded`, one card on the right answer, `from` the game's id. At most 12 an issue;
+  marks first, then missed games, newest first.
 
 ```json
 {"id":"c-2026-11-18-1","card":"flip","front":"What did the 1998 supernova surveys show?","back":"The expansion of the universe is speeding up: the first evidence for dark energy.","from":"h-…"}
@@ -159,6 +162,36 @@ three options of the same kind and length, the wrong two ones a reader could bel
 is the right one's index. `from` is the mark or piece it comes from. A card on a passing
 detail, or one that only tests the wording, is worse than none. Cards come due in the reader,
 one after each finished piece, on a schedule the reader's answers set.
+
+## Games
+
+Three games, each a line of the issue file. They ask the reader to recall or guess before
+reading, which is what makes the reading stick; a game on a detail is worse than none.
+
+- **Predictions.** On up to three pieces with one clear finding (a study's result, a vote's
+  outcome, a number), ask what it is before the piece opens. The reader picks, reads, and sees
+  the answer at the end. The question shows under the article's own title, so a finding
+  that title or your headline gives away makes no prediction.
+- **Links.** When a piece carries a thread and `context.pieces` has an earlier piece of that
+  story the reader `opened`, ask what happened in it. The story so far follows the answer.
+  One game a piece: never a link and a prediction on the same one.
+
+```json
+{"id":"p-2026-11-18-1","predict":"r-2026-11-18-4","prompt":"How much faster is the universe expanding than the standard model says?","options":["About 1%","About 8%","About 30%"],"answer":1}
+{"id":"l-2026-11-18-1","link":"r-2026-11-18-2","from":"r-2026-11-15-1","prompt":"What did parliament do with the budget last week?","options":["Passed it","Sent it back","Delayed the vote"],"answer":2}
+```
+
+Three options of the same kind and length, as on a choice card, in the page's language.
+
+- **The crossword, Sundays only.** Six to twelve names and terms from pieces of the past
+  week the reader `opened`, each one word of 3 to 9 letters, no spaces or digits; the clue
+  (90 characters at most) is answerable from the piece, which `piece` names. Prefer short
+  words that share letters: `paper publish` lays them on a 9 by 9 grid and refuses the
+  crossword when fewer than six cross.
+
+```json
+{"id":"x-2026-11-22","crossword":[{"answer":"Danube","clue":"The river the new bridge crosses","piece":"r-2026-11-19-3"}]}
+```
 
 ## 4. Threads: `$PAPER_HOME/threads.jsonl`
 
@@ -188,7 +221,7 @@ again. Once it succeeds the issue is out: never change it. When it says the serv
 
 Your last message is the report: three lines, nothing before or after them.
 
-1. The pieces by section, then answers and cards: `World 3 · Science 1 · Saved 2 · 1 answer · 4 cards`.
+1. The pieces by section, then answers, cards and games: `World 3 · Science 1 · Saved 2 · 1 answer · 4 cards · 2 games`.
 2. Each steering rule that changed a choice, or `no change`.
 3. What the reader has to do, such as starting the server, in one sentence; else `nothing to do`.
 

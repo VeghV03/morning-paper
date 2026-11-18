@@ -21,6 +21,7 @@ LABELS = {
         "topics": "Topics", "url": "Address", "phone": "Phone", "new_code": "New code",
         "unpaired": "Enter the code from Settings on your Mac.", "pair": "Pair",
         "wrong_code": "That code doesn't match.", "locked": "Too many tries. Open Settings on your Mac.",
+        "skip": "Skip", "crossword": "Crossword", "across": "Across", "down": "Down",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -36,6 +37,7 @@ LABELS = {
         "topics": "Témák", "url": "Cím", "phone": "Telefon", "new_code": "Új kód",
         "unpaired": "Írd be a kódot a Mac Beállításaiból.", "pair": "Párosítás",
         "wrong_code": "Ez a kód nem egyezik.", "locked": "Túl sok próbálkozás. Nyisd meg a Beállításokat a Macen.",
+        "skip": "Kihagyom", "crossword": "Keresztrejtvény", "across": "Vízszintes", "down": "Függőleges",
     },
 }
 

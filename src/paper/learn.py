@@ -105,8 +105,11 @@ def due(h: Home, reviews: list[dict], after: str, now: datetime | None = None) -
     sched = schedule(h, reviews)
     m = marks(h)
 
-    def source(c: dict) -> str:
-        return m.get(c.get("from"), {}).get("piece", c.get("from"))
+    played = {**all_rows(h, "predict"), **all_rows(h, "link")}
+
+    def source(c: dict) -> str:  # the piece a card comes from, through its mark or game
+        g = played.get(c.get("from"), {})
+        return m.get(c.get("from"), {}).get("piece") or g.get("predict") or g.get("link") or c.get("from")
 
     def today(at: datetime | None) -> bool:
         return bool(at and at.astimezone().date() == local_day)

@@ -8,7 +8,9 @@ Events, one a line, each with `t` (ISO time) and `id` (a piece):
   down the article they have been (0 to 1);
 - `keep`: `kept` true or false;
 - `thread`: the story so far was shown above the piece, `hash` of its body;
-- `review`: a card (`id` c-…) was answered, `rating` again or good (learn.py).
+- `review`: a card (`id` c-…) was answered, `rating` again or good (learn.py);
+- `game`: a prediction or link (`id` p-… or l-…) was answered, `pick` and `right`, or `skipped`;
+  or a crossword (`id` x-…) word was solved, `entry` its index. Only the first answer counts.
 
 A piece is finished when the reader got past FINISHED of it and spent at least a third of its
 reading time on it at WPM words a minute, so a quick scroll to the end does not count.
@@ -64,7 +66,7 @@ def state(h: Home) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for e in events(h):
         ev = e.get("ev")
-        if ev == "review":
+        if ev in ("review", "game"):
             continue
         s = out.setdefault(e["id"], {"seen": False, "looked": False, "opened": False, "progress": 0.0, "ms": 0, "kept": None, "shown": set()})
         if ev == "seen":
@@ -112,6 +114,20 @@ def reviews(h: Home) -> list[dict]:
     return [e for e in events(h) if e.get("ev") == "review"]
 
 
+def games(h: Home) -> dict[str, dict]:
+    """Per game id, the first answer: `pick` and `right`, or `skipped`; a crossword's `solved`
+    entries."""
+    out: dict[str, dict] = {}
+    for e in events(h):
+        if e.get("ev") != "game":
+            continue
+        if isinstance(e.get("entry"), int):
+            out.setdefault(e["id"], {"solved": set()})["solved"].add(e["entry"])
+        elif e["id"] not in out:
+            out[e["id"]] = {k: e[k] for k in ("pick", "right", "skipped") if k in e}
+    return out
+
+
 def context(h: Home, today: date | None = None) -> dict:
     """What `paper context` reports: every piece of the last RECENT days, newest issue first;
     minutes per section over the last WEEK days; the reader's marks; the finished pieces still
@@ -157,8 +173,33 @@ def context(h: Home, today: date | None = None) -> dict:
                   for x in m.values()],
         "to_card": [r["id"] for r in rows if r["finished"] and r["id"] not in marked and r["id"] not in carded],
         "cards": learn.summary(h, reviews(h)),
+        "games": _games(h, first, carded),
         "steer": steer(h, everything, st, marked, today),
     }
+
+
+def _games(h: Home, first: str, carded: set) -> list[dict]:
+    """The games of the last RECENT days and what the reader did with each, newest first."""
+    played, out = games(h), []
+    for what in ("predict", "link", "crossword"):
+        for gid, g in all_rows(h, what).items():
+            if g["day"] < first:
+                continue
+            got = played.get(gid, {})
+            if what == "crossword":
+                words = g.get("crossword") or []
+                out.append({"id": gid, "kind": what, "issue": g["day"], "entries": len(words),
+                            "missed": [w.get("answer") for i, w in enumerate(words) if i not in got.get("solved", ())]})
+                continue
+            row = {"id": gid, "kind": what, "issue": g["day"], "piece": g.get(what), "prompt": g.get("prompt"),
+                   "answer": (g.get("options") or [None] * 3)[g.get("answer") or 0]}
+            if "pick" in got:
+                row.update(picked=g["options"][got["pick"]], right=got["right"])
+            elif got.get("skipped"):
+                row["skipped"] = True
+            row["carded"] = gid in carded
+            out.append(row)
+    return sorted(out, key=lambda r: (r["issue"], r["id"]), reverse=True)
 
 
 def steer(h: Home, everything: dict, st: dict, marked: set, today: date) -> dict:

@@ -4,7 +4,8 @@
 - `/read/<id>` the article in a clean reader view, built once from the page (trafilatura) and
   cached. The story so far comes first when the piece continues a thread, open when its text is
   new to the reader. A site that refuses goes straight to the original.
-- `/<date>/done` the end of an issue; `/settings` the reader's own files.
+- `/<date>/done` the end of an issue; `/<date>/crossword` Sunday's crossword; `/settings` the
+  reader's own files. A piece with a prediction or a link asks it first (POST /game).
 - `POST /log` reading heartbeats, `POST /keep/<id>` keep or let go, `POST /look` a headline on
   screen long enough, `POST /mark` a highlight or question (or its removal), `GET /card?after=<id>`
   the card due after a finished piece and `POST /review` its answer, `PUT /settings/<part>`.
@@ -23,9 +24,9 @@ from urllib.parse import parse_qs, urlsplit
 
 from http.cookies import SimpleCookie
 
-from . import config, learn, net, phone, reading, settings
+from . import config, crossword, learn, net, phone, reading, settings
 from .home import Home, home
-from .issue import DAY, Invalid, all_pieces, days, kind, load, sections, threads
+from .issue import DAY, Invalid, all_pieces, all_rows, days, kind, load, sections, threads
 
 PORT = int(os.environ.get("PAPER_PORT") or 4747)
 ICON = Path(__file__).with_name("icon.png")
@@ -176,6 +177,7 @@ def issue_page(h: Home, day: str) -> str:
         body.append(f"<section><h2>{e(t['saved'])}</h2><ol>{''.join(item(p, False) for p in saved)}</ol></section>")
     if not body:
         body.append(f"<p class=empty>{e(t['empty'])}</p>")
+    body.append(_crossword_link(h, day, rows))
     short = lambda d: config.short_date(h, d)  # noqa: E731
     left = f'<a href="/{prev_day}">← {e(short(prev_day))}</a>' if prev_day else "<span></span>"
     right = f'<a href="/{next_day}">{e(short(next_day))} →</a>' if next_day else "<span></span>"
@@ -188,29 +190,83 @@ def done_page(h: Home, day: str) -> str:
     t, dateline = config.labels(h), config.dateline(h, day)
     nav = (f'<nav><a href="/{day}">← {e(config.short_date(h, day))}</a><span class=links>'
            f'<a href="/kept">{e(t["kept"])}</a><a href="/settings">{e(t["settings"])}</a></span><span></span></nav>')
-    return _page(h, t["done"], f"<h1>{e(dateline)}</h1>", f"<p class=end>{e(t['done'])}</p>", nav)
+    return _page(h, t["done"], f"<h1>{e(dateline)}</h1>", f"<p class=end>{e(t['done'])}</p>{_crossword_link(h, day)}", nav)
+
+
+def _crossword_link(h: Home, day: str, rows: list[dict] | None = None) -> str:
+    """The way to Sunday's crossword, at the end of the front page and of the issue."""
+    rows = load(h, day) if rows is None else rows
+    if not any(kind(r) == "crossword" for r in rows):
+        return ""
+    return f'<a class=next href="/{day}/crossword">{e(config.labels(h)["crossword"])}</a>'
+
+
+def crossword_page(h: Home, day: str) -> str | None:
+    t = config.labels(h)
+    row = next((r for r in load(h, day) if kind(r) == "crossword"), None)
+    if not row:
+        return None
+    words = row.get("crossword") or []
+    grid = crossword.layout([w.get("answer") for w in words])
+    solved = reading.games(h).get(row["id"], {}).get("solved", set())
+    pieces = all_pieces(h)
+    entries = [{**x, "answer": crossword.normal(words[x["i"]].get("answer")), "clue": words[x["i"]].get("clue"),
+                "solved": x["i"] in solved} for x in grid["entries"]]
+    lists = []
+    for down in (False, True):
+        items = []
+        for x in (x for x in entries if x["down"] == down):
+            p = pieces.get(words[x["i"]].get("piece"), {})
+            src = f'<span><a href="/read/{e(p["id"])}">{e(p["head"])}</a></span>' if p else ""
+            items.append(f'<li data-i="{x["i"]}"{" class=done" if x["solved"] else ""}><p><b>{x["num"]}</b> {e(str(x["clue"]))}</p>{src}</li>')
+        if items:
+            lists.append(f"<section><h2>{e(t['down' if down else 'across'])}</h2><ol>{''.join(items)}</ol></section>")
+    data = {"id": row["id"], "rows": grid["rows"], "cols": grid["cols"], "entries": entries}
+    head = f'<header><a href="/{day}">← {e(config.short_date(h, day))}</a></header><h1>{e(t["crossword"])}</h1>'
+    body = ('<div class=grid id=grid><input id=type autocapitalize=characters autocomplete=off autocorrect=off '
+            f'spellcheck=false aria-label="{e(t["crossword"])}"></div><div id=clues>{"".join(lists)}</div>'
+            '<div class=clue id=clue hidden></div>')
+    return _page(h, t["crossword"], head, body, "", f"<script>const PAPER = {_json(data)};</script>{CROSSWORD_JS}")
+
+
+def _game(h: Home, piece: dict) -> dict | None:
+    """The prediction or link asked before this piece, from the piece's own issue."""
+    try:
+        rows = load(h, piece["day"])
+    except Invalid:
+        return None
+    return next((r for r in rows if kind(r) in ("predict", "link") and r.get(kind(r)) == piece["id"]), None)
 
 
 def reader_page(h: Home, piece: dict, art: dict) -> str:
     t = config.labels(h)
     st = reading.state(h).get(piece["id"])
+    game = _game(h, piece)
+    played = reading.games(h).get(game["id"]) if game else None
+    asking = bool(game) and played is None  # the article waits for a pick or a skip
     thread = ""
     if piece.get("thread"):
         th = threads(h).get(piece["thread"])
         if th:
             mark = reading.body_hash(str(th["body"]))
             fresh = not (st and mark in st["shown"])
-            reading.log(h, {"ev": "thread", "id": piece["id"], "hash": mark})
-            thread = (f"<details class=thread{' open' if fresh else ''}><summary>{e(th['title'])}</summary>"
-                      f"<p>{e(str(th['body']))}</p></details>")
+            if asking and kind(game) == "link":  # shown, and logged, once the reader has answered
+                fresh = False
+            else:
+                reading.log(h, {"ev": "thread", "id": piece["id"], "hash": mark})
+            thread = (f"<details class=thread{' open' if fresh else ''}{' hidden' if asking and kind(game) == 'link' else ''}>"
+                      f"<summary>{e(th['title'])}</summary><p>{e(str(th['body']))}</p></details>")
+    box = "<div id=game></div>" if game else ""
     kept = reading.kept(piece, st)
     byline = " · ".join(e(str(x)) for x in (_host(piece["url"]), art.get("author"), art.get("date")) if x)
     if art.get("digest"):
         byline = f'{e(t["digest"])} <a href="{e(piece["url"])}">{e(_host(piece["url"]))}</a>'
 
     title = re.sub(r"\s+[|–—]\s+[^|–—]+$", "", art.get("title") or "") or piece["head"]  # "Title | Site"
-    head = (f'<header><a href="/{piece["day"]}">← {e(config.short_date(h, piece["day"]))}</a></header>{thread}'
-            f"<h1 class=title>{e(title)}</h1>" + (f"<p class=byline>{byline}</p>" if byline else ""))
+    link = game and kind(game) == "link"
+    head = (f'<header><a href="/{piece["day"]}">← {e(config.short_date(h, piece["day"]))}</a></header>'
+            f'{box if link else ""}{thread}<h1 class=title>{e(title)}</h1>'
+            + (f"<p class=byline>{byline}</p>" if byline else "") + ("" if link else box))
     try:
         seq = order(h, piece["day"])
     except Invalid:
@@ -229,10 +285,16 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
         "had": st["ms"] if st else 0,
         "marks": [{"id": m["id"], "kind": m["kind"], "text": m["text"]}
                   for m in learn.marks(h).values() if m["piece"] == piece["id"]],
-        "t": {k: t[k] for k in ("keep", "keeping", "highlight", "question", "remove", "show", "again", "good")},
+        "t": {k: t[k] for k in ("keep", "keeping", "highlight", "question", "remove", "show", "again", "good", "skip")},
     }
+    if game:
+        data["game"] = {"id": game["id"], "kind": kind(game), "prompt": game.get("prompt"), "options": game.get("options"),
+                        "asking": asking}
+        if not asking:
+            data["game"].update(answer=game.get("answer"), pick=played.get("pick"))
     script = f"<script>const PAPER = {_json(data)};</script>{READER_JS}"
-    return _page(h, title, head, f"<article>{_body(art['html'], title)}</article><div id=card></div>", foot, script)
+    article = f"<article{' hidden' if asking else ''}>{_body(art['html'], title)}</article><div id=reveal></div><div id=card></div>"
+    return _page(h, title, head, article, foot, script)
 
 
 def kept_page(h: Home) -> str:
@@ -348,9 +410,12 @@ class Handler(BaseHTTPRequestHandler):
                                                  f'{e(t["settings"])}</a></span><span></span></nav>'))
                 return self._send(302, location=f"/{all_days[-1]}")
             day, _, rest = path[1:].partition("/")
-            if DAY.match(day) and rest in ("", "done"):
+            if DAY.match(day) and rest in ("", "done", "crossword"):
                 if not (h.issues / f"{day}.jsonl").exists():
                     return self._send(404, "No such issue.", "text/plain; charset=utf-8")
+                if rest == "crossword":
+                    page = crossword_page(h, day)
+                    return self._send(200, page) if page else self._send(404, "No crossword.", "text/plain; charset=utf-8")
                 return self._send(200, done_page(h, day) if rest else issue_page(h, day))
             if path == "/kept":
                 return self._send(200, kept_page(h))
@@ -415,10 +480,41 @@ class Handler(BaseHTTPRequestHandler):
             if data.get("piece") in pieces and data.get("kind") in learn.KINDS and str(data.get("text") or "").strip():
                 return self._json_reply(learn.add_mark(h, data["piece"], data["kind"], str(data["text"])))
             return self._send(400, "a mark needs piece, kind and text", "text/plain")
+        if path == "/game":
+            return self._game(h, data)
         if path == "/review" and data.get("id") in learn.cards(h) and data.get("rating") in learn.RATINGS:
             reading.log(h, {"ev": "review", "id": data["id"], "rating": data["rating"]})
             return self._send(204)
         return self._send(404, "", "text/plain")
+
+    def _game(self, h: Home, data: dict):
+        """A game answered: the first answer is logged and checked here, never by the page."""
+        gid = str(data.get("id") or "")
+        what = kind({"id": gid})
+        g = all_rows(h, what).get(gid) if what in ("predict", "link", "crossword") else None
+        if not g:
+            return self._send(404, "", "text/plain")
+        played = reading.games(h).get(gid)
+        if what == "crossword":
+            words, i = g.get("crossword") or [], data.get("entry")
+            if not isinstance(i, int) or not 0 <= i < len(words) or \
+                    crossword.normal(data.get("word")) != crossword.normal(words[i].get("answer")):
+                return self._send(400, "", "text/plain")
+            if i not in (played or {}).get("solved", ()):
+                reading.log(h, {"ev": "game", "id": gid, "entry": i})
+            return self._send(204)
+        if played is None:
+            if data.get("skip"):
+                reading.log(h, {"ev": "game", "id": gid, "skipped": True})
+            elif data.get("pick") in (0, 1, 2) and not isinstance(data.get("pick"), bool):
+                reading.log(h, {"ev": "game", "id": gid, "pick": data["pick"], "right": data["pick"] == g.get("answer")})
+            else:
+                return self._send(400, "", "text/plain")
+            piece = all_pieces(h).get(g.get(what), {})
+            th = threads(h).get(piece.get("thread")) if what == "link" else None
+            if th:
+                reading.log(h, {"ev": "thread", "id": piece["id"], "hash": reading.body_hash(str(th["body"]))})
+        return self._json_reply({"answer": g.get("answer")})
 
     def do_PUT(self):
         h, part = home(), urlsplit(self.path).path.removeprefix("/settings/")
@@ -500,20 +596,25 @@ LOOK_JS = """<script>
 
 READER_JS = """<script>
 (() => {
-  const {id, need, had, t} = PAPER;
+  const {id, need, had, t, game} = PAPER;
   const article = document.querySelector("article");
-  let ms = 0, total = had, progress = 0, last = Date.now(), active = Date.now(), asked = false;
+  // reading counts only once the article is out: a question first holds it back
+  let ms = 0, total = had, progress = 0, last = Date.now(), active = Date.now(), asked = false, live = !game?.asking;
   const post = (url, body) => fetch(url, {method: "POST", body: JSON.stringify(body)});
+  const el = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; };
   const measure = () => {
+    if (!live) return;
     const el = document.scrollingElement, end = article.offsetTop + article.offsetHeight;
     progress = Math.max(progress, Math.min(1, (el.scrollTop + innerHeight - article.offsetTop) / Math.max(1, end - article.offsetTop)));
   };
   const tick = () => {
+    if (!live) return;
     const now = Date.now();
     if (document.visibilityState === "visible" && now - active < 60000) { ms += now - last; total += now - last; }
     last = now;
   };
   const send = () => {
+    if (!live) return;
     tick(); measure();
     if (!ms && !progress) return;
     navigator.sendBeacon("/log", new Blob([JSON.stringify({id, ms, progress})], {type: "application/json"}));
@@ -529,6 +630,44 @@ READER_JS = """<script>
   addEventListener("pagehide", send);
   setInterval(() => { send(); finished(); }, 15000);
   measure();
+
+  // a prediction or a link: asked before the article; a link answers at once, a prediction at the end
+  if (game) {
+    const box = document.getElementById("game"), reveal = document.getElementById("reveal");
+    const show = (pick, answer) => {
+      const opts = el("div", "options"), out = el("div", "card");
+      game.options.forEach((o, i) => {
+        const b = el("button", i === answer ? "right" : i === pick ? "wrong" : "", o);
+        b.disabled = true; opts.append(b);
+      });
+      out.append(el("p", "front", game.prompt), opts);
+      (game.kind === "link" ? box : reveal).replaceChildren(out);
+    };
+    if (!game.asking) {
+      if (game.kind === "predict") show(game.pick, game.answer);
+    } else {
+      const opts = el("div", "options"), skip = el("button", "quiet", t.skip), q = el("div", "card");
+      const settle = async answer => {
+        [...opts.children, skip].forEach(b => b.disabled = true);
+        const res = await post("/game", {id: game.id, ...answer}).catch(() => null);
+        const got = res && res.ok ? await res.json() : {};
+        box.replaceChildren();
+        article.hidden = false;
+        const thread = document.querySelector("details.thread");
+        if (thread) { thread.hidden = false; thread.open = true; }
+        live = true; last = active = Date.now(); measure();
+        if (got.answer != null) show(answer.pick, got.answer);
+      };
+      game.options.forEach((o, i) => {
+        const b = el("button", "", o);
+        b.addEventListener("click", () => settle({pick: i}));
+        opts.append(b);
+      });
+      skip.addEventListener("click", () => settle({skip: true}));
+      q.append(el("p", "front", game.prompt), opts, skip);
+      box.replaceChildren(q);
+    }
+  }
 
   const keep = document.getElementById("keep");
   keep.addEventListener("click", async () => {
@@ -613,7 +752,6 @@ READER_JS = """<script>
   document.addEventListener("click", ev => { if (!article.contains(ev.target) && !bar.contains(ev.target)) close(); });
 
   // one due card after a finished piece
-  const el = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; };
   const card = async () => {
     const res = await fetch("/card?after=" + encodeURIComponent(id));
     if (res.status !== 200) return;
@@ -643,6 +781,130 @@ READER_JS = """<script>
       box.replaceChildren(el("p", "front", c.prompt), opts);
     }
   };
+})();
+</script>"""
+
+CROSSWORD_JS = """<script>
+(() => {
+  const {id, rows, cols, entries} = PAPER;
+  const grid = document.getElementById("grid"), input = document.getElementById("type"), bar = document.getElementById("clue");
+  const key = "crossword:" + id, cells = new Map();  // "r,c" -> {el, letter, across, down}
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || "{}"); } catch { saved = {}; }
+  const keep = () => { try { localStorage.setItem(key, JSON.stringify(saved)); } catch {} };
+  grid.style.gridTemplateColumns = `repeat(${cols}, var(--cell))`;
+  grid.style.setProperty("--cell", `min(40px, calc((100vw - 40px - ${cols - 1} * 3px) / ${cols}))`);
+  const at = (x, k) => [x.row + (x.down ? k : 0), x.col + (x.down ? 0 : k)].join();
+  entries.forEach((x, n) => {
+    for (let k = 0; k < x.answer.length; k++) {
+      const c = cells.get(at(x, k)) || {letter: ""};
+      c[x.down ? "down" : "across"] = n;
+      cells.set(at(x, k), c);
+    }
+  });
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const cell = cells.get([r, c].join()), d = document.createElement("div");
+    if (cell) {
+      d.className = "cell"; cell.el = d; d.dataset.at = [r, c].join();
+      const num = entries.find(x => x.row === r && x.col === c);
+      if (num) d.append(Object.assign(document.createElement("small"), {textContent: num.num}));
+      d.append(document.createElement("span"));
+    }
+    grid.insertBefore(d, input);
+  }
+  const letters = x => [...x.answer].map((_, k) => cells.get(at(x, k)));
+  const set = (c, ch) => { c.letter = ch; c.el.lastChild.textContent = ch; };
+  const locked = c => [c.across, c.down].some(n => n != null && entries[n].solved);
+  const solve = n => {
+    entries[n].solved = true;
+    letters(entries[n]).forEach((c, k) => { set(c, entries[n].answer[k]); c.el.classList.add("solved"); });
+    document.querySelector(`#clues li[data-i="${entries[n].i}"]`)?.classList.add("done");
+  };
+  entries.forEach((x, n) => { if (x.solved) solve(n); });
+  for (const [where, ch] of Object.entries(saved)) { const c = cells.get(where); if (c && !c.letter) set(c, ch); }
+
+  let cur = null, dir = "across";
+  const entry = () => { const c = cells.get(cur); return c[dir] ?? c[dir === "across" ? "down" : "across"]; };
+  const pin = () => {  // the clue sits on the keyboard
+    const vv = window.visualViewport;
+    bar.style.bottom = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) + "px" : "0";
+  };
+  window.visualViewport?.addEventListener("resize", pin);
+  window.visualViewport?.addEventListener("scroll", pin);
+  const draw = () => {
+    for (const c of cells.values()) c.el.classList.remove("on", "at");
+    document.querySelectorAll("#clues li.on").forEach(li => li.classList.remove("on"));
+    if (!cur) return;
+    const n = entry(), x = entries[n];
+    dir = x.down ? "down" : "across";
+    letters(x).forEach(c => c.el.classList.add("on"));
+    cells.get(cur).el.classList.add("at");
+    document.querySelector(`#clues li[data-i="${x.i}"]`)?.classList.add("on");
+    bar.replaceChildren(Object.assign(document.createElement("b"), {textContent: x.num}), x.clue);
+    bar.hidden = false; pin();
+    const el = cells.get(cur).el;
+    input.style.left = el.offsetLeft + "px"; input.style.top = el.offsetTop + "px";
+  };
+  const focus = () => { input.value = " "; input.focus({preventScroll: true}); input.setSelectionRange(1, 1); };
+  const go = (where, d) => { cur = where; if (d) dir = d; draw(); focus(); };
+  grid.addEventListener("click", ev => {
+    const d = ev.target.closest(".cell");
+    if (!d) return;
+    const c = cells.get(d.dataset.at);
+    if (d.dataset.at === cur && c.across != null && c.down != null) dir = dir === "across" ? "down" : "across";
+    else if (c[dir] == null) dir = dir === "across" ? "down" : "across";
+    go(d.dataset.at);
+  });
+  document.getElementById("clues").addEventListener("click", ev => {
+    const li = ev.target.closest("li[data-i]");
+    if (!li || ev.target.closest("a")) return;
+    const x = entries.find(x => String(x.i) === li.dataset.i), cs = letters(x);
+    const k = Math.max(0, cs.findIndex(c => !c.letter));
+    go(at(x, k), x.down ? "down" : "across");
+  });
+  const step = by => {
+    const x = entries[entry()], k = letters(x).findIndex(c => c === cells.get(cur)) + by;
+    if (k >= 0 && k < x.answer.length) { cur = at(x, k); draw(); }
+  };
+  const check = () => {
+    const c = cells.get(cur);
+    for (const n of [c.across, c.down]) {
+      if (n == null || entries[n].solved) continue;
+      const word = letters(entries[n]).map(c => c.letter).join("");
+      if (word !== entries[n].answer) continue;
+      solve(n);
+      fetch("/game", {method: "POST", body: JSON.stringify({id, entry: entries[n].i, word})});
+    }
+  };
+  const type = ch => {
+    const c = cells.get(cur);
+    if (!locked(c)) { set(c, ch); saved[cur] = ch; keep(); check(); }
+    step(1);
+  };
+  const erase = () => {
+    const c = cells.get(cur);
+    if (!c.letter || locked(c)) step(-1);
+    const d = cells.get(cur);
+    if (!locked(d)) { set(d, ""); delete saved[cur]; keep(); }
+  };
+  input.addEventListener("input", ev => {
+    if (ev.isComposing || !cur) return;
+    const v = input.value;  // a keyboard sends a letter at a time; a paste or a suggestion sends several
+    if (!v) erase();
+    else for (const ch of v.normalize("NFC").replace(/^ /, "")) if (/\\p{L}/u.test(ch)) type(ch.toLocaleUpperCase());
+    focus();
+  });
+  input.addEventListener("compositionend", () => { input.dispatchEvent(new Event("input")); });
+  input.addEventListener("keydown", ev => {
+    const moves = {ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0]};
+    if (!moves[ev.key] || !cur) return;
+    ev.preventDefault();
+    const [r, c] = cur.split(",").map(Number), [dr, dc] = moves[ev.key], next = [r + dr, c + dc].join();
+    if (cells.has(next)) go(next, dr ? "down" : "across");
+  });
+  input.addEventListener("blur", () => setTimeout(() => {
+    if (document.activeElement !== input) { cur = null; draw(); bar.hidden = true; }
+  }, 100));
 })();
 </script>"""
 
@@ -838,6 +1100,26 @@ button.quiet:hover {{ color: var(--ink); }}
 .card button.wrong {{ background: var(--wrong); }}
 .card button:disabled {{ cursor: default; color: var(--ink); }}
 .card .rated {{ color: var(--faint); font-size: 15px; }}
+.card button.quiet {{ margin-top: 8px; }}
+#game .card, #reveal .card {{ margin: 0 0 32px; }}
+#reveal .card {{ margin-top: -16px; }}
+.grid {{ position: relative; display: grid; gap: 3px; width: fit-content; margin: 0 auto 48px; touch-action: manipulation; }}
+.grid .cell {{ position: relative; width: var(--cell); height: var(--cell); border-radius: 4px; background: var(--chip);
+  display: grid; place-items: center; font-weight: 600; font-size: calc(var(--cell) * .5); cursor: pointer; user-select: none; }}
+.grid .cell small {{ position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 500; color: var(--muted); line-height: 1.2; }}
+.grid .cell.on {{ background: var(--q); }}
+.grid .cell.at {{ box-shadow: inset 0 0 0 2px var(--ink); }}
+.grid .cell.solved {{ background: var(--right); }}
+.grid input {{ position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; font-size: 16px; }}
+#clues li {{ cursor: pointer; padding: 12px 0; }}
+#clues li p {{ margin: 0; color: var(--ink); }}
+#clues li b {{ display: inline-block; min-width: 1.6em; color: var(--muted); font-weight: 600; }}
+#clues li.done p {{ color: var(--faint); }}
+#clues li.on p {{ font-weight: 600; }}
+.clue {{ position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+  background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1.4; }}
+.clue[hidden] {{ display: none; }}
+.clue b {{ margin-right: 8px; }}
 a.next {{ display: block; margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--rule); text-decoration: none;
   font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: -.01em; }}
 a.next span {{ display: block; font-size: 13px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }}

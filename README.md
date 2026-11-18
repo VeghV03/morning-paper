@@ -29,8 +29,10 @@ Three things make it better than a feed:
 - **You keep what you read.** Pieces open one at a time in a clean reader, with the next one
   at the end and a last page after the last. Tap a paragraph to highlight it or ask about it:
   the next issue answers your question, and cards from what you marked and finished come due,
-  one after each piece you finish, on a spaced-repetition schedule. Beyond the news, what you
-  look at, open and finish steers which topics come back.
+  one after each piece you finish, on a spaced-repetition schedule. A few pieces ask you to
+  guess their finding before you read, a running story asks what happened last time, and
+  Sunday's issue ends with a crossword of the week you read. Beyond the news, what you look at,
+  open and finish steers which topics come back.
 
 <p align="center">
   <picture>

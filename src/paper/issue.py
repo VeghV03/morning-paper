@@ -15,6 +15,15 @@ The issue also carries what the reader learns from:
 - a card, `{"id": "c-<date>-<n>", "card": "flip", "front", "back", "from"}` or
   `{"id", "card": "choice", "prompt", "options": [three], "answer": <0-2>, "from"}`, where `from`
   is the piece or mark it comes from. Cards come due in the reader after a finished piece.
+
+And the games (each a choice of three, `"prompt", "options": [three], "answer": <0-2>`):
+- a prediction, `{"id": "p-<date>-<n>", "predict": "r-…", …}`: asked when the piece opens, about
+  its main finding, answered by reading it; PREDICTS an issue at most;
+- a link, `{"id": "l-<date>-<n>", "link": "r-…", "from": "r-…", …}`: on a piece with a thread,
+  what happened in `from`, an earlier piece of the story the reader opened; asked before the
+  story so far;
+- the Sunday crossword, `{"id": "x-<date>", "crossword": [{"answer", "clue", "piece"}, …]}`,
+  from pieces of the past week the reader opened; crossword.py lays it out.
 """
 
 import json
@@ -22,7 +31,7 @@ import re
 import unicodedata
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from .home import Home
 
@@ -36,6 +45,8 @@ THREADS = 32
 DIGEST_WORDS = 450
 ANSWER_WORDS = 120
 CARDS = 12
+PREDICTS = 3
+CLUE_CHARS = 90
 FITS = ("fits", "tries")
 DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -107,9 +118,9 @@ def days(h: Home) -> list[str]:
 
 
 def kind(row: dict) -> str:
-    """`piece`, `answer` or `card`, by the id's prefix."""
+    """`piece`, `answer`, `card`, `predict`, `link` or `crossword`, by the id's prefix."""
     pid = str(row.get("id") or "")
-    return {"a-": "answer", "c-": "card"}.get(pid[:2], "piece")
+    return {"a-": "answer", "c-": "card", "p-": "predict", "l-": "link", "x-": "crossword"}.get(pid[:2], "piece")
 
 
 def load(h: Home, day: str) -> list[dict]:
@@ -174,7 +185,7 @@ def check(h: Home, secs: list[Section], rows: list[dict], day: str) -> None:
     known = threads(h)
     errors = []
     pieces = [r for r in rows if kind(r) == "piece"]
-    _check_learning(h, [r for r in rows if kind(r) != "piece"], {p.get("id") for p in pieces}, day, errors)
+    _check_learning(h, [r for r in rows if kind(r) != "piece"], {p.get("id"): {**p, "day": day} for p in pieces}, day, errors)
     urls = Counter(str(p.get("url", "")).rstrip("/") for p in pieces)
     pids = Counter(p.get("id") for p in pieces)
     for p in pieces:
@@ -224,19 +235,32 @@ def check(h: Home, secs: list[Section], rows: list[dict], day: str) -> None:
         raise Invalid(errors)
 
 
-def _check_learning(h: Home, rows: list[dict], piece_ids: set, day: str, errors: list[str]) -> None:
-    from .learn import marks  # learn reads issues too
+def _choice(r: dict, at: str, errors: list[str], what: str) -> None:
+    opts = r.get("options")
+    if not r.get("prompt") or not isinstance(opts, list) or len(opts) != 3 or not all(isinstance(o, str) and o for o in opts):
+        errors.append(f"{at}: {what} needs prompt and three options")
+    elif r.get("answer") not in (0, 1, 2) or isinstance(r.get("answer"), bool):
+        errors.append(f"{at}: answer is the right option's index, 0 to 2")
+
+
+def _check_learning(h: Home, rows: list[dict], pieces: dict, day: str, errors: list[str]) -> None:
+    """Answers, cards and games; `pieces` are this issue's, by id."""
+    from . import crossword, reading  # they read issues too
+    from .learn import marks
 
     where = h.issues / f"{day}.jsonl"
     known_marks = marks(h)
-    known_pieces = set(all_pieces(h)) | piece_ids
+    known_pieces = {**all_pieces(h), **pieces}
+    known_games = {**all_rows(h, "predict"), **all_rows(h, "link")}
+    st = reading.state(h)
     seen = Counter(r.get("id") for r in rows)
-    cards = 0
+    played = Counter(r.get("predict") or r.get("link") for r in rows if kind(r) in ("predict", "link"))
+    count = Counter(kind(r) for r in rows)
     for r in rows:
-        at, rid = f"{where}:{r['_line']}", str(r.get("id"))
+        at, rid, what = f"{where}:{r['_line']}", str(r.get("id")), kind(r)
         if seen[rid] > 1:
             errors.append(f"{at}: {rid} is in the issue twice")
-        if kind(r) == "answer":
+        if what == "answer":
             if not re.match(rf"^a-{day}-\d+$", rid):
                 errors.append(f"{at}: needs id, a-{day}-<n>")
             m = known_marks.get(r.get("answer"))
@@ -247,25 +271,67 @@ def _check_learning(h: Home, rows: list[dict], piece_ids: set, day: str, errors:
                 errors.append(f"{at}: needs text, the reply")
             elif (n := len(text.split())) > ANSWER_WORDS:
                 errors.append(f"{at}: text is {n} words; an answer is {ANSWER_WORDS} at most")
-            continue
-        cards += 1
-        if not re.match(rf"^c-{day}-\d+$", rid):
-            errors.append(f"{at}: needs id, c-{day}-<n>")
-        if r.get("from") not in known_pieces and r.get("from") not in known_marks:
-            errors.append(f"{at}: from must name the piece (r-…) or mark (h-…) the card comes from")
-        if r.get("card") == "flip":
-            if not r.get("front") or not r.get("back"):
-                errors.append(f"{at}: a flip card needs front and back")
-        elif r.get("card") == "choice":
-            opts = r.get("options")
-            if not r.get("prompt") or not isinstance(opts, list) or len(opts) != 3 or not all(isinstance(o, str) and o for o in opts):
-                errors.append(f"{at}: a choice card needs prompt and three options")
-            elif r.get("answer") not in (0, 1, 2):
-                errors.append(f"{at}: answer is the right option's index, 0 to 2")
-        else:
-            errors.append(f"{at}: card is flip or choice")
-    if cards > CARDS:
-        errors.append(f"{where}: {cards} cards; an issue writes {CARDS} at most")
+        elif what == "card":
+            if not re.match(rf"^c-{day}-\d+$", rid):
+                errors.append(f"{at}: needs id, c-{day}-<n>")
+            if r.get("from") not in known_pieces and r.get("from") not in known_marks and r.get("from") not in known_games:
+                errors.append(f"{at}: from must name the piece (r-…), mark (h-…) or missed game (p-…, l-…) the card comes from")
+            if r.get("card") == "flip":
+                if not r.get("front") or not r.get("back"):
+                    errors.append(f"{at}: a flip card needs front and back")
+            elif r.get("card") == "choice":
+                _choice(r, at, errors, "a choice card")
+            else:
+                errors.append(f"{at}: card is flip or choice")
+        elif what in ("predict", "link"):
+            target = r.get(what)
+            if not re.match(rf"^{what[0]}-{day}-\d+$", rid):
+                errors.append(f"{at}: needs id, {what[0]}-{day}-<n>")
+            if target not in pieces:
+                errors.append(f"{at}: {what} must name a piece of this issue (r-{day}-…)")
+            elif played[target] > 1:
+                errors.append(f"{at}: {target} has two games; one a piece")
+            elif what == "link":
+                before = known_pieces.get(r.get("from"))
+                if not pieces[target].get("thread"):
+                    errors.append(f"{at}: a link is on a piece with a thread, whose story so far follows the answer")
+                if not before or before["day"] >= day or not st.get(before["id"], {}).get("opened"):
+                    errors.append(f"{at}: from must name the earlier piece of the story, one the reader opened")
+            _choice(r, at, errors, f"a {what}")
+        elif what == "crossword":
+            if rid != f"x-{day}":
+                errors.append(f"{at}: needs id, x-{day}")
+            if date.fromisoformat(day).weekday() != 6:
+                errors.append(f"{at}: the crossword is for Sunday's issue")
+            words = r.get("crossword")
+            if not isinstance(words, list) or not crossword.MIN_WORDS <= len(words) <= crossword.MAX_WORDS:
+                errors.append(f"{at}: crossword is a list of {crossword.MIN_WORDS} to {crossword.MAX_WORDS} entries")
+                continue
+            week = (date.fromisoformat(day) - timedelta(days=7)).isoformat()
+            good = []
+            for n, w in enumerate(words, 1):
+                w = w if isinstance(w, dict) else {}
+                answer, clue, piece = crossword.normal(w.get("answer")), str(w.get("clue") or ""), known_pieces.get(w.get("piece"))
+                lo, hi = crossword.LETTERS
+                if not crossword.WORD.match(answer) or not lo <= len(answer) <= hi:
+                    errors.append(f"{at}: entry {n}: answer is one word of {lo} to {hi} letters, no spaces or digits")
+                elif not clue or len(clue) > CLUE_CHARS:
+                    errors.append(f"{at}: entry {n}: needs a clue of {CLUE_CHARS} characters at most")
+                elif not piece or not week < piece["day"] <= day or not st.get(piece["id"], {}).get("opened"):
+                    errors.append(f"{at}: entry {n}: piece must name a piece of the past week the reader opened")
+                else:
+                    good.append(answer)
+            if len(set(good)) < len(good):
+                errors.append(f"{at}: an answer is in the crossword twice")
+            elif len(good) == len(words) and (n := len(crossword.layout(good)["entries"])) < crossword.MIN_WORDS:
+                errors.append(f"{at}: only {n} words cross on a {crossword.SIDE} by {crossword.SIDE} grid; "
+                              "use shorter words that share letters")
+    if count["card"] > CARDS:
+        errors.append(f"{where}: {count['card']} cards; an issue writes {CARDS} at most")
+    if count["predict"] > PREDICTS:
+        errors.append(f"{where}: {count['predict']} predictions; an issue asks {PREDICTS} at most")
+    if count["crossword"] > 1:
+        errors.append(f"{where}: one crossword an issue")
 
 
 def validate(h: Home, day: str) -> list[dict]:
