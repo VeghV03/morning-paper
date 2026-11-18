@@ -8,6 +8,7 @@ address, not someone capturing the network's traffic.
 
 import hmac
 import os
+import re
 import secrets
 import socket
 import subprocess
@@ -92,6 +93,8 @@ def qr_svg(text: str) -> str:
     import segno
 
     out = io.BytesIO()
-    segno.make(text, error="m").save(out, kind="svg", scale=6, border=2, dark="#1d1d1f", light="#ffffff",
+    segno.make(text, error="m").save(out, kind="svg", scale=6, border=4, dark="#1d1d1f", light="#ffffff",
                                      xmldecl=False, svgns=True, nl=False)
-    return out.getvalue().decode()
+    svg = out.getvalue().decode()
+    # sized by the page: a viewBox instead of fixed pixels, so the whole code scales, never crops
+    return re.sub(r'width="(\d+)" height="(\d+)"', r'viewBox="0 0 \1 \2"', svg, count=1)
