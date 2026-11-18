@@ -61,7 +61,8 @@ It finds outlets and feeds for you and tests each one, writes your files, starts
 writes your first issue while you watch, and schedules the next one for the morning.
 
 After that, open <http://localhost:4747> with your coffee, or read it on your phone: scan the
-code in Settings with the phone's camera, then add the page to your home screen.
+code in Settings with the phone's camera, then add the page to your home screen. The first time
+the icon opens, type the six digits shown under the code.
 
 <p align="center">
   <picture>

@@ -19,7 +19,8 @@ LABELS = {
         "sections": "Sections", "interests": "Interests", "feeds": "Feeds", "outlets": "Outlets",
         "language": "Language", "save_link": "Save a link", "add": "Add", "name": "Name", "what": "What belongs",
         "topics": "Topics", "url": "Address", "phone": "Phone", "new_code": "New code",
-        "unpaired": "Scan the code in Settings on your Mac.",
+        "unpaired": "Enter the code from Settings on your Mac.", "pair": "Pair",
+        "wrong_code": "That code doesn't match.", "locked": "Too many tries. Open Settings on your Mac.",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -33,7 +34,8 @@ LABELS = {
         "sections": "Rovatok", "interests": "Érdeklődés", "feeds": "Hírcsatornák", "outlets": "Lapok",
         "language": "Nyelv", "save_link": "Link mentése", "add": "Hozzáadás", "name": "Név", "what": "Mi kerül bele",
         "topics": "Témák", "url": "Cím", "phone": "Telefon", "new_code": "Új kód",
-        "unpaired": "Olvasd be a kódot a Mac Beállításaiban.",
+        "unpaired": "Írd be a kódot a Mac Beállításaiból.", "pair": "Párosítás",
+        "wrong_code": "Ez a kód nem egyezik.", "locked": "Túl sok próbálkozás. Nyisd meg a Beállításokat a Macen.",
     },
 }
 

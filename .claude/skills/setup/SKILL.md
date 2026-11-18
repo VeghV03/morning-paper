@@ -129,8 +129,9 @@ next issue; after a finished piece, a card from earlier reading may come due.
 ## 7. The phone
 
 Ask whether they want it on their phone too. If so: Settings on the Mac shows a code; they scan
-it with the phone's camera, which opens the paper and pairs that phone, then Share, Add to Home
-Screen. Say once, plainly: it reads on the home Wi-Fi, where the page is not encrypted, so on a
+it with the phone's camera, which opens the paper in Safari and pairs it, then Share, Add to
+Home Screen. The first time the home-screen icon opens, it asks for the six digits shown under
+the code: an iPhone keeps that app's pairing apart from Safari's. Say once, plainly: it reads on the home Wi-Fi, where the page is not encrypted, so on a
 shared network someone capturing its traffic could read it. A new code in Settings unpairs
 every phone.
 

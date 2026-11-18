@@ -1,11 +1,14 @@
 """The phone: who may read the paper over Wi-Fi.
 
-The Mac itself is always let in. Any other device needs the key, which it gets once by scanning
-the QR code in settings and then keeps as a cookie. A new code makes every paired phone pair
-again. Over plain Wi-Fi the key travels unencrypted: pairing keeps out whoever just opens the
+The Mac itself is always let in. Any other device needs the key, which it gets once and then
+keeps as a cookie: by scanning the QR code in settings (Safari), or by typing the six-digit code
+shown beside it (the home-screen app on iPhone keeps its own cookies, so it cannot use Safari's).
+The six digits change every five minutes; five wrong ones close code pairing until settings is
+opened on the Mac again. A new code makes every paired phone pair again. Over plain Wi-Fi the key travels unencrypted: pairing keeps out whoever just opens the
 address, not someone capturing the network's traffic.
 """
 
+import hashlib
 import hmac
 import os
 import re
@@ -13,6 +16,7 @@ import secrets
 import socket
 import subprocess
 import sys
+import time
 from urllib.parse import urlsplit
 
 from .home import Home
@@ -20,6 +24,9 @@ from .home import Home
 LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 LOCAL_NAMES = {"localhost", "127.0.0.1"}
 COOKIE = "paper"
+WINDOW = 300  # seconds a six-digit code lasts; the one before it is still taken
+TRIES = 5  # wrong codes before code pairing closes until settings is opened on the Mac
+_wrong = {"n": 0}
 
 
 def _file(h: Home):
@@ -58,6 +65,35 @@ def is_mac(client: str, host_header: str | None) -> bool:
 
 def paired(h: Home, given: str | None) -> bool:
     return bool(given) and hmac.compare_digest(given.encode(), key(h).encode())
+
+
+def short_code(h: Home, at: float | None = None) -> str:
+    """Six digits from the key and the current five minutes."""
+    window = int((time.time() if at is None else at) // WINDOW)
+    digest = hmac.new(key(h).encode(), str(window).encode(), hashlib.sha256).digest()
+    return str(int.from_bytes(digest[:8], "big") % 1_000_000).zfill(6)
+
+
+def open_codes() -> None:
+    """Settings opened on the Mac: code pairing takes tries again."""
+    _wrong["n"] = 0
+
+
+def code_locked() -> bool:
+    return _wrong["n"] >= TRIES
+
+
+def check_code(h: Home, given: str, at: float | None = None) -> bool:
+    """True for the current or the previous code. A wrong one counts toward the lock."""
+    if code_locked():
+        return False
+    given = "".join(c for c in str(given) if c.isdigit())
+    now = time.time() if at is None else at
+    if any(hmac.compare_digest(given, short_code(h, now - back)) for back in (0, WINDOW)):
+        _wrong["n"] = 0
+        return True
+    _wrong["n"] += 1
+    return False
 
 
 def allowed(h: Home, client: str, host_header: str | None, cookie_key: str | None) -> bool:

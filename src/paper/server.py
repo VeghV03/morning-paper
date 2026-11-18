@@ -258,7 +258,8 @@ def settings_page(h: Home, mac: bool = False) -> str:
         "topics", "url", "remove", "saved", "phone", "new_code")}}
     if mac:
         url = phone.pair_url(h, PORT)
-        data["phone"] = {"qr": phone.qr_svg(url), "address": phone.address(PORT)}
+        phone.open_codes()
+        data["phone"] = {"qr": phone.qr_svg(url), "address": phone.address(PORT), "code": phone.short_code(h)}
     body = "<div id=settings></div>"
     return _page(h, t["settings"], f"<h1>{e(t['settings'])}</h1>", body, back,
                  f"<script>const PAPER = {_json(data)};</script>{SETTINGS_JS}")
@@ -311,7 +312,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def _unpaired(self, h: Home):
         t = config.labels(h)
-        return self._send(403, _page(h, "Morning paper", "", f"<p class=empty>{e(t['unpaired'])}</p>"))
+        body = (f"<form id=pair><p class=empty>{e(t['unpaired'])}</p>"
+                '<input name=code inputmode=numeric autocomplete=one-time-code maxlength=7 aria-label="code">'
+                f"<button>{e(t['pair'])}</button><p class=err></p></form>")
+        data = {"t": {k: t[k] for k in ("wrong_code", "locked")}}
+        return self._send(403, _page(h, "Morning paper", "", body, "",
+                                     f"<script>const PAPER = {_json(data)};</script>{UNPAIRED_JS}"))
 
     def _body_json(self):
         """The request's JSON body; None when it is not JSON or longer than any write needs."""
@@ -350,6 +356,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, kept_page(h))
             if path == "/settings":
                 return self._send(200, settings_page(h, self._mac()))
+            if path == "/settings/code" and self._mac():
+                return self._json_reply({"code": phone.short_code(h)})
             if path == "/card":
                 after = (parse_qs(url.query).get("after") or [""])[0]
                 card = learn.due(h, reading.reviews(h), after)
@@ -376,8 +384,11 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(data, dict):
             return self._send(400, "not JSON", "text/plain")
         if path == "/pair":
-            if not phone.same_origin(self.headers.get("Origin"), self.headers.get("Host")) or not phone.paired(h, str(data.get("key") or "")):
+            if not phone.same_origin(self.headers.get("Origin"), self.headers.get("Host")):
                 return self._send(403, "", "text/plain")
+            ok = phone.paired(h, str(data.get("key") or "")) if "key" in data else phone.check_code(h, str(data.get("code") or ""))
+            if not ok:
+                return self._json_reply({"locked": phone.code_locked()}, 403)
             self.send_response(204)
             self.send_header("Set-Cookie", f"{phone.COOKIE}={phone.key(h)}; Max-Age=315360000; Path=/; HttpOnly; SameSite=Lax")
             self.send_header("Content-Length", "0")
@@ -435,6 +446,21 @@ def serve(port: int = PORT) -> None:
 
 ANSWERS_JS = """<script>
 document.querySelectorAll("li.answer blockquote").forEach(q => q.addEventListener("click", () => q.classList.toggle("open")));
+</script>"""
+
+UNPAIRED_JS = """<script>
+(() => {
+  const form = document.getElementById("pair"), input = form.querySelector("input"), err = form.querySelector(".err");
+  input.focus();
+  form.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const res = await fetch("/pair", {method: "POST", body: JSON.stringify({code: input.value})});
+    if (res.ok) return location.reload();
+    const data = await res.json().catch(() => ({}));
+    err.textContent = data.locked ? PAPER.t.locked : PAPER.t.wrong_code;
+    input.value = ""; input.focus();
+  });
+})();
 </script>"""
 
 PAIR_PAGE = """<!doctype html>
@@ -714,7 +740,13 @@ SETTINGS_JS = """<script>
     const fresh = el("button", {class: "quiet", onclick: async () => {
       if ((await fetch("/settings/phone", {method: "PUT", body: "{}"})).ok) location.reload();
     }}, t.new_code);
-    return block(t.phone, qr, el("p", {class: "addr"}, PAPER.phone.address), fresh);
+    const spaced = c => c.slice(0, 3) + " " + c.slice(3);
+    const code = el("p", {class: "code"}, spaced(PAPER.phone.code));
+    setInterval(async () => {
+      const res = await fetch("/settings/code");
+      if (res.ok) code.textContent = spaced((await res.json()).code);
+    }, 30000);
+    return block(t.phone, qr, code, el("p", {class: "addr"}, PAPER.phone.address), fresh);
   };
   root.append(sections(), interests(), feeds(), outlets(), language(), link(), ...(PAPER.phone ? [pairing()] : []));
 })();
@@ -828,9 +860,14 @@ a.next:hover span {{ text-decoration: none; }}
 #settings .chip button {{ padding: 4px 10px; }}
 #settings .choice {{ display: flex; gap: 8px; }}
 #settings .qr svg {{ display: block; width: 180px; height: 180px; border-radius: 10px; }}
+#settings .code {{ font-size: 28px; font-weight: 600; letter-spacing: .08em; margin: 16px 0 0; font-variant-numeric: tabular-nums; }}
 #settings .addr {{ color: var(--muted); font-size: 15px; margin: 12px 0 0; }}
 #settings .err {{ color: var(--muted); font-size: 14px; margin: 8px 0 0; min-height: 1em; }}
 .empty {{ color: var(--muted); }}
+#pair input {{ font: inherit; font-size: 28px; letter-spacing: .2em; width: 8ch; color: var(--ink); background: transparent;
+  border: 0; border-bottom: 1px solid var(--rule); padding: 8px 0; margin: 8px 16px 0 0; }}
+#pair input:focus {{ outline: none; border-color: var(--muted); }}
+#pair .err {{ color: var(--muted); font-size: 15px; min-height: 1.5em; }}
 </style>
 </head>
 <body><main>{head}{body}{nav}</main>{script}</body>

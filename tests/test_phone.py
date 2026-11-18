@@ -46,6 +46,38 @@ class GateTest(unittest.TestCase):
         self.assertFalse(phone.same_origin("http://mac.local:9999", "mac.local:4747"))
 
 
+class CodeTest(unittest.TestCase):
+    def setUp(self):
+        self.h = Home(Path(tempfile.mkdtemp()))
+        phone.open_codes()
+
+    def test_current_and_previous_code_pair(self):
+        now = 1_800_000_000.0
+        self.assertTrue(phone.check_code(self.h, phone.short_code(self.h, now), now))
+        self.assertTrue(phone.check_code(self.h, phone.short_code(self.h, now - 300), now))
+        self.assertFalse(phone.check_code(self.h, phone.short_code(self.h, now - 600), now))
+
+    def test_spaces_are_fine(self):
+        code = phone.short_code(self.h)
+        self.assertTrue(phone.check_code(self.h, code[:3] + " " + code[3:]))
+
+    def test_five_wrong_codes_lock_until_settings_opens(self):
+        right = phone.short_code(self.h)
+        wrong = str((int(right) + 1) % 1_000_000).zfill(6)
+        for _ in range(phone.TRIES):
+            self.assertFalse(phone.check_code(self.h, wrong))
+        self.assertTrue(phone.code_locked())
+        self.assertFalse(phone.check_code(self.h, right))
+        phone.open_codes()
+        self.assertTrue(phone.check_code(self.h, right))
+
+    def test_a_new_key_changes_the_code(self):
+        now = 1_800_000_000.0
+        before = phone.short_code(self.h, now)
+        phone.new_key(self.h)
+        self.assertNotEqual(phone.short_code(self.h, now), before)
+
+
 class PairTest(unittest.TestCase):
     """The pair route over a real socket, from the Mac's own address."""
 
@@ -82,6 +114,15 @@ class PairTest(unittest.TestCase):
         self.assertIn("HttpOnly", cookie)
         self.assertEqual(self.ask("GET", "/settings", host="evil.example", cookie=f"paper={key}")[0], 200)
         self.assertEqual(self.ask("GET", "/pair", host="evil.example")[0], 200)  # tells nothing
+
+    def test_pairing_by_code(self):
+        phone.open_codes()
+        status, _, body = self.ask("POST", "/pair", {"code": "nope"})
+        self.assertEqual(status, 403)
+        self.assertEqual(json.loads(body), {"locked": False})
+        status, cookie, _ = self.ask("POST", "/pair", {"code": phone.short_code(Home(self.root))})
+        self.assertEqual(status, 204)
+        self.assertIn("paper=", cookie)
 
     def test_a_huge_body_is_not_read(self):
         c = http.client.HTTPConnection("127.0.0.1", self.port)
