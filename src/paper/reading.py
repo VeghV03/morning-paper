@@ -7,7 +7,10 @@ Events, one a line, each with `t` (ISO time) and `id` (a piece):
 - `read`: a heartbeat from the reader view, `ms` read since the last one and `progress`, how far
   down the article they have been (0 to 1);
 - `keep`: `kept` true or false;
-- `thread`: the story so far was shown above the piece, `hash` of its body;
+- `thread`: the story so far was shown above the piece, `hash` of its body (before entries);
+- `since`: the reader opened a running story's update (`id` t-…), from its own page or above a
+  piece (`piece`): `entries`, how many were new to them, and `gap`, the days since they last
+  caught up on it (null the first time). It moves where they left the story to that day;
 - `review`: a card (`id` c-…) was answered, `rating` again or good (learn.py);
 - `game`: a prediction or link (`id` p-… or l-…) was answered, `pick` and `right`, or `skipped`;
   or a crossword (`id` x-…) word was solved, `entry` its index. Only the first answer counts.
@@ -66,7 +69,7 @@ def state(h: Home) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for e in events(h):
         ev = e.get("ev")
-        if ev in ("review", "game"):
+        if ev in ("review", "game", "since"):
             continue
         s = out.setdefault(e["id"], {"seen": False, "looked": False, "opened": False, "progress": 0.0, "ms": 0, "kept": None, "shown": set()})
         if ev == "seen":
@@ -83,6 +86,40 @@ def state(h: Home) -> dict[str, dict]:
             s["kept"] = bool(e.get("kept"))
         elif ev == "thread" and e.get("hash"):
             s["shown"].add(e["hash"])
+    return out
+
+
+def left_off(h: Home, th: dict, before: str, pieces: dict | None = None, st: dict | None = None) -> str | None:
+    """The day the reader last caught up on a running story, counting only what happened before
+    the day `before`: the newest day of a piece of it they opened, or the day they opened its
+    update. None when they never did, so the story is not theirs."""
+    pieces = all_pieces(h) if pieces is None else pieces
+    st = state(h) if st is None else st
+    mine = {x.get("piece") for x in th.get("entries") or [] if isinstance(x, dict)}
+    mine |= {pid for pid, p in pieces.items() if p.get("thread") == th["id"]}
+    days = [pieces[pid]["day"] for pid in mine if pid in pieces and st.get(pid, {}).get("opened")]
+    days += [e["t"][:10] for e in events(h) if e.get("ev") == "since" and e["id"] == th["id"]]
+    days = [d for d in days if d < before]
+    return max(days) if days else None
+
+
+def since(th: dict, left: str | None, upto: str) -> list[dict]:
+    """The story's entries after `left` up to `upto`, newest first."""
+    return [x for x in reversed(th.get("entries") or []) if (left or "") < x["day"] <= upto]
+
+
+def gap(left: str | None, day: str) -> int | None:
+    return (date.fromisoformat(day) - date.fromisoformat(left)).days if left else None
+
+
+def followed(h: Home, threads: dict, before: str) -> dict[str, dict]:
+    """Per running story the reader follows (they opened a piece of it): where they left it and
+    how many entries are new to them."""
+    pieces, st, out = all_pieces(h), state(h), {}
+    for tid, th in threads.items():
+        left = left_off(h, th, before, pieces, st)
+        if left:
+            out[tid] = {"left_off": left, "new": len(since(th, left, "9999-12-31"))}
     return out
 
 

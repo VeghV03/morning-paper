@@ -2,8 +2,10 @@
 
 - `/` the newest issue, `/<date>` any issue, `/kept` what the reader kept.
 - `/read/<id>` the article in a clean reader view, built once from the page (trafilatura) and
-  cached. The story so far comes first when the piece continues a thread, open when its text is
-  new to the reader. A site that refuses goes straight to the original.
+  cached. A piece that continues a running story shows the story's updates above it: those since
+  the reader last caught up, open, and the rest under Earlier. A site that refuses goes straight
+  to the original.
+- `/thread/<id>` a running story's updates, for one that moved without a piece in the issue.
 - `/<date>/done` the end of an issue; `/<date>/crossword` Sunday's crossword; `/settings` the
   reader's own files. A piece with a prediction or a link asks it first (POST /game).
 - `POST /log` reading heartbeats, `POST /keep/<id>` keep or let go, `POST /look` a headline on
@@ -115,14 +117,74 @@ def _body(fragment: str, title: str = "") -> str:
 # pages
 
 
+def _threads(h: Home) -> dict[str, dict]:
+    """The running stories; none when threads.jsonl is broken, which `paper publish` reports."""
+    try:
+        return threads(h)
+    except Invalid:
+        return {}
+
+
+def moved(h: Home, day: str, pieces: list[dict]) -> list[dict]:
+    """Since you left: each running story the reader follows that has news for them in the day's
+    issue, newest first. `piece` is the issue's piece on it, if any; `new` its updates since they
+    last caught up on it, before the day."""
+    everything, st, out = all_pieces(h), reading.state(h), []
+    for tid, th in _threads(h).items():
+        left = reading.left_off(h, th, day, everything, st)
+        if not left:
+            continue
+        piece = next((p for p in pieces if p.get("thread") == tid and not p.get("saved")), None)
+        new = reading.since(th, left, day)
+        if new or piece:
+            out.append({"thread": th, "piece": piece, "new": new, "last": new[0]["day"] if new else day})
+    return sorted(out, key=lambda m: m["last"], reverse=True)
+
+
 def order(h: Home, day: str) -> list[dict]:
-    """The issue's pieces in page order: the sections in sections.md's order, then saved links."""
+    """The issue's pieces in page order: Since you left's, the sections in sections.md's order,
+    then saved links."""
     secs = sections(h)
     pieces = [r for r in load(h, day) if kind(r) == "piece"]
+    first = [m["piece"] for m in moved(h, day, pieces) if m["piece"]]
     rank = {s.id: n for n, s in enumerate(secs)}
-    placed = [p for p in pieces if not p.get("saved")]
+    placed = [p for p in pieces if not p.get("saved") and p not in first]
     placed.sort(key=lambda p: rank.get(p.get("section"), len(rank)))  # a renamed section's pieces last
-    return placed + [p for p in pieces if p.get("saved")]
+    return first + placed + [p for p in pieces if p.get("saved")]
+
+
+def _updates(h: Home, new: list[dict], old: list[dict]) -> str:
+    """A story's updates, newest first: the new ones, then the rest folded under Earlier."""
+    t = config.labels(h)
+    li = lambda x: f"<li><span>{e(config.short_date(h, x['day']))}</span>{e(str(x['text']))}</li>"  # noqa: E731
+    out = f"<ol class=updates>{''.join(map(li, new))}</ol>" if new else ""
+    if old:
+        out += f"<details class=earlier{'' if new else ' open'}><summary>{e(t['earlier'])}</summary><ol class=updates>{''.join(map(li, old))}</ol></details>"
+    return out
+
+
+def _caught_up(h: Home, th: dict, left: str | None, new: list[dict], piece: str | None = None) -> None:
+    """Log that the reader opened a story's new updates, once a story a day."""
+    from datetime import date
+
+    today = date.today().isoformat()
+    if not new or any(x.get("ev") == "since" and x["id"] == th["id"] and x["t"][:10] == today for x in reading.events(h)):
+        return
+    event = {"ev": "since", "id": th["id"], "entries": len(new), "gap": reading.gap(left, today)}
+    reading.log(h, {**event, "piece": piece} if piece else event)
+
+
+def story(h: Home, piece: dict) -> tuple[dict, str | None, list[dict], list[dict]] | None:
+    """The running story above a piece: the thread, where the reader left it, the updates new to
+    them and the rest, newest first. A reader who never opened the story sees the newest three,
+    the rest under Earlier. The piece's own update is the piece, so it is left out."""
+    th = _threads(h).get(piece.get("thread"))
+    if not th:
+        return None
+    left = reading.left_off(h, th, piece["day"])
+    mine = [x for x in reversed(th["entries"]) if x.get("piece") != piece["id"] and x["day"] <= piece["day"]]
+    new = [x for x in mine if left < x["day"]] if left else mine[:3]
+    return th, left, new, [x for x in mine if x not in new]
 
 
 def _page(h: Home, title: str, head: str, body: str, nav: str = "", script: str = "") -> str:
@@ -142,6 +204,10 @@ def issue_page(h: Home, day: str) -> str:
     st = reading.state(h)
     for p in pieces:
         reading.log(h, {"ev": "seen", "id": p["id"]})
+    stories = moved(h, day, pieces)
+    for m in stories:
+        if not m["piece"]:
+            reading.log(h, {"ev": "seen", "id": m["thread"]["id"]})
     all_days = days(h)
     i = all_days.index(day)
     prev_day = all_days[i - 1] if i > 0 else None
@@ -167,9 +233,15 @@ def issue_page(h: Home, day: str) -> str:
             where = f'<span><a href="/read/{e(src["id"])}">{e(src["head"])}</a></span>' if src else ""
             items.append(f"<li class=answer>{quote}<p>{e(str(a.get('text', '')))}</p>{where}</li>")
         body.append(f"<section><h2>{e(t['answers'])}</h2><ol>{''.join(items)}</ol></section>")
+    if stories:
+        items = [item(m["piece"]) if m["piece"] else
+                 f'<li data-id="{e(m["thread"]["id"])}"><a href="/thread/{e(m["thread"]["id"])}?day={day}">'
+                 f'{e(m["thread"]["title"])}</a><p>{e(str(m["new"][0]["text"]))}</p></li>' for m in stories]
+        body.append(f"<section><h2>{e(t['since'])}</h2><ol>{''.join(items)}</ol></section>")
     named = {s.id: s.name for s in secs}
-    for sid in dict.fromkeys(p.get("section") for p in pieces if not p.get("saved")):
-        mine = [p for p in pieces if p.get("section") == sid and not p.get("saved")]
+    first = {m["piece"]["id"] for m in stories if m["piece"]}
+    for sid in dict.fromkeys(p.get("section") for p in pieces if not p.get("saved") and p["id"] not in first):
+        mine = [p for p in pieces if p.get("section") == sid and not p.get("saved") and p["id"] not in first]
         name = named.get(sid) or str(sid).replace("-", " ").capitalize()
         body.append(f"<section><h2>{e(name)}</h2><ol>{''.join(map(item, mine))}</ol></section>")
     saved = [p for p in pieces if p.get("saved")]
@@ -245,17 +317,13 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
     played = reading.games(h).get(game["id"]) if game else None
     asking = bool(game) and played is None  # the article waits for a pick or a skip
     thread = ""
-    if piece.get("thread"):
-        th = threads(h).get(piece["thread"])
-        if th:
-            mark = reading.body_hash(str(th["body"]))
-            fresh = not (st and mark in st["shown"])
-            if asking and kind(game) == "link":  # shown, and logged, once the reader has answered
-                fresh = False
-            else:
-                reading.log(h, {"ev": "thread", "id": piece["id"], "hash": mark})
-            thread = (f"<details class=thread{' open' if fresh else ''}{' hidden' if asking and kind(game) == 'link' else ''}>"
-                      f"<summary>{e(th['title'])}</summary><p>{e(str(th['body']))}</p></details>")
+    if (found := story(h, piece)) and (found[2] or found[3]):
+        th, left, new, old = found
+        held = asking and kind(game) == "link"  # shown, and logged, once the reader has answered
+        if not held:
+            _caught_up(h, th, left, new if left else [], piece["id"])
+        thread = (f"<details class=thread{' open' if new else ''}{' hidden' if held else ''}>"
+                  f"<summary>{e(th['title'])}</summary>{_updates(h, new, old)}</details>")
     box = "<div id=game></div>" if game else ""
     kept = reading.kept(piece, st)
     byline = " · ".join(e(str(x)) for x in (_host(piece["url"]), art.get("author"), art.get("date")) if x)
@@ -297,6 +365,24 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
     article = f"<article{' hidden' if asking else ''}>{_body(art['html'], title)}</article><div id=reveal></div><div id=card></div>"
     # an outlet's title often states the finding: a prediction shows the paper's own headline until answered
     return _page(h, piece["head"] if asking and not link else title, head, article, foot, script)
+
+
+def thread_page(h: Home, tid: str, day: str | None) -> str | None:
+    """A running story that moved without a piece in the issue: its updates since the reader last
+    caught up, the rest under Earlier."""
+    from datetime import date
+
+    th = _threads(h).get(tid)
+    if not th:
+        return None
+    all_days = days(h)
+    day = day if day in all_days else (all_days[-1] if all_days else date.today().isoformat())
+    left = reading.left_off(h, th, day)
+    mine = list(reversed(th["entries"]))
+    new = [x for x in mine if left and left < x["day"] <= day]
+    _caught_up(h, th, left, new)
+    head = f'<header><a href="/{day}">← {e(config.short_date(h, day))}</a></header><h1 class=title>{e(th["title"])}</h1>'
+    return _page(h, th["title"], head, f"<div class=story>{_updates(h, new, [x for x in mine if x not in new])}</div>")
 
 
 def kept_page(h: Home) -> str:
@@ -421,6 +507,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, done_page(h, day) if rest else issue_page(h, day))
             if path == "/kept":
                 return self._send(200, kept_page(h))
+            if path.startswith("/thread/"):
+                day = (parse_qs(url.query).get("day") or [None])[0]
+                page = thread_page(h, path.removeprefix("/thread/"), day)
+                return self._send(200, page) if page else self._send(404, "No such story.", "text/plain; charset=utf-8")
             if path == "/settings":
                 return self._send(200, settings_page(h, self._mac()))
             if path == "/settings/code" and self._mac():
@@ -469,7 +559,7 @@ class Handler(BaseHTTPRequestHandler):
             progress = max(0.0, min(float(data.get("progress") or 0), 1.0))
             reading.log(h, {"ev": "read", "id": data["id"], "ms": ms, "progress": round(progress, 3)})
             return self._send(204)
-        if path == "/look" and data.get("id") in pieces:
+        if path == "/look" and (data.get("id") in pieces or data.get("id") in _threads(h)):
             reading.log(h, {"ev": "look", "id": data["id"]})
             return self._send(204)
         if path.startswith("/keep/") and path.removeprefix("/keep/") in pieces:
@@ -512,10 +602,10 @@ class Handler(BaseHTTPRequestHandler):
                 reading.log(h, {"ev": "game", "id": gid, "pick": data["pick"], "right": data["pick"] == g.get("answer")})
             else:
                 return self._send(400, "", "text/plain")
-            piece = all_pieces(h).get(g.get(what), {})
-            th = threads(h).get(piece.get("thread")) if what == "link" else None
-            if th:
-                reading.log(h, {"ev": "thread", "id": piece["id"], "hash": reading.body_hash(str(th["body"]))})
+            piece = all_pieces(h).get(g.get(what))
+            if what == "link" and piece and (found := story(h, piece)):
+                th, left, new, _ = found
+                _caught_up(h, th, left, new if left else [], piece["id"])
         return self._json_reply({"answer": g.get("answer")})
 
     def do_PUT(self):
@@ -1056,6 +1146,11 @@ li p {{ margin: 6px 0 0; color: var(--muted); }}
 li span {{ display: block; margin-top: 6px; font-size: 13px; color: var(--faint); }}
 li span a {{ font-size: 13px; font-weight: 400; }}
 li.done a, li.done p {{ color: var(--faint); }}
+ol.updates li {{ padding: 8px 0; border: 0; font-size: 16px; color: var(--muted); }}
+ol.updates li span {{ display: inline; margin: 0 8px 0 0; }}
+.story ol.updates li {{ font-size: 18px; color: var(--ink); }}
+details.earlier {{ margin-top: 8px; }}
+details.earlier summary {{ cursor: pointer; font-size: 13px; color: var(--faint); }}
 li.answer blockquote {{ margin: 0 0 8px; padding-left: 14px; border-left: 2px solid var(--q); color: var(--muted); cursor: pointer;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }}
 li.answer blockquote.open {{ display: block; }}

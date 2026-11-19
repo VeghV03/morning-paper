@@ -22,8 +22,9 @@ class Base(unittest.TestCase):
         self.h = Home(self.root)
         self.h.issues.mkdir()
         (self.root / "sections.md").write_text("World: news\n", encoding="utf-8")
-        self.h.threads.write_text(json.dumps({"id": "t-budget", "title": "The budget", "body": "So far."}) + "\n",
-                                  encoding="utf-8")
+        entries = [{"day": "2026-11-20", "text": "Tabled."}, {"day": SAT, "text": "Sent back.", "piece": f"r-{SAT}-1"}]
+        self.h.threads.write_text(json.dumps({"id": "t-budget", "title": "The budget", "since": "2026-11-20",
+                                              "entries": entries}) + "\n", encoding="utf-8")
 
     def write(self, rows, day=SUN):
         (self.h.issues / f"{day}.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
@@ -162,9 +163,10 @@ class PlayTest(Base):
     def test_a_link_shows_the_story_so_far_once_answered(self):
         page = self.ask("GET", f"/read/r-{SUN}-2")[1]
         self.assertIn("<details class=thread hidden>", page)
-        self.assertFalse(reading.state(self.h).get(f"r-{SUN}-2", {}).get("shown"))
         self.assertEqual(self.ask("POST", "/game", {"id": f"l-{SUN}-1", "skip": True})[0], 200)
-        self.assertTrue(reading.state(self.h)[f"r-{SUN}-2"]["shown"])
+        page = self.ask("GET", f"/read/r-{SUN}-2")[1]
+        self.assertIn("<details class=thread>", page)  # nothing new since the piece they opened: Earlier only
+        self.assertIn("<details class=earlier open>", page)
         self.assertEqual(reading.games(self.h)[f"l-{SUN}-1"], {"skipped": True})
         self.assertEqual(self.ask("POST", "/game", {"id": "l-nope", "pick": 0})[0], 404)
 

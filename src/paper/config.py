@@ -22,6 +22,7 @@ LABELS = {
         "unpaired": "Enter the code from Settings on your Mac.", "pair": "Pair",
         "wrong_code": "That code doesn't match.", "locked": "Too many tries. Open Settings on your Mac.",
         "skip": "Skip", "crossword": "Crossword", "across": "Across", "down": "Down",
+        "since": "Since you left", "earlier": "Earlier",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -38,6 +39,7 @@ LABELS = {
         "unpaired": "Írd be a kódot a Mac Beállításaiból.", "pair": "Párosítás",
         "wrong_code": "Ez a kód nem egyezik.", "locked": "Túl sok próbálkozás. Nyisd meg a Beállításokat a Macen.",
         "skip": "Kihagyom", "crossword": "Keresztrejtvény", "across": "Vízszintes", "down": "Függőleges",
+        "since": "Amióta nem jártál itt", "earlier": "Korábban",
     },
 }
 

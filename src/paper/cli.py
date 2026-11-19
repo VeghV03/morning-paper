@@ -20,7 +20,7 @@ import shutil
 import subprocess
 import sys
 import urllib.request
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from concurrent.futures import ThreadPoolExecutor
@@ -117,7 +117,9 @@ def context(args) -> int:
     out["today"] = date.today().isoformat()
     out["published_today"] = (h.issues / f"{out['today']}.jsonl").exists() and not pending(h.feed_state).exists()
     try:
-        out["threads"] = [{k: v for k, v in t.items() if k != "_line"} for t in issue.threads(h).values()]
+        known = issue.threads(h)
+        mine = reading.followed(h, known, (date.today() + timedelta(days=1)).isoformat())
+        out["threads"] = [{**{k: v for k, v in t.items() if k != "_line"}, **mine.get(t["id"], {})} for t in known.values()]
     except issue.Invalid as e:
         out["threads"] = []
         out["warnings"] = e.errors

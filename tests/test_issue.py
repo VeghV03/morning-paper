@@ -48,10 +48,24 @@ class IssueTest(unittest.TestCase):
         self.write([{**self.piece(1), "id": "r-2026-11-17-1"}])
         self.assertIn(f"needs id, r-{DAY}-<n>", self.errors())
 
-    def test_thread_body_limit(self):
-        self.h.threads.write_text(json.dumps({"id": "t-a", "title": "A", "body": "é" * 301}) + "\n", encoding="utf-8")
+    def threads(self, *rows):
+        self.h.threads.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+
+    def test_thread_entries(self):
+        long = [{"day": DAY, "text": "é" * 280}] * 8
+        self.threads({"id": "t-a", "title": "A", "entries": [{"day": DAY, "text": "x" * 281}]},
+                     {"id": "t-b", "title": "B", "entries": [{"day": DAY, "text": "b"}, {"day": "2026-11-01", "text": "a"}]},
+                     {"id": "t-c", "title": "C", "entries": long}, {"id": "t-d", "title": "D", "entries": []})
         self.write([self.piece(1, thread="t-a")])
-        self.assertIn("602 bytes", self.errors())
+        text = self.errors()
+        for part in ("281 characters", "oldest first", "4480 bytes", "needs entries"):
+            self.assertIn(part, text)
+
+    def test_an_old_thread_reads_as_one_entry(self):
+        self.threads({"id": "t-a", "title": "A", "body": "é" * 300, "since": "2026-11-10", "updated": "2026-11-17"})
+        self.write([self.piece(1, thread="t-a")])
+        issue.validate(self.h, DAY)
+        self.assertEqual(issue.threads(self.h)["t-a"]["entries"][0]["day"], "2026-11-17")
 
     def test_reading_context(self):
         self.write([self.piece(1), self.piece(2), {"id": f"r-{DAY}-3", "saved": True, "url": "https://b.hu", "head": "M"}])

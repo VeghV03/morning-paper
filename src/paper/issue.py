@@ -6,8 +6,11 @@ continues a running story. In a steered section (its line in sections.md lists t
 `|`), a piece also names its `topic`, one from that list, and its `fit`: `fits` when it follows
 what the reader reads, `tries` when it tests something they have not shown interest in. A digest Claude wrote of an article in a language the reader does
 not read adds `"digest": true`; its text is digests/<id>.md and `url` is the original. A saved link from inbox.md is `{"id", "saved": true, "url", "head"}`,
-with no section. Ids are `r-<date>-<n>`. A thread is `{"id", "title", "body", "since",
-"updated"}`: the story so far, shown above the piece in the reader.
+with no section. Ids are `r-<date>-<n>`. A thread is `{"id", "title", "since", "entries"}`, a
+running story: each entry `{"day", "text"}`, with `"piece": "r-…"` when an issue carried that
+day's news, oldest first. The reader sees the entries since they last opened the story (Since you
+left, at the top of the issue) and the rest folded under them. An older thread with one `body`
+paragraph reads as one entry dated `updated`.
 
 The issue also carries what the reader learns from:
 - an answer, `{"id": "a-<date>-<n>", "answer": "h-…", "text"}`: Claude's reply to a question the
@@ -40,7 +43,8 @@ PER_SECTION = 3
 SAVED = 8
 HEAD_CHARS = 60
 LEAD_CHARS = 140
-THREAD_BYTES = 600
+ENTRY_CHARS = 280
+THREAD_BYTES = 4000  # every entry's text together
 THREADS = 32
 DIGEST_WORDS = 450
 ANSWER_WORDS = 120
@@ -166,10 +170,33 @@ def threads(h: Home) -> dict[str, dict]:
             errors.append(f"{at}: needs id, t-<slug>")
         elif tid in out:
             errors.append(f"{at}: {tid} is there twice")
-        if not t.get("title") or not t.get("body"):
-            errors.append(f"{at}: needs title and body, the story so far")
-        elif len(str(t["body"]).encode()) > THREAD_BYTES:
-            errors.append(f"{at}: body is {len(str(t['body']).encode())} bytes; {THREAD_BYTES} at most")
+        if "entries" not in t and t.get("body"):  # the one-paragraph threads before entries
+            t["entries"] = [{"day": str(t.get("updated") or t.get("since") or ""), "text": str(t["body"]), "old": True}]
+        entries = t.get("entries")
+        if not t.get("title"):
+            errors.append(f"{at}: needs title, the story's name")
+        if not isinstance(entries, list) or not entries:
+            errors.append(f"{at}: needs entries, the story's developments: {{\"day\", \"text\"}} each, oldest first")
+            entries = []
+        last = ""
+        for n, x in enumerate(entries, 1):
+            x = x if isinstance(x, dict) else {}
+            day, text = str(x.get("day") or ""), str(x.get("text") or "")
+            if not DAY.match(day):
+                errors.append(f"{at}: entry {n}: needs day, YYYY-MM-DD")
+            elif day < last:
+                errors.append(f"{at}: entry {n}: entries go oldest first")
+            else:
+                last = day
+            if not text:
+                errors.append(f"{at}: entry {n}: needs text, what happened that day")
+            elif len(text) > ENTRY_CHARS and not x.get("old"):
+                errors.append(f"{at}: entry {n}: text is {len(text)} characters; {ENTRY_CHARS} at most")
+            if x.get("piece") is not None and not re.match(r"^r-\d{4}-\d{2}-\d{2}-\d+$", str(x["piece"])):
+                errors.append(f"{at}: entry {n}: piece names the issue's piece that carried it (r-…), or is left out")
+        if (size := sum(len(str(x.get("text") or "").encode()) for x in entries if isinstance(x, dict))) > THREAD_BYTES:
+            errors.append(f"{at}: the entries are {size} bytes; {THREAD_BYTES} at most, shorten the oldest")
+        t["updated"] = last
         out[tid] = t
     if len(out) > THREADS:
         errors.append(f"{h.threads}: {len(out)} threads; {THREADS} at most, drop the stories that ended")
@@ -225,7 +252,7 @@ def check(h: Home, secs: list[Section], rows: list[dict], day: str) -> None:
             if p.get("fit") not in FITS:
                 errors.append(f"{at}: '{sec.name}' is steered; fit must be fits or tries")
         if p.get("thread") and p["thread"] not in known:
-            errors.append(f"{at}: thread '{p['thread']}' is not in threads.jsonl; write the story so far there, or leave the field out")
+            errors.append(f"{at}: thread '{p['thread']}' is not in threads.jsonl; write the story there, or leave the field out")
     for sid, n in Counter(p.get("section") for p in pieces if not p.get("saved")).items():
         if n > PER_SECTION:
             errors.append(f"{where}: {n} pieces in '{sid}'; a section holds {PER_SECTION}")
@@ -294,7 +321,7 @@ def _check_learning(h: Home, rows: list[dict], pieces: dict, day: str, errors: l
             elif what == "link":
                 before = known_pieces.get(r.get("from"))
                 if not pieces[target].get("thread"):
-                    errors.append(f"{at}: a link is on a piece with a thread, whose story so far follows the answer")
+                    errors.append(f"{at}: a link is on a piece with a thread, whose story follows the answer")
                 if not before or before["day"] >= day or not st.get(before["id"], {}).get("opened"):
                     errors.append(f"{at}: from must name the earlier piece of the story, one the reader opened")
             _choice(r, at, errors, f"a {what}")

@@ -86,6 +86,8 @@ What each kind of section takes:
   (a paywalled outlet, or one the reader marked as never the piece) counts in `k` and is never
   the piece;
   when a story has no other source, find the piece on the web or leave the story out.
+  A story the reader follows (a thread in `context.threads` with `left_off`) that has not
+  moved since they left it stays out, however high its `k`: the reader already knows it.
 - **Every other section**: articles you find on the web that were never in an issue before (any age), that fit its line
   in `sections.md` and `interests.md`, found with WebSearch: essays, research written for
   readers, reporting with a finding. Prefer the piece with an argument or a finding over the piece with an opinion. No
@@ -174,7 +176,7 @@ reading, which is what makes the reading stick; a game on a detail is worse than
   the answer at the end. Until then the reader sees your headline, not the article's own
   title, so on a predicted piece neither `head` nor `lead` may give the finding away.
 - **Links.** When a piece carries a thread and `context.pieces` has an earlier piece of that
-  story the reader `opened`, ask what happened in it. The story so far follows the answer.
+  story the reader `opened`, ask what happened in it. The story's updates follow the answer.
   One game a piece: never a link and a prediction on the same one.
 
 ```json
@@ -196,16 +198,37 @@ Three options of the same kind and length, as on a choice card, in the page's la
 
 ## 4. Threads: `$PAPER_HOME/threads.jsonl`
 
-A story that runs for days gets a thread: `{"id":"t-<slug>","title","body","since","updated"}`;
-`since` is the day the story was first in an issue, `updated` the last day its `body` changed.
-`body` is the story so far up to but not including today's news: who, what is at stake, what
-happened in order, in plain words in the page's language (`paper.yaml`), one paragraph, 600 bytes at most.
-The reader sees it above the piece, open when its text is new to them, so change the text
-only when the story moved.
+A running story is the paper's promise: each morning the reader picks up every story they
+follow from where they left it, sees what changed since, and nothing they already know. The
+page puts these stories first, under Since you left, from the threads you keep here.
+
+A thread is `{"id":"t-<slug>","title","since","entries"}`, one a line. `since` is the day the
+story was first in an issue. `entries` are the story's developments, oldest first, one for
+each day it moved:
+
+```json
+{"id":"t-hu-budget","title":"Hungary's 2027 budget","since":"2026-11-15","entries":[{"day":"2026-11-15","text":"The government tabled a budget with a 4.1% deficit.","piece":"r-2026-11-15-2"},{"day":"2026-11-17","text":"The Fiscal Council called the deficit target unreachable."}]}
+```
+
+- `text`: what happened that day, in the page's language (`paper.yaml`), 280 characters at
+  most: one or two plain sentences a reader can follow without the article. Never what an
+  earlier entry already said.
+- `piece`: the piece of an issue that carried that day's news, when one did. Leave it out for a
+  development you found but put no piece on. It is how the page knows the reader opened the
+  story.
 
 A story becomes a thread the second time it is among an issue's pieces (compare with
-`context.pieces` and the threads already in the file), not on its first day. Then the piece
-carries `"thread":"t-<slug>"`. Drop a thread that had no news for two weeks; 32 at most.
+`context.pieces` and the threads already in the file), not on its first day: write an entry for
+the first day too, naming its piece. Then the piece carries `"thread":"t-<slug>"`.
+
+Every morning, for each thread whose story moved, add today's entry, with `piece` when today's
+issue carries it. A story the reader follows (`left_off` in `context.threads`) can move without
+a piece worth reading: the entry alone reaches them under Since you left. `new` says how many
+entries they have not seen yet. Write no entry for a story that did not move.
+
+The entries together stay under 4000 bytes: past that, shorten the oldest. Drop a thread that
+had no news for two weeks; 32 at most. A thread from before entries, with one `body` paragraph,
+reads as one entry; rewrite it as entries when its story next moves.
 
 ## 5. Publish
 
