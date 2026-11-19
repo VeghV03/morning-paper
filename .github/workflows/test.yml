@@ -60,7 +60,9 @@ jobs:
           curl -fsS -o ca.der http://localhost:4747/authority.cer
           openssl x509 -inform der -in ca.der -out ca.pem
           name=$(PYTHONPATH= "$py" -c "from paper import tls; print(tls.name().lower())")
-          code=$(curl -sS --cacert ca.pem --resolve "$name.local:4748:127.0.0.1" -o /dev/null -w "%{http_code}" \
+          # Windows' TLS library asks for revocation status, which a private authority does not publish
+          extra=""; [ "$RUNNER_OS" = Windows ] && extra=--ssl-no-revoke
+          code=$(curl -sS $extra --cacert ca.pem --resolve "$name.local:4748:127.0.0.1" -o /dev/null -w "%{http_code}" \
                  "https://$name.local:4748/")
           echo "https://$name.local:4748/ answered $code"
           [ "$code" = 403 ]                      # trusted, and an unpaired device is asked for the code
