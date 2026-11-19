@@ -23,6 +23,7 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from .home import Home
 
 HOME_NETWORKS = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")]
+CN_MAX = 64  # the longest common name a certificate may carry; the names that count are in the SAN
 LEAF_DAYS = 397  # under every phone's limit for a server certificate
 RENEW = dt.timedelta(days=30)
 
@@ -73,7 +74,7 @@ def authority(h: Home):
                 serialization.load_pem_private_key(key_path.read_bytes(), None))
     d.mkdir(parents=True, exist_ok=True)
     key = ec.generate_private_key(ec.SECP256R1())
-    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, f"Morning paper on {name()}")])
+    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, f"Morning paper on {name()}"[:CN_MAX])])
     now = dt.datetime.now(dt.timezone.utc)
     cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject).public_key(key.public_key())
             .serial_number(x509.random_serial_number())
@@ -123,7 +124,7 @@ def server_files(h: Home) -> tuple[str, str]:
     now = dt.datetime.now(dt.timezone.utc)
     alt = [x509.DNSName(host)] + ([x509.IPAddress(ipaddress.ip_address(ip))] if ip else [])
     cert = (x509.CertificateBuilder()
-            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, host)])).issuer_name(ca.subject)
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, host[:CN_MAX])])).issuer_name(ca.subject)
             .public_key(key.public_key()).serial_number(x509.random_serial_number())
             .not_valid_before(now - dt.timedelta(days=1)).not_valid_after(now + dt.timedelta(days=LEAF_DAYS))
             .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)

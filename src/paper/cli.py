@@ -299,7 +299,7 @@ def _install_windows(h, stop: bool, again: bool) -> int:
     if stop:
         return 0
     launcher = Path(sys.executable).parents[2] / "serve.pyw"  # .tools/venv/Scripts/python.exe
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:
+    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:  # absent on a new account
         if again:
             try:
                 winreg.QueryValueEx(key, RUN_NAME)

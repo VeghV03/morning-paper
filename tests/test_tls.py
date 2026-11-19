@@ -53,6 +53,11 @@ class CertificateTest(unittest.TestCase):
         with self.assertRaises(VerificationError):
             _verify(self.h, self._leaf(), "example.com")
 
+    def test_a_long_computer_name_still_gets_a_certificate(self):
+        long = "Mac-" + "x" * 59  # a DNS label may be 63 characters; with .local the name passes 64
+        with mock.patch.object(tls, "name", lambda: long):
+            _verify(self.h, self._leaf(), f"{long.lower()}.local")
+
     def test_the_authority_cannot_vouch_for_another_site(self):
         ca, ca_key = tls.authority(self.h)
         key = ec.generate_private_key(ec.SECP256R1())
