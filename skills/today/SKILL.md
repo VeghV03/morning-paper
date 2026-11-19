@@ -109,9 +109,9 @@ What each kind of section takes:
     its primary text (a classic work of the field that can be read free and whole). Then add
     the week to that line, `(2026-w48)`: the one edit you make to a reader's file. On other
     days the section is empty.
-  - **Football**: analyses in English of how a team plays, how a club is run, the numbers
-    behind a match, Brighton and Brentford first. On the week's first issue, the best piece
-    on each club's week, if there is one.
+  - **Football** (or any sport): analyses of how a team plays, how a club is run, the numbers
+    behind a match, the clubs its line names first. On the week's first issue, the best piece
+    on each named club's week, if there is one.
 
 A **digest** is the one piece you write: for an article worth reading in a language the reader
 does not read (`paper.yaml` and `interests.md` say which they do). In the reader's language,

@@ -200,39 +200,48 @@ its path bound in, so files cannot be swapped.
 past issues and briefs, never the record.
 
 ## D55 · The data repository
-**Chosen:** VeghV03/paper-data, private, encrypted files only.
+**Chosen:** a private repository of the reader's, holding sealed files only.
 **Not chosen:** building everything locally before creating it.
 **Accepted cost:** one more repository; GitHub sees its size and commit times.
 
 ## D56 · The reading profile
-**Chosen:** copied from the X4 paper (VeghV03/x4-data, with its open pull request #2: Ideas
-added, Institutions merged into Mind with "methods and replication" kept): `sections.md`,
-`interests.md`, `feeds.yaml`, `taste.md`, `seen.md`, `fields.md`, sealed into paper-data. It
-replaces the seed of Science, Ideas, Long reads and Culture.
-**Not chosen:** reading x4-data each run (its files are plain on GitHub); keeping the seed.
+**Chosen:** copied from the reader's X4 paper, with the section changes just made there, as the
+reader's own files sealed in the data repository: sections, interests, feeds, and the files
+three sections rest on. It replaces the answers given at setup.
+**Not chosen:** reading the X4's repository each run (its files are plain); keeping the setup
+answers.
 **Accepted cost:** two copies; a change in one does not reach the other.
 
-## D57 · Film, Football and Field
-**Chosen:** all three carried; the morning skill learns them. Film by `taste.md`, never a title
-in `seen.md`, up to three a week. Field: the first line of `fields.md` without a week mark, on
-the week's first issue an introduction and the primary text, then the week is marked.
-Football: analyses in English, Brighton and Brentford first, on the week's first issue the
-best piece on each club's week.
+## D57 · Sections that rest on the reader's files
+**Chosen:** the morning skill learns three: a film section chosen by `taste.md`, never a title
+in `seen.md`, up to three a week; a field of the week, the first line of `fields.md` without a
+week mark, given on the week's first issue as an introduction and the field's primary text,
+then marked; a sport section, the clubs its line names first, with the best piece on each
+club's week on the week's first issue.
 **Assumed, not asked:** the X4's written primer and weekly club dossiers become found articles
-(the paper writes only digests); "the week's first issue" is the first issue of the ISO week.
-`football.yaml` stays on the X4 (it needs a football-data.org key).
+(the paper writes only digests); "the week's first issue" is the first issue of the ISO week;
+the X4's football data feed stays there (it needs an API key).
 
-## D58 · The four essays
-**Chosen:** in the inbox; they arrive under Saved in the first cloud issue.
+## D58 · Saved essays
+**Chosen:** the essays the reader had saved on the X4 go into the inbox and arrive under Saved
+in the first cloud issue.
 
 ## D59 · Feeds
-**Chosen:** all of x4's feeds.yaml.
+**Chosen:** all of the X4's feeds.
 **Accepted cost:** more to read each morning. The paper ignores the X4's `topic` and
-`only_topic` keys, so mixed feeds (Al Jazeera, Haaretz, UN) bring any two new entries, and
-Claude leaves out what fits no section.
+`only_topic` keys, so a mixed feed brings any two new entries, and Claude leaves out what fits
+no section.
 
 ## Conflict to settle
-World's line asks for Chinese local reporting "translated whole". The paper never translates an
-article whole (that republishes it); a digest gives what it reports and argues with key lines
-translated, which is what `interests.md` asks for. The digest rule applies until the reader
-says otherwise.
+A section line asks for foreign local reporting "translated whole". The paper never translates
+an article whole (that republishes it); a digest gives what it reports and argues with key
+lines translated, which is what the reader's interests ask for. The digest rule applies until
+the reader says otherwise.
+
+## D60 · The run's environment and model
+**Chosen:** a cloud environment of the paper's own ("morning-paper": network Full, variable
+PAPER_RUN_KEY), and Opus 5.5 writing.
+**Not chosen:** the Default or x4 environment (their other sessions could read the run key);
+Sonnet 5.5.
+**Accepted cost:** more of the plan each morning. The schedule is in UTC (04:07, 05:07 in
+Budapest in winter); from summer time it runs at 06:07 local unless moved.

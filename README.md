@@ -67,6 +67,12 @@ The rest of the paper:
 
 ## Set up
 
+The paper is moving to the cloud: Claude writes each issue in a scheduled cloud run, sealed into
+a private GitHub repository of yours, and your phone opens it from a page on GitHub with nothing
+to install. The cloud run works today; the page that reads it comes next. Until then, the setup
+below, which runs the paper from your computer, is the way to read it. The plan and its trade-offs
+are in [decisions/2026-11-19-always-there.md](decisions/2026-11-19-always-there.md).
+
 You need the [Claude app](https://claude.com/download) on a paid plan, on a Mac, on Windows
 with [Git for Windows](https://git-scm.com/downloads/win), or on Ubuntu or Debian (the app's Linux
 beta). In the app's Code tab, type:
