@@ -39,7 +39,7 @@ LABELS = {
         "unpaired": "Írd be a kódot a Mac Beállításaiból.", "pair": "Párosítás",
         "wrong_code": "Ez a kód nem egyezik.", "locked": "Túl sok próbálkozás. Nyisd meg a Beállításokat a Macen.",
         "skip": "Kihagyom", "crossword": "Keresztrejtvény", "across": "Vízszintes", "down": "Függőleges",
-        "since": "Amióta nem jártál itt", "earlier": "Korábban", "next_at": "A következő szám {time}-kor jön.",
+        "since": "Ahol abbahagytad", "earlier": "Korábban", "next_at": "A következő szám {time}-kor jön.",
     },
 }
 
