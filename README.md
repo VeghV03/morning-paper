@@ -49,7 +49,7 @@ The rest of the paper:
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/reader-dark.png">
-    <img src="docs/reader-light.png" alt="The reader view: a paragraph highlighted and a passage marked as a question, in a Quanta article" width="640">
+    <img src="docs/reader-light.png" alt="The reader view: a paragraph highlighted and a passage marked as a question, in a science piece" width="640">
   </picture>
 </p>
 
