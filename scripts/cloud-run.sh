@@ -36,6 +36,9 @@ EOF
     git add -A
     if git diff --cached --quiet; then echo "paper: nothing changed"; exit 0; fi
     git -c user.name="Morning paper" -c user.email="paper@localhost" commit --quiet -m "Issue $(date -u +%F)"
+    # a device may have written its record and brief while the run worked: those files are not the
+    # run's, so they come in without a conflict
+    git pull --quiet --rebase origin main
     git push --quiet origin HEAD:main
     echo "paper: sealed and pushed"
     ;;

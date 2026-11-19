@@ -115,9 +115,11 @@ def draw(h: Home, day: str) -> dict[str, dict]:
         est = {t: estimate(x, now) for t, x in topics.items()}
         sample = {t: rng.betavariate(a, b) for t, (a, b) in est.items()}
         order = sorted(topics, key=lambda t: -sample[t])
+        tries = sorted(order, key=lambda t: sum(est[t]))  # the least evidence first; equals keep the order
         out[sid] = {
             "order": order,
-            "try": min(order, key=lambda t: sum(est[t])),  # the least evidence; the first of equals in the order
+            "try": tries[0],
+            "tries": tries,
             "topics": {t: {"estimate": round(a / (a + b), 2), "evidence": round(a + b - 2, 1)} for t, (a, b) in est.items()},
         }
     return out

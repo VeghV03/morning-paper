@@ -51,6 +51,11 @@ threads, the reader's `marks` (highlights and questions, with `answered` and `ca
 week), `games` (what the reader picked in each prediction and link, or that they skipped it,
 and the crossword words they did not solve) and `steer`, the morning's topic draw (step 3).
 
+In the cloud run, `context` comes from the brief the reader's phone leaves in the data
+repository, and `context.brief` says which day it was made for. It holds decisions, not counts:
+pieces carry `opened` but not `finished`, `kept` or `min`; `minutes`, `to_card` and `games` are
+empty; `steer` has no `topics` estimates. With no brief yet, `steer` is the flat draw.
+
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
 `feeds.yaml`, `inbox.md`, `outlets.json`, `paper.yaml`, `taste.md`, `seen.md` and `fields.md` are
 theirs: follow them, never edit them (Field's week mark is the one exception, below). Work from these, the
@@ -139,7 +144,8 @@ piece that explores (below), `fits` for the rest. The page writes each steered p
 from these two and the reader's record; you write nothing for it.
 
 `context.steer` gives, per steered section, the morning's draw from the paper's topic model:
-`order`, the section's topics in the order to prefer; `try`, the topic with the least `evidence`; and
+`order`, the section's topics in the order to prefer; `try`, the topic with the least `evidence`;
+`tries`, all of them from the least evidence up; and
 for each topic its `estimate` (the share of its pieces expected to turn out well) and
 `evidence` (how many recent showings that rests on). The model learns from what the reader
 finished, kept, marked, opened, passed over, remembered as a card, or asked for less of. The
@@ -150,8 +156,8 @@ draw is the same however often you run `paper context` in a day. Apply these rul
 2. **Follow the order.** Between pieces of similar worth, the one whose topic comes earlier in
    `order` takes the slot.
 3. **One try.** Each steered section gives one slot to a piece on its `try` topic, with `fit`
-   `tries`. When no strong piece on it exists, take the topic with the next least
-   `evidence`; when none is strong either, the section has no try that day.
+   `tries`. When no strong piece on it exists, take the next topic in `tries`; when none is
+   strong either, the section has no try that day.
 4. A `silent` section (shown for 28 days, nothing opened in them) gets one piece. An open
    restores three.
 

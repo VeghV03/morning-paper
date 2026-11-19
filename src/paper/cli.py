@@ -32,7 +32,7 @@ import feedparser
 import yaml
 
 from . import feed as feed_mod
-from . import cloud, edition, issue, learn, net, reading, server, vault
+from . import brief, cloud, edition, issue, learn, net, reading, server, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -129,7 +129,7 @@ def context(args) -> int:
         if not cloud.active():  # the cloud run has no reading record and no key for one (D46)
             vault.ensure(h)
             learn.refit(h, reading.reviews(h))
-        out = reading.context(h)
+        out = brief.context(h) if cloud.active() else reading.context(h)  # the run reads the brief (D47)
     except vault.Locked as e:
         _print({"ok": False, "errors": [str(e)]})
         return 1
@@ -138,7 +138,8 @@ def context(args) -> int:
     out["last_issue"] = next((d for d in reversed(issue.days(h)) if d < out["today"]), None)
     try:
         known = issue.threads(h)
-        mine = reading.followed(h, known, (date.today() + timedelta(days=1)).isoformat())
+        follows = brief.followed if cloud.active() else reading.followed
+        mine = follows(h, known, (date.today() + timedelta(days=1)).isoformat())
         out["threads"] = [{**{k: v for k, v in t.items() if k != "_line"}, **mine.get(t["id"], {})} for t in known.values()]
     except issue.Invalid as e:
         out["threads"] = []

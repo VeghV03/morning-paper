@@ -368,3 +368,44 @@ reader's devices.
 **Chosen:** on the page, in step 3's second part; what they write is sealed with the run key, since
 the run reads it. Until then, changed through Claude.
 **Not chosen:** through Claude only; Save a link alone on the page.
+
+## Step 3's first part as built
+
+The page keeps the reader's events on the phone and, on leaving a piece or the page, writes them to
+`record/<device>/<month>.jsonl`, sealed with the record key, then writes `home/brief.json`, sealed with
+the run key. `reader/learn.js` weighs the record as `topics.py` does, and `src/paper/brief.py` turns
+the brief into the same `paper context` the morning skill already reads.
+
+**Assumed, not asked:**
+- The brief holds the topic draw for the next issue, the live highlights and questions with their
+  text, and the ids of pieces opened in the last 14 days. No reading times, no counts (D47).
+- Rule 3 of the morning skill fell back to "the topic with the next least evidence", which needs
+  counts. Both draws now give `tries`, the topics ranked from least evidence up, and the rule reads
+  that ranking. It is the same rule on the Mac and in the cloud.
+- The record is one file per device and month. A device writes only its own files, so two devices
+  never overwrite each other. The brief comes from every device's record and is written by whichever
+  device wrote last.
+- A visit to a piece is one read event, updated while the reader is on it, where the Mac logs a line
+  per heartbeat. The learner reads only its total time and furthest point, so it weighs both alike.
+- D43's clamp is not applied: an event keeps the phone's clock as it happened. Nothing reaches a
+  computer to clamp it against until the run, and the run never reads the record.
+- A month stays marked as unwritten until GitHub takes it. A failed write, a reload or iOS closing
+  the page mid-write sends it again at the next write.
+- The Kept page lists what was kept or saved. A highlight or question does not put a piece there,
+  though the learner counts it as kept.
+- When the token cannot write (GitHub answers 403 or 404), the issue page says "Not saved: the token
+  can't write." What was done stays on the phone until it can.
+
+**Noticed, not changed:** reading done after midnight and before the morning run does not steer that
+morning's order, since the draw counts what happened before the issue's day began. The Mac has always
+worked this way.
+
+**Checked (2026-11-20), in a browser against a fake paper-data on localhost:** setup with the code
+derives both keys; the front page shows the answer to a question asked on another device; a steered
+piece shows its why line, and "less of this" changes it and can be undone; Keep, the Kept page, and a
+highlight on a tapped paragraph. Leaving a piece wrote the record and the brief, and Python opened
+both: this phone's events, the other device's file untouched, and a brief for the next day carrying
+both devices' marks. A refused write showed the note, and the next load sent what it had held.
+Python's and the page's evidence, estimates and why lines match on the same events (a test).
+**Not yet checked:** a real iPhone, GitHub taking the writes with a token that can write, and a
+cloud run reading a brief.

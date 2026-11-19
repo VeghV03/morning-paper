@@ -17,16 +17,20 @@ const fs = require("fs"), vm = require("vm");
 const [app, code, rel, file, other] = process.argv.slice(2);
 const noop = () => {};
 const ctx = vm.createContext({ crypto: globalThis.crypto, TextEncoder, TextDecoder, console, setTimeout, clearTimeout,
-  document: { getElementById: () => ({}) }, navigator: { language: "en" }, addEventListener: noop,
+  document: { getElementById: () => ({}), addEventListener: noop }, navigator: { language: "en" }, addEventListener: noop,
   indexedDB: { open: () => ({}) }, location: {}, history: {}, scrollTo: noop });
+vm.runInContext(fs.readFileSync(app.replace("app.js", "learn.js"), "utf8"), ctx);
 vm.runInContext(fs.readFileSync(app, "utf8"), ctx);
+const runKey = vm.runInContext("runKey", ctx);
 (async () => {
   const out = {};
-  const key = await ctx.runKey(code.toLowerCase().replace(/-/g, " "));
+  const key = await runKey(code.toLowerCase().replace(/-/g, " "));
   out.opened = await ctx.unseal(key, rel, fs.readFileSync(file));
   try { await ctx.unseal(key, other, fs.readFileSync(file)); out.moved = "opened"; } catch (e) { out.moved = e.message; }
-  try { await ctx.unseal(await ctx.runKey("A".repeat(24)), rel, fs.readFileSync(file)); out.wrong = "opened"; } catch (e) { out.wrong = e.message; }
+  try { await ctx.unseal(await runKey("A".repeat(24)), rel, fs.readFileSync(file)); out.wrong = "opened"; } catch (e) { out.wrong = e.message; }
   try { ctx.normal("too short"); } catch (e) { out.bad = e.message; }
+  const back = await ctx.seal(key, "home/brief.json", '{"day":"2026-11-20"}');  // what the page seals, Python opens
+  fs.writeFileSync(file + ".back", back);
   process.stdout.write(JSON.stringify(out));
 })();
 """
@@ -47,6 +51,8 @@ class ReaderTest(unittest.TestCase):
         self.assertEqual(got["moved"], "That code doesn't open this paper.")  # the path is bound in
         self.assertEqual(got["wrong"], "That code doesn't open this paper.")
         self.assertEqual(got["bad"], "A recovery code is 24 letters and digits.")
+        back = (tmp / "blob.back").read_bytes()
+        self.assertEqual(cloud.open_(cloud.run_key(CODE), "home/brief.json", back), b'{"day":"2026-11-20"}')
 
 
 if __name__ == "__main__":

@@ -145,7 +145,8 @@ class TopicsTest(Base):
     def test_context_carries_the_draw_and_the_silent_rule(self):
         self.piece(before(1), 1, "power")
         steer = reading.context(self.h, date.fromisoformat(DAY))["steer"]["ideas"]
-        self.assertEqual(set(steer), {"order", "try", "topics", "silent"})
+        self.assertEqual(set(steer), {"order", "try", "tries", "topics", "silent"})
+        self.assertEqual(steer["try"], steer["tries"][0])
 
 
 class WhyTest(Base):
