@@ -63,7 +63,8 @@ Code tab, type:
 ```
 
 Then `/paper:setup`. Claude asks three things: where you live, the languages you read, and what
-you want beyond the news. It installs the paper's own tools in `~/paper` (nothing system-wide,
+you want beyond the news. Then it asks which running stories you already follow, and your first
+issue opens with their last week. It installs the paper's own tools in `~/paper` (nothing system-wide,
 no password), starts the reader, writes a quick first issue while you watch, and schedules the
 full one for every morning.
 

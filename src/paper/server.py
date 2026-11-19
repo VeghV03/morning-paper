@@ -171,10 +171,10 @@ def moved(h: Home, day: str, pieces: list[dict]) -> list[dict]:
     """Since you left: each running story the reader follows that has news for them in the day's
     issue, newest first. `piece` is the issue's piece on it, if any; `new` its updates since they
     last caught up on it, before the day."""
-    everything, st, out = all_pieces(h), reading.state(h), []
+    everything, st, mine, out = all_pieces(h), reading.state(h), reading.named(h, day), []
     for tid, th in _threads(h).items():
         left = reading.left_off(h, th, day, everything, st)
-        if not left:
+        if not left and tid not in mine:
             continue
         piece = next((p for p in pieces if p.get("thread") == tid and not p.get("saved")), None)
         new = reading.since(th, left, day)
@@ -442,7 +442,7 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
 
 def thread_page(h: Home, tid: str, day: str | None) -> str | None:
     """A running story that moved without a piece in the issue: its updates since the reader last
-    caught up, the rest under Earlier."""
+    caught up, the rest under Earlier. A story named and never read shows its newest three."""
     from datetime import date
 
     th = _threads(h).get(tid)
@@ -451,8 +451,8 @@ def thread_page(h: Home, tid: str, day: str | None) -> str | None:
     all_days = days(h)
     day = day if day in all_days else (all_days[-1] if all_days else date.today().isoformat())
     left = reading.left_off(h, th, day)
-    mine = list(reversed(th["entries"]))
-    new = [x for x in mine if left and left < x["day"] <= day]
+    mine = [x for x in reversed(th["entries"]) if x["day"] <= day]
+    new = [x for x in mine if left < x["day"]] if left else mine[:3]
     _caught_up(h, th, left, new, day)
     head = f'<header><a href="/{day}">← {e(config.short_date(h, day))}</a></header><h1 class=title>{e(th["title"])}</h1>'
     return _page(h, th["title"], head, f"<div class=story>{_updates(h, new, [x for x in mine if x not in new])}</div>")

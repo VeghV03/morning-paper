@@ -86,8 +86,8 @@ What each kind of section takes:
   (a paywalled outlet, or one the reader marked as never the piece) counts in `k` and is never
   the piece;
   when a story has no other source, find the piece on the web or leave the story out.
-  A story the reader already opened a piece on (a thread in `context.threads` with
-  `left_off`, or an earlier piece in `context.pieces` with `opened`) that has not moved since
+  A story the reader already follows or opened a piece on (a thread in `context.threads` with
+  `follows`, or an earlier piece in `context.pieces` with `opened`) that has not moved since
   stays out, however high its `k`: the reader already knows it.
 - **Every other section**: articles you find on the web that were never in an issue before (any age), that fit its line
   in `sections.md` and `interests.md`, found with WebSearch: essays, research written for
@@ -222,6 +222,9 @@ A story becomes a thread the second time it is among an issue's pieces (compare 
 `context.pieces` and the threads already in the file), not on its first day: write an entry for
 the first day too, naming its piece. Then the piece carries `"thread":"t-<slug>"`.
 
+A story the reader named at setup is a thread from that day and theirs (`follows`, no
+`left_off` until they read it); keep it like any other.
+
 Every morning, for each thread whose story moved, add today's entry, with `piece` when today's
 issue carries it.
 
@@ -232,7 +235,7 @@ happened on each missed day, up to 14 days back: one entry a day the story moved
 it happened, without `piece`. Start from `feed.news`, which covers the days since the last
 issue as far as the outlets' feeds still hold them, and search the web for the rest. A day the
 story did not move gets no entry. Only then apply the two-week drop, so a story is not dropped
-for news you have not looked for yet. A story the reader follows (`left_off` in `context.threads`) can move without
+for news you have not looked for yet. A story the reader follows (`follows` in `context.threads`) can move without
 a piece worth reading: the entry alone reaches them under Since you left. `new` says how many
 entries they have not seen yet. Write no entry for a story that did not move.
 

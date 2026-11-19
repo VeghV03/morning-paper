@@ -4,6 +4,7 @@
   paper check      which outlets and feeds answer, as JSON
   paper feed       every candidate since the last issue, written to candidates.json
   paper context    what the reader did and marked, written to context.json
+  paper follow     make running stories the reader's, by thread id (setup)
   paper publish    check issues/<date>.jsonl, move the feed cursor, open the issue
   paper serve      the issue, the reader and settings on http://localhost:4747 and a paired phone
   paper read URL   the article at URL as the reader will see it, as JSON
@@ -132,6 +133,27 @@ def context(args) -> int:
     return 0
 
 
+def follow(args) -> int:
+    """Make running stories the reader's, by their thread ids in threads.jsonl, as setup does for
+    the stories they name."""
+    h = home()
+    try:
+        known = issue.threads(h)
+    except issue.Invalid as e:
+        _print({"ok": False, "errors": e.errors})
+        return 1
+    missing = [t for t in args.ids if t not in known]
+    if missing:
+        _print({"ok": False, "errors": [f"{t}: not in threads.jsonl; write the thread first" for t in missing]})
+        return 1
+    had = {e["id"] for e in reading.events(h) if e.get("ev") == "follow"}
+    for t in dict.fromkeys(args.ids):
+        if t not in had:
+            reading.log(h, {"ev": "follow", "id": t})
+    _print({"ok": True, "follows": sorted(had | set(args.ids))})
+    return 0
+
+
 def _up() -> bool:
     try:
         urllib.request.urlopen(f"http://localhost:{server.PORT}/kept", timeout=2)
@@ -197,13 +219,15 @@ def main(argv: list[str] | None = None) -> int:
     r = sub.add_parser("read")
     r.add_argument("url")
     sub.add_parser("context")
+    f = sub.add_parser("follow")
+    f.add_argument("ids", nargs="+", metavar="t-<slug>")
     pub = sub.add_parser("publish")
     pub.add_argument("--date", help="YYYY-MM-DD, default today")
     pub.add_argument("--open", action="store_true", help="open the issue in the browser")
     sub.add_parser("serve")
     sub.add_parser("install")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow}[args.cmd](args)
 
 
 if __name__ == "__main__":

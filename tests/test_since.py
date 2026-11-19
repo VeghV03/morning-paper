@@ -106,10 +106,31 @@ class SinceTest(unittest.TestCase):
         from paper import issue
 
         mine = reading.followed(self.h, issue.threads(self.h), "9999-12-31")
-        self.assertEqual(mine["t-budget"], {"left_off": FRI, "new": 2})
-        self.assertEqual(mine["t-strike"], {"left_off": FRI, "new": 0})
+        self.assertEqual(mine["t-budget"], {"follows": True, "left_off": FRI, "new": 2})
+        self.assertEqual(mine["t-strike"], {"follows": True, "left_off": FRI, "new": 0})
         self.assertNotIn("t-port", mine)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_a_named_story_leads_with_its_newest_updates(self):
+        from paper import cli
+
+        self.assertEqual(cli.main(["follow", "t-nope"]), 1)
+        self.assertEqual(cli.main(["follow", "t-port", "t-port"]), 0)
+        self.assertEqual(cli.main(["follow", "t-port"]), 0)
+        self.assertEqual(sum(e.get("ev") == "follow" for e in reading.events(self.h)), 1)
+
+        first = self.get(f"/{SUN}")[1].split("<section>")[1]
+        self.assertIn('href="/thread/t-port', first)
+        self.assertIn("Closed.", first)
+        stories = reading.followed(self.h, server._threads(self.h), SUN)
+        self.assertEqual(stories["t-port"], {"follows": True, "new": 1})
+
+        status, page = self.get(f"/thread/t-port?day={SUN}")
+        self.assertEqual(status, 200)
+        self.assertIn("Closed.", page.split("<details")[0])  # shown as new, not under Earlier
+        [ev] = [e for e in self.since_events() if e["id"] == "t-port"]
+        self.assertEqual((ev["entries"], ev["upto"], ev["gap"]), (1, SUN, None))
+        self.assertEqual(reading.left_off(self.h, server._threads(self.h)["t-port"], "2026-11-23"), SUN)

@@ -12,6 +12,8 @@ Events, one a line, each with `t` (ISO time) and `id` (a piece):
   piece (`piece`): `entries`, how many were new to them, `upto`, the day of the issue it was
   shown in, and `gap`, the days from where they had left it to that day. It moves where they
   left the story to `upto`: opening an old issue's story catches them up only to that issue;
+- `follow`: the reader named a running story (`id` t-…) at setup. It is theirs from that day,
+  with nothing of it read yet;
 - `review`: a card (`id` c-…) was answered, `rating` again or good (learn.py);
 - `game`: a prediction or link (`id` p-… or l-…) was answered, `pick` and `right`, or `skipped`;
   or a crossword (`id` x-…) word was solved, `entry` its index. Only the first answer counts.
@@ -70,7 +72,7 @@ def state(h: Home) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for e in events(h):
         ev = e.get("ev")
-        if ev in ("review", "game", "since"):
+        if ev in ("review", "game", "since", "follow"):
             continue
         s = out.setdefault(e["id"], {"seen": False, "looked": False, "opened": False, "progress": 0.0, "ms": 0, "kept": None, "shown": set()})
         if ev == "seen":
@@ -113,14 +115,20 @@ def gap(left: str | None, day: str) -> int | None:
     return (date.fromisoformat(day) - date.fromisoformat(left)).days if left else None
 
 
+def named(h: Home, before: str) -> set[str]:
+    """The running stories the reader named by the day `before`, inclusive: named at setup, a
+    story leads that morning's first issue."""
+    return {e["id"] for e in events(h) if e.get("ev") == "follow" and e["t"][:10] <= before}
+
+
 def followed(h: Home, threads: dict, before: str) -> dict[str, dict]:
-    """Per running story the reader follows (they opened a piece of it): where they left it and
-    how many entries are new to them."""
-    pieces, st, out = all_pieces(h), state(h), {}
+    """Per running story the reader follows (they opened a piece of it, or named it): `follows`,
+    where they left it, if anywhere, and how many entries are new to them."""
+    pieces, st, mine, out = all_pieces(h), state(h), named(h, before), {}
     for tid, th in threads.items():
         left = left_off(h, th, before, pieces, st)
-        if left:
-            out[tid] = {"left_off": left, "new": len(since(th, left, "9999-12-31"))}
+        if left or tid in mine:
+            out[tid] = {"follows": True, **({"left_off": left} if left else {}), "new": len(since(th, left, "9999-12-31"))}
     return out
 
 

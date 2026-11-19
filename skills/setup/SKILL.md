@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Set up the morning paper for a new reader in a few minutes. Install the paper's own tools in ~/paper, ask three questions (where they live, the languages they read, what they want beyond the news), write their files, start the reader, write a quick first issue while they watch, pair their phone and schedule the morning run. Use when the user says set up, setup, install, get started, or asks to schedule the morning run.
+description: Set up the morning paper for a new reader in a few minutes. Install the paper's own tools in ~/paper, ask three questions (where they live, the languages they read, what they want beyond the news), write their files, ask which running stories they follow, start the reader, write a quick first issue while they watch, pair their phone and schedule the morning run. Use when the user says set up, setup, install, get started, or asks to schedule the morning run.
 ---
 
 # setup
@@ -71,19 +71,29 @@ folder; nothing else runs without a prompt. Without them, the run waits for appr
 
 ## 5. A quick first issue
 
-Write it now, with them watching, by `${CLAUDE_PLUGIN_ROOT}/skills/today/SKILL.md`, quick:
+Write it now, with them watching, by `${CLAUDE_PLUGIN_ROOT}/skills/today/SKILL.md`, quick. Its
+first section, Since you left, lists only the stories the reader follows, so first ask for them.
 
-- Skip `paper context`: there is no reading yet. Run `~/paper/.tools/bin/paper feed`, and read
-  `news` and `follow`: no inbox, no web search.
-- One piece a section, two at most: the news from the top stories by `k`, the sections beyond
-  it from `follow` or a top story that fits. Open only the articles you choose.
-- No answers, cards, games or threads: there is nothing to build them on yet.
-- Publish, and open http://localhost:4747. No report: they are watching.
+1. Skip `paper context`: there is no reading yet. Run `~/paper/.tools/bin/paper feed`, and read
+   `news` and `follow`.
+2. Ask one question, several answers allowed: which running stories they follow now. Offer the
+   four biggest stories in `news` that have run for days, each named plainly in a few words;
+   they type their own as the answer they add. None is an answer too.
+3. For each story they chose, find what happened in it over the last seven days: `news` first,
+   then web search. Write its thread by section 4 of the run, one entry for each day it moved,
+   oldest first. A story with no news in seven days gets one entry, its latest development.
+   Then `~/paper/.tools/bin/paper follow t-<slug> …` with their ids.
+4. One piece a section, two at most: the news from the top stories by `k`, the sections beyond
+   it from `follow` or a top story that fits. A piece on a story they chose carries its
+   `thread`, and that day's entry names the piece. Open only the articles you choose; no other
+   web search.
+5. No answers, cards or games: there is nothing to build them on yet.
+6. Publish, and open http://localhost:4747. No report: they are watching.
 
 Then tell them in three sentences how it reads: a piece opens in a clean reader with Next at
 its end; tapping a paragraph offers Highlight and Question, and questions are answered in the
-next issue; tomorrow's issue is the full one, and from then on each issue opens with what
-changed in the stories they read, since they last read them.
+next issue; each issue opens with what changed in the stories they follow since they last read
+them, and opening a piece of any running story follows it too.
 
 ## 6. The phone
 
