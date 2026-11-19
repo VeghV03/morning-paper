@@ -22,7 +22,7 @@ LABELS = {
         "unpaired": "Enter the code from Settings on your Mac.", "pair": "Pair",
         "wrong_code": "That code doesn't match.", "locked": "Too many tries. Open Settings on your Mac.",
         "skip": "Skip", "crossword": "Crossword", "across": "Across", "down": "Down",
-        "since": "Since you left", "earlier": "Earlier",
+        "since": "Since you left", "earlier": "Earlier", "next_at": "The next one comes at {time}.",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -39,7 +39,7 @@ LABELS = {
         "unpaired": "Írd be a kódot a Mac Beállításaiból.", "pair": "Párosítás",
         "wrong_code": "Ez a kód nem egyezik.", "locked": "Túl sok próbálkozás. Nyisd meg a Beállításokat a Macen.",
         "skip": "Kihagyom", "crossword": "Keresztrejtvény", "across": "Vízszintes", "down": "Függőleges",
-        "since": "Amióta nem jártál itt", "earlier": "Korábban",
+        "since": "Amióta nem jártál itt", "earlier": "Korábban", "next_at": "A következő szám {time}-kor jön.",
     },
 }
 
@@ -59,6 +59,12 @@ def language(h: Home) -> str:
 
 def labels(h: Home) -> dict:
     return LABELS[language(h)]
+
+
+def morning(h: Home) -> str:
+    """The morning run's time as the page writes it: "5:07"."""
+    hh, _, mm = str(load(h).get("morning") or "05:07").partition(":")
+    return f"{int(hh)}:{mm[:2]}" if hh.isdigit() and mm[:2].isdigit() else "5:07"
 
 
 def dateline(h: Home, day: str) -> str:

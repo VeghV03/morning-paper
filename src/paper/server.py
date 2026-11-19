@@ -104,14 +104,54 @@ def _body(fragment: str, title: str = "") -> str:
         root = lxml.html.fragment_fromstring(fragment, create_parent="div")
     except Exception:  # noqa: BLE001 - show it as it came
         return fragment
-    plain = lambda el: " ".join(el.text_content().split())  # noqa: E731
-    for el in list(root):
-        text = plain(el)
-        if el.tag == "p" and len(text) >= 40:
+    els = list(root)
+    lead = 0
+    for el in els:  # before the first paragraph: the title again, "Published", a credit, "Listen"
+        text = _plain(el)
+        if el.tag == "p" and len(text) >= 40 and not _scrap(el):
             break
-        if len(text) < 40 or (title and text.lower().startswith(title.lower()[:40])):
-            root.remove(el)
-    return "".join(lxml.html.tostring(el, encoding="unicode") for el in root) or fragment
+        if not (len(text) < 40 or el.tag == "h1" or _scrap(el) or (title and text.lower().startswith(title.lower()[:40]))):
+            break
+        lead += 1
+    tail = len(els)
+    while tail > lead and len(els) - tail < 8 and _scrap(els[tail - 1], end=True):  # sign-ups, related links
+        tail -= 1
+    kept = [el for el in els[lead:tail] if not _credit(el)] or els
+    return "".join(lxml.html.tostring(el, encoding="unicode") for el in kept) or fragment
+
+
+def _plain(el) -> str:
+    return " ".join(el.text_content().split())
+
+
+# what pages leave around an article: photo credits, sign-ups, "support us"; English and Hungarian
+CREDIT = re.compile(r"getty images|(\w+ ?/ ?){3}\w|\b(photo|photograph|credit|fotó|kép|borítókép)\s*:|\| [^|]*\b(afp|reuters|ap|epa)\b", re.I)
+CALL = re.compile(r"newsletter|sign up|subscribe|patreon|support us|hírlev|feliratkoz|iratkozzon|előfizet|támogass|"
+                  r"csatlakozzon|kövesse", re.I)
+SENTENCE = re.compile(r"[.!?…\"”»’']\)?$")
+
+
+def _credit(el) -> bool:
+    """A photo's credit, wherever it sits: the pictures are gone."""
+    text = _plain(el)
+    return el.tag == "p" and len(text.split()) <= 25 and not SENTENCE.search(text) and bool(CREDIT.search(text))
+
+
+def _scrap(el, end: bool = False) -> bool:
+    """A block that is not the article: empty; a short line that is no sentence (a credit, a
+    dateline, "Advertisement:"); a credit or a call to sign up; a list of links; at the end, a
+    heading with nothing under it."""
+    text, words = _plain(el), len(_plain(el).split())
+    if not text:
+        return True
+    if (words <= 60 and CREDIT.search(text)) or (words <= 40 and CALL.search(text)):
+        return True
+    if el.tag in ("ul", "ol"):
+        items = [_plain(li) for li in el if _plain(li)]
+        return not items or sum(bool(SENTENCE.search(i)) for i in items) * 2 < len(items)
+    if re.fullmatch(r"h[1-6]", el.tag or ""):
+        return end and words <= 15
+    return words <= 14 and not SENTENCE.search(text)
 
 
 # pages
@@ -257,9 +297,14 @@ def issue_page(h: Home, day: str) -> str:
 
 def done_page(h: Home, day: str) -> str:
     t, dateline = config.labels(h), config.dateline(h, day)
+    later = [d for d in days(h) if d > day]
+    right = f'<a href="/{later[0]}">{e(config.short_date(h, later[0]))} →</a>' if later else "<span></span>"
     nav = (f'<nav><a href="/{day}">← {e(config.short_date(h, day))}</a><span class=links>'
-           f'<a href="/kept">{e(t["kept"])}</a><a href="/settings">{e(t["settings"])}</a></span><span></span></nav>')
-    return _page(h, t["done"], f"<h1>{e(dateline)}</h1>", f"<p class=end>{e(t['done'])}</p>{_crossword_link(h, day)}", nav)
+           f'<a href="/kept">{e(t["kept"])}</a><a href="/settings">{e(t["settings"])}</a></span>{right}</nav>')
+    # the latest issue's end says when the next comes; an older one's points to it
+    after = "" if later else e(t["next_at"].format(time=config.morning(h)))
+    return _page(h, t["done"], f"<h1>{e(dateline)}</h1>",
+                 f"<p class=end>{e(t['done'])}</p><p class=after>{after}</p>{_crossword_link(h, day)}", nav)
 
 
 def _crossword_link(h: Home, day: str, rows: list[dict] | None = None) -> str:
@@ -307,6 +352,31 @@ def _game(h: Home, piece: dict) -> dict | None:
     return next((r for r in rows if kind(r) in ("predict", "link") and r.get(kind(r)) == piece["id"]), None)
 
 
+def _authors(raw, url: str) -> str:
+    """Up to three names, each once, without the outlet's own name or a stray month or "Szerző"."""
+    months = {m for lang in config.LABELS.values() for m in lang["months"].lower().split()}
+    host, names = _host(url).split(".")[0], {}
+    for name in re.split(r"\s*[;,]\s*|\s+and\s+|\s+és\s+", str(raw or "")):
+        words = [w for w in name.split() if w.lower() not in months]
+        key = " ".join(words).replace("-", " ").lower()
+        if words and key not in ("szerzo", "szerző", host) and len(key) >= 3 and (key not in names or "-" in names[key]):
+            names[key] = " ".join(words)  # "Weiler-Vilmos; Weiler Vilmos" is one writer
+    return ", ".join(list(names.values())[:3])
+
+
+def _when(h: Home, raw, day: str) -> str:
+    """The article's date as the page writes dates, with the year when it is not the issue's;
+    nothing when it is not a date."""
+    try:
+        when = config.short_date(h, str(raw)[:10])
+    except ValueError:
+        return ""
+    year = str(raw)[:4]
+    if year == day[:4]:
+        return when
+    return f"{year}. {when}" if config.language(h) == "hu" else f"{when} {year}"
+
+
 def reader_page(h: Home, piece: dict, art: dict) -> str:
     t = config.labels(h)
     st = reading.state(h).get(piece["id"])
@@ -323,7 +393,8 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
                   f"<summary>{e(th['title'])}</summary>{_updates(h, new, old)}</details>")
     box = "<div id=game></div>" if game else ""
     kept = reading.kept(piece, st)
-    byline = " · ".join(e(str(x)) for x in (_host(piece["url"]), art.get("author"), art.get("date")) if x)
+    byline = " · ".join(e(x) for x in (_host(piece["url"]), _authors(art.get("author"), piece["url"]),
+                                        _when(h, art.get("date"), piece["day"])) if x)
     if art.get("digest"):
         byline = f'{e(t["digest"])} <a href="{e(piece["url"])}">{e(_host(piece["url"]))}</a>'
 
@@ -342,7 +413,7 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
     if nxt:
         after = f'<a class=next href="/read/{e(nxt["id"])}"><span>{e(t["next"])}</span>{e(nxt["head"])}</a>'
     else:
-        after = f'<a class=next href="/{piece["day"]}/done"><span>{e(t["next"])}</span>{e(t["done"])}</a>'
+        after = f'<a class=next href="/{piece["day"]}/done">{e(t["done"])}</a>'
     foot = (f'<footer><button id=keep data-kept="{str(kept).lower()}">{e(t["keeping"] if kept else t["keep"])}</button>'
             f'<a href="{e(piece["url"])}">{e(t["original"])} ↗</a></footer>{after}')
     data = {
@@ -741,7 +812,7 @@ READER_JS = """<script>
         const res = await post("/game", {id: game.id, ...answer}).catch(() => null);
         const got = res && res.ok ? await res.json() : {};
         box.replaceChildren();
-        article.hidden = false;
+        article.hidden = false; article.classList.add("late");
         const h1 = document.querySelector("h1.title");
         if (h1.dataset.title) h1.textContent = h1.dataset.title;
         const thread = document.querySelector("details.thread");
@@ -1015,18 +1086,28 @@ SETTINGS_JS = """<script>
     err.textContent = data.errors.join(" · "); return false;
   };
   const block = (title, ...kids) => el("section", {}, el("h2", {}, title), ...kids);
+  // a line of text that wraps instead of running off the screen; Return ends it
+  const fit = a => { a.style.height = "auto"; a.style.height = a.scrollHeight + "px"; };
+  const grow = (a, value) => {
+    a.value = value || "";
+    a.addEventListener("input", () => fit(a));
+    a.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); a.blur(); } });
+    requestAnimationFrame(() => fit(a));
+    addEventListener("resize", () => fit(a));
+    return a;
+  };
 
   const sections = () => {
     const err = el("p", {class: "err"}), list = el("div", {class: "rows"});
-    const rows = () => [...list.children].map(r => Object.fromEntries([...r.querySelectorAll("input")].map(i => [i.name, i.value])));
+    const rows = () => [...list.children].map(r => Object.fromEntries([...r.querySelectorAll("[name]")].map(i => [i.name, i.value])));
     const commit = () => save("sections", rows(), err);
     const row = s => {
       const r = el("div", {class: "row sec"},
         el("input", {name: "name", value: s.name, placeholder: t.name, onchange: commit}),
         el("button", {class: "quiet", "aria-label": "↑", onclick: () => { r.previousElementSibling && list.insertBefore(r, r.previousElementSibling); commit(); }}, "↑"),
         el("button", {class: "quiet", "aria-label": t.remove, onclick: () => { r.remove(); commit(); }}, "×"),
-        el("input", {name: "what", value: s.what, placeholder: t.what, onchange: commit}),
-        el("input", {name: "topics", value: s.topics, placeholder: t.topics, onchange: commit}));
+        grow(el("textarea", {name: "what", rows: 1, placeholder: t.what, onchange: commit}), s.what),
+        grow(el("textarea", {name: "topics", rows: 1, placeholder: t.topics, onchange: commit}), s.topics));
       return r;
     };
     state.sections.forEach(s => list.append(row(s)));
@@ -1117,7 +1198,8 @@ PAGE = """<!doctype html>
 <link rel="apple-touch-icon" href="/icon.png">
 <title>{title}</title>
 <style>
-:root {{ --bg: #fbfbfa; --ink: #1d1d1f; --muted: #6e6e73; --faint: #a1a1a6; --rule: #e8e8e6; --chip: #f0f0ee;
+:root {{ --serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif; --bg: #fbfbfa; --ink: #1d1d1f; --muted: #6e6e73; --faint: #a1a1a6; --rule: #e8e8e6; --chip: #f0f0ee;
   --hl: #fdf0a6; --q: #dce9fb; --right: #dcefdc; --wrong: #f8dcdc; }}
 @media (prefers-color-scheme: dark) {{
   :root {{ --bg: #161617; --ink: #f2f2f2; --muted: #a1a1a6; --faint: #6e6e73; --rule: #2a2a2c; --chip: #222224;
@@ -1125,23 +1207,22 @@ PAGE = """<!doctype html>
 }}
 * {{ box-sizing: border-box; }}
 body {{ margin: 0; background: var(--bg); color: var(--ink);
-  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased; }}
+  font: 17px/1.55 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }}
 main {{ max-width: 640px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 20px calc(120px + env(safe-area-inset-bottom)); }}
 @media (min-width: 700px) {{ main {{ padding-top: 64px; }} }}
 a {{ color: inherit; }}
-h1 {{ font-size: 15px; font-weight: 500; color: var(--muted); margin: 0 0 40px; letter-spacing: .01em; }}
+h1 {{ font: 700 30px/1.15 var(--serif); letter-spacing: -.015em; margin: 0 0 40px; text-wrap: balance; }}
 section {{ margin: 0 0 48px; }}
-h2 {{ font-size: 13px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: .08em;
-  margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }}
+h2 {{ font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .1em;
+  margin: 0 0 4px; padding-top: 10px; border-top: 1px solid var(--ink); }}
 ol {{ list-style: none; margin: 0; padding: 0; }}
 li {{ padding: 16px 0; border-bottom: 1px solid var(--rule); }}
 li:last-child {{ border-bottom: 0; }}
-li a {{ text-decoration: none; font-size: 20px; font-weight: 600; line-height: 1.3; letter-spacing: -.01em; }}
+li a {{ text-decoration: none; font: 600 21px/1.25 var(--serif); letter-spacing: -.005em; text-wrap: balance; }}
 li a:hover {{ text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }}
-li p {{ margin: 6px 0 0; color: var(--muted); }}
-li span {{ display: block; margin-top: 6px; font-size: 13px; color: var(--faint); }}
-li span a {{ font-size: 13px; font-weight: 400; }}
+li p {{ margin: 6px 0 0; color: var(--muted); font-size: 16px; line-height: 1.5; text-wrap: pretty; }}
+li span {{ display: block; margin-top: 8px; font-size: 12px; letter-spacing: .02em; color: var(--faint); }}
+li span a {{ font: inherit; }}
 li.done a, li.done p {{ color: var(--faint); }}
 ol.updates li {{ padding: 8px 0; border: 0; font-size: 16px; color: var(--muted); }}
 ol.updates li span {{ display: inline; margin: 0 8px 0 0; }}
@@ -1153,15 +1234,19 @@ li.answer blockquote {{ margin: 0 0 8px; padding-left: 14px; border-left: 2px so
 li.answer blockquote.open {{ display: block; }}
 li.answer p {{ color: var(--ink); }}
 nav, footer {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; }}
+nav {{ flex-wrap: wrap; border-top: 1px solid var(--rule); padding-top: 8px; }}
+nav > a, nav > span {{ white-space: nowrap; }}
 nav .links {{ display: flex; gap: 20px; }}
+@media (max-width: 520px) {{ nav .links {{ order: 3; flex-basis: 100%; }} }}
 nav a, footer a, header a {{ color: var(--muted); font-size: 15px; text-decoration: none; padding: 10px 0; }}
 nav a:hover, footer a:hover, header a:hover {{ color: var(--ink); }}
 header {{ display: flex; justify-content: space-between; margin-bottom: 40px; }}
-h1.title {{ font-size: 32px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; color: var(--ink); margin: 0 0 8px; }}
-.byline {{ color: var(--faint); font-size: 15px; margin: 0 0 32px; }}
-article {{ font: 19px/1.6 ui-serif, "New York", Georgia, serif; margin: 32px 0 48px; overflow-wrap: break-word; }}
-article h2 {{ font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }}
-article h2 {{ font-size: 21px; color: var(--ink); text-transform: none; letter-spacing: -.01em; border: 0; margin: 40px 0 8px; padding: 0; }}
+h1.title {{ font-size: clamp(29px, 7.6vw, 38px); line-height: 1.12; letter-spacing: -.02em; margin: 0 0 12px; }}
+.byline {{ color: var(--faint); font-size: 14px; margin: 0 0 36px; }}
+article {{ font: 19px/1.62 var(--serif); margin: 32px 0 48px; overflow-wrap: break-word; hanging-punctuation: first; }}
+article p {{ text-wrap: pretty; }}
+article h2, article h3 {{ font: 700 21px/1.3 var(--serif); color: var(--ink); text-transform: none; letter-spacing: -.01em;
+  border: 0; margin: 40px 0 8px; padding: 0; }}
 article li {{ border: 0; padding: 4px 0; }}
 article blockquote {{ margin: 24px 0; padding-left: 20px; border-left: 2px solid var(--rule); color: var(--muted); }}
 article table {{ border-collapse: collapse; font-size: 15px; }}
@@ -1179,7 +1264,11 @@ article .picked {{ outline: 1px solid var(--faint); outline-offset: 6px; }}
 .bar button {{ background: transparent; color: var(--bg); padding: 12px 20px; font-size: 16px; white-space: nowrap; }}
 .bar button:hover {{ background: rgba(127,127,127,.25); }}
 .thread {{ background: var(--chip); border-radius: 10px; padding: 14px 18px; margin: 0 0 32px; }}
-.thread summary {{ cursor: pointer; font-weight: 600; font-size: 15px; }}
+.thread > summary {{ cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }}
+.thread > summary::-webkit-details-marker {{ display: none; }}
+.thread > summary::after {{ content: ""; flex: none; width: 7px; height: 7px; margin: 6px 4px 0 0; border: solid var(--muted);
+  border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); transition: transform .2s ease; }}
+.thread[open] > summary::after {{ transform: rotate(-135deg); margin-top: 10px; }}
 .thread p {{ margin: 8px 0 0; color: var(--muted); font-size: 16px; }}
 button {{ font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); background: var(--chip);
   border: 0; border-radius: 999px; padding: 8px 18px; cursor: pointer; }}
@@ -1187,7 +1276,7 @@ button[data-kept=true], button[aria-pressed=true] {{ background: var(--ink); col
 button.quiet {{ background: transparent; color: var(--faint); font-weight: 500; padding: 8px 10px; }}
 button.quiet:hover {{ color: var(--ink); }}
 .card {{ border: 1px solid var(--rule); border-radius: 14px; padding: 20px 22px; margin: 0 0 48px; }}
-.card .front {{ font-size: 19px; font-weight: 600; line-height: 1.4; margin: 0 0 16px; }}
+.card .front {{ font: 600 20px/1.35 var(--serif); margin: 0 0 16px; text-wrap: pretty; }}
 .card .back {{ margin: 0 0 16px; color: var(--muted); }}
 .card .row, .card .options {{ display: flex; gap: 8px; flex-wrap: wrap; }}
 .card .options {{ flex-direction: column; align-items: stretch; }}
@@ -1216,20 +1305,23 @@ button.quiet:hover {{ color: var(--ink); }}
   background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1.4; }}
 .clue[hidden] {{ display: none; }}
 .clue b {{ margin-right: 8px; }}
-a.next {{ display: block; margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--rule); text-decoration: none;
-  font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: -.01em; }}
-a.next span {{ display: block; font-size: 13px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }}
+a.next {{ display: block; margin-top: 56px; padding-top: 12px; border-top: 1px solid var(--ink); text-decoration: none;
+  font: 600 24px/1.25 var(--serif); letter-spacing: -.01em; text-wrap: balance; }}
+a.next span {{ display: block; font: 600 12px/1.5 var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }}
 a.next:hover {{ text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }}
 a.next:hover span {{ text-decoration: none; }}
-.end {{ font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 64px; }}
+.end {{ font: 700 34px/1.15 var(--serif); letter-spacing: -.02em; margin: 0 0 12px; }}
+.after {{ color: var(--muted); margin: 0 0 64px; }}
 #settings input, #settings textarea {{ font: inherit; font-size: 15px; color: var(--ink); background: transparent;
   border: 0; border-bottom: 1px solid var(--rule); padding: 8px 0; width: 100%; min-width: 0; }}
 #settings textarea {{ border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; line-height: 1.5; resize: vertical; }}
 #settings input:focus, #settings textarea:focus {{ outline: none; border-color: var(--muted); }}
 #settings .row {{ display: grid; gap: 12px; align-items: center; margin-bottom: 4px; }}
 #settings .sec {{ grid-template-columns: 1fr auto auto; row-gap: 0; margin-bottom: 20px; }}
-#settings .sec input[name=what], #settings .sec input[name=topics] {{ grid-column: 1 / -1; }}
-#settings .sec input[name=topics] {{ color: var(--muted); }}
+#settings .sec [name=what], #settings .sec [name=topics] {{ grid-column: 1 / -1; }}
+#settings .sec [name=topics] {{ color: var(--muted); }}
+#settings .sec textarea {{ border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 8px 0; resize: none; overflow: hidden; }}
+#settings .row button.quiet {{ min-width: 44px; min-height: 44px; color: var(--muted); font-size: 17px; }}
 #settings .feed {{ grid-template-columns: 2fr 3fr auto; }}
 #settings .link {{ grid-template-columns: 1fr auto; }}
 #settings .sec input[name=name] {{ font-weight: 600; }}
@@ -1246,6 +1338,20 @@ a.next:hover span {{ text-decoration: none; }}
   border: 0; border-bottom: 1px solid var(--rule); padding: 8px 0; margin: 8px 16px 0 0; }}
 #pair input:focus {{ outline: none; border-color: var(--muted); }}
 #pair .err {{ color: var(--muted); font-size: 15px; min-height: 1.5em; }}
+@view-transition {{ navigation: auto; }}
+::view-transition-old(root), ::view-transition-new(root) {{ animation-duration: .2s; }}
+@keyframes rise {{ from {{ opacity: 0; transform: translateY(8px); }} }}
+@keyframes pop {{ from {{ opacity: 0; transform: translate(-50%, 8px); }} }}
+@supports not (view-transition-name: none) {{ main {{ animation: rise .3s ease-out both; }} }}
+article.late, #reveal > *, #card > *, #game > *, .thread[open] > :not(summary) {{ animation: rise .4s cubic-bezier(.2,.7,.2,1) both; }}
+.bar:not([hidden]) {{ animation: pop .18s ease-out both; }}
+button {{ transition: transform .12s ease, background-color .2s ease, color .2s ease; }}
+button:active {{ transform: scale(.96); }}
+li a, a.next, nav a, header a, footer a {{ transition: opacity .15s ease, color .15s ease; }}
+li a:active, a.next:active {{ opacity: .55; }}
+@media (prefers-reduced-motion: reduce) {{
+  *, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {{ animation: none !important; transition: none !important; }}
+}}
 </style>
 </head>
 <body><main>{head}{body}{nav}</main>{script}</body>
