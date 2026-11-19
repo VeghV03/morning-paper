@@ -16,7 +16,8 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  const shell = FILES.map((f) => new URL(f, self.registration.scope).pathname);
+  if (e.request.method !== "GET" || url.origin !== location.origin || !shell.includes(url.pathname)) return;
   // the network first, so a merged update shows; the saved copy when there is none
   e.respondWith(fetch(e.request).then((res) => {
     if (res.ok) caches.open(SHELL).then((c) => c.put(e.request, res.clone()));

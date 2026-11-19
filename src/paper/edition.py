@@ -36,7 +36,7 @@ def front(h: Home, day: str) -> dict:
     pieces = [r for r in load(h, day) if kind(r) == "piece"]
     named = {s.id: s.name for s in sections(h)}
     rank = {sid: n for n, sid in enumerate(named)}
-    item = lambda p: {"id": p["id"], "head": p["head"], "lead": p.get("lead", ""), "host": _host(p["url"])}  # noqa: E731
+    item = lambda p: {"id": p["id"], "head": p["head"], "lead": p.get("lead", ""), "url": p["url"], "host": _host(p["url"])}  # noqa: E731
     out = []
     for sid in sorted(dict.fromkeys(p.get("section") for p in pieces if not p.get("saved")),
                       key=lambda s: rank.get(s, len(rank))):  # a renamed section's pieces last
@@ -72,12 +72,16 @@ def build(h: Home, day: str, extract: Callable[[str], dict] | None = None) -> di
     root = _dir(h)
     (root / day).mkdir(parents=True, exist_ok=True)
     page = front(h, day)
-    (root / f"{day}.json").write_text(json.dumps(page, ensure_ascii=False), encoding="utf-8")
     texts = 0
     for p in [r for r in load(h, day) if kind(r) == "piece"]:
-        one = piece(h, p, day, extract)
+        try:
+            one = piece(h, p, day, extract)
+        except Exception:  # noqa: BLE001 - one odd page must not stop the issue; it opens at its outlet
+            one = {"url": p["url"]}
         texts += "html" in one
         (root / day / f"{p['id']}.json").write_text(json.dumps(one, ensure_ascii=False), encoding="utf-8")
+    # the front page last: a run that stops halfway leaves no page pointing at missing pieces
+    (root / f"{day}.json").write_text(json.dumps(page, ensure_ascii=False), encoding="utf-8")
     cutoff = (date.fromisoformat(day) - timedelta(days=KEEP_DAYS)).isoformat()
     dropped = [d.name for d in root.iterdir() if d.is_dir() and d.name < cutoff]
     for name in dropped:

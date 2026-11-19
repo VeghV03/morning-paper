@@ -69,7 +69,14 @@ class EditionTest(unittest.TestCase):
         built = edition.build(self.h, DAY, fake_extract)
         self.assertEqual(built["dropped"], [old])
         self.assertFalse((self.h.root / "edition" / old).exists())
-        self.assertTrue((self.h.root / "edition" / f"{old}.json").exists())
+        self.assertEqual(self.read(f"{old}.json")["sections"][0]["pieces"][0]["url"], "https://daily.com/z")  # opens there
+
+    def test_a_page_that_breaks_the_cleaner_opens_at_its_outlet(self):
+        def broken(url):
+            raise RuntimeError("odd page")
+        built = edition.build(self.h, DAY, broken)
+        self.assertEqual(built["texts"], 1)  # the digest
+        self.assertEqual(self.read(f"{DAY}/r-2.json"), {"url": "https://daily.com/b"})
 
 
 if __name__ == "__main__":

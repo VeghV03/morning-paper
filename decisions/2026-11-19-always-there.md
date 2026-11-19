@@ -320,7 +320,11 @@ of tags with no attributes, and the page's policy runs no script but its own: an
 the same page as the key, so it must not be able to act. Opened on localhost, the page reads a test
 copy from its own server in place of GitHub.
 
-**Checked in a browser (2026-11-19), against a fake paper-data on localhost:** a wrong code is
-refused at setup; the issue, a digest, an article and a past issue open; a poisoned article loses its
-script, image, style, handler and link; with the server stopped, the page and the latest issue open
-from the phone's own copy. **Not yet checked:** a real iPhone, GitHub Pages, and GitHub's own API.
+**Checked (2026-11-19), in a browser against a fake paper-data on localhost:** a wrong code is
+refused at setup; the issue, a digest and a past issue open; four of the first run's real articles,
+extracted live, come through as plain paragraphs and lists; a poisoned article loses its script,
+image, style, handler and link; a piece past 30 days opens at its outlet; with the server stopped,
+the page and the latest issue open from the phone's sealed copy, and an older issue says there is no
+connection. GitHub's API answers a page from another site with the token and version headers the page
+sends (a preflight to api.github.com). **Not yet checked:** a real iPhone, GitHub Pages, and a
+publish in a real cloud run.

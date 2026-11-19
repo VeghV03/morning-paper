@@ -15,11 +15,11 @@ const DROP = new Set(["SCRIPT", "STYLE", "TEMPLATE", "IFRAME", "OBJECT", "EMBED"
 const SETUP = {
   en: { repo: "Data repository", token: "GitHub token", code: "Recovery code", open: "Open the paper",
     bad_code: "A recovery code is 24 letters and digits.", no_repo: "That token can't read that repository.",
-    wrong_key: "That code doesn't open this paper.", offline: "No connection, and nothing saved yet.",
+    wrong_key: "That code doesn't open this paper.", offline: "No connection, and this isn't saved on the phone.",
     forget: "Forget this phone", no_issue: "No issue yet." },
   hu: { repo: "Adattároló", token: "GitHub-token", code: "Helyreállító kód", open: "Az újság megnyitása",
     bad_code: "A helyreállító kód 24 betű és szám.", no_repo: "Ez a token nem olvassa azt a tárolót.",
-    wrong_key: "Ez a kód nem nyitja ezt az újságot.", offline: "Nincs kapcsolat, és még nincs mentett szám.",
+    wrong_key: "Ez a kód nem nyitja ezt az újságot.", offline: "Nincs kapcsolat, és ez nincs elmentve a telefonon.",
     forget: "A telefon elfelejtése", no_issue: "Még nincs szám." },
 };
 const enc = (s) => new TextEncoder().encode(s);
@@ -229,11 +229,16 @@ async function route() {
     const page = await sealed(cfg, frontRel(want));
     lang = page.lang in SETUP ? page.lang : lang;
     if (id === "done") return done(page, list);
-    if (id) return reader(page, await sealed(cfg, pieceRel(want, id)), id);
+    if (id) {
+      const p = [...page.sections.flatMap((x) => x.pieces), ...page.saved].find((x) => x.id === id);
+      // past KEEP_DAYS, or never fetched offline: the piece's text is gone, so read it at its outlet
+      const art = await sealed(cfg, pieceRel(want, id)).catch((e) => { if (p && e.status === 404) return { url: p.url }; throw e; });
+      return reader(page, art, id);
+    }
     issue(page, list);
     if (want === list.at(-1)) keep(cfg, page);
   } catch (e) {
-    if (e.wrongKey || e.status === 401 || e.status === 404) return setup(e.message); // a new token or code
+    if (e.wrongKey || e.status === 401) return setup(e.message); // a new token or code
     show("Paper", `<p class=empty>${esc(e.message)}</p>`);
   }
 }
