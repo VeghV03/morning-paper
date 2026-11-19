@@ -8,7 +8,7 @@ A morning paper your own Claude writes from the outlets you trust.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/issue-dark.png">
-    <img src="docs/issue-light.png" alt="An issue opening with Since you left: the stories the reader follows that moved since they last read them" width="640">
+    <img src="docs/issue-light.png" alt="An issue opening with Since you left: a new piece on a story the reader follows, and a line for one that moved without a piece" width="640">
   </picture>
 </p>
 
@@ -20,6 +20,13 @@ follows it for you: each issue opens with **Since you left**, what changed in ea
 stories since you last read about it, a dated line a day, newest first, and nothing you already
 know. A story that has not moved stays out, however big it is. Away for ten days, you get the
 ten days.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/story-dark.png">
+    <img src="docs/story-light.png" alt="A story's own page: the updates since the reader last read it, dated and newest first, with what they knew folded under Earlier" width="640">
+  </picture>
+</p>
 
 That is possible because the record of what you read is yours. What you opened, finished,
 marked and asked is a plain file in `~/paper` on your Mac, read only by your own Claude when it
