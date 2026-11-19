@@ -110,10 +110,6 @@ class SinceTest(unittest.TestCase):
         self.assertEqual(mine["t-strike"], {"follows": True, "left_off": FRI, "new": 0})
         self.assertNotIn("t-port", mine)
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_a_named_story_leads_with_its_newest_updates(self):
         from paper import cli
 
@@ -134,3 +130,7 @@ if __name__ == "__main__":
         [ev] = [e for e in self.since_events() if e["id"] == "t-port"]
         self.assertEqual((ev["entries"], ev["upto"], ev["gap"]), (1, SUN, None))
         self.assertEqual(reading.left_off(self.h, server._threads(self.h)["t-port"], "2026-11-23"), SUN)
+
+
+if __name__ == "__main__":
+    unittest.main()

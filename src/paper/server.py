@@ -32,6 +32,8 @@ from .issue import DAY, Invalid, all_pieces, all_rows, days, kind, load, section
 
 PORT = int(os.environ.get("PAPER_PORT") or 4747)
 ICON = Path(__file__).with_name("icon.png")
+FONTS = Path(__file__).with_name("fonts")
+FONT_FILES = {"/fonts/PaperSerif-Roman.woff2", "/fonts/PaperSerif-Italic.woff2"}
 MAX_BODY = 64_000  # bytes; settings with every section and interest fit many times over
 MIN_TEXT = 400  # characters; less is a cookie wall or a teaser, not the article
 NO_FETCH = {"24.hu"}
@@ -276,7 +278,7 @@ def issue_page(h: Home, day: str) -> str:
         items = [item(m["piece"]) if m["piece"] else
                  f'<li data-id="{e(m["thread"]["id"])}"><a href="/thread/{e(m["thread"]["id"])}?day={day}">'
                  f'{e(m["thread"]["title"])}</a><p>{e(str(m["new"][0]["text"]))}</p></li>' for m in stories]
-        body.append(f"<section><h2>{e(t['since'])}</h2><ol>{''.join(items)}</ol></section>")
+        body.append(f"<section><h2 class=since>{e(t['since'])}</h2><ol>{''.join(items)}</ol></section>")
     named = {s.id: s.name for s in secs}
     first = {m["piece"]["id"] for m in stories if m["piece"]}
     for sid in dict.fromkeys(p.get("section") for p in pieces if not p.get("saved") and p["id"] not in first):
@@ -559,6 +561,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, PAIR_PAGE)
         if path == "/icon.png":
             return self._send_bytes(ICON.read_bytes(), "image/png")
+        if path in FONT_FILES:
+            return self._send_bytes((FONTS / path.rsplit("/", 1)[1]).read_bytes(), "font/woff2")
         if not self._allowed(h):
             return self._unpaired(h)
         try:
@@ -1196,153 +1200,167 @@ PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#161617" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-title" content="Paper">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="/icon.png">
+<link rel="preload" href="/fonts/PaperSerif-Roman.woff2" as="font" type="font/woff2" crossorigin>
 <title>{title}</title>
 <style>
-:root {{ --serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
-  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif; --bg: #fbfbfa; --ink: #1d1d1f; --muted: #6e6e73; --faint: #a1a1a6; --rule: #e8e8e6; --chip: #f0f0ee;
-  --hl: #fdf0a6; --q: #dce9fb; --right: #dcefdc; --wrong: #f8dcdc; }}
+@font-face {{ font-family: "Paper Serif"; src: url(/fonts/PaperSerif-Roman.woff2) format("woff2"); font-weight: 200 900; font-style: normal; font-display: swap; }}
+@font-face {{ font-family: "Paper Serif"; src: url(/fonts/PaperSerif-Italic.woff2) format("woff2"); font-weight: 200 900; font-style: italic; font-display: swap; }}
+:root {{ --serif: "Paper Serif", Georgia, serif; --bg: #fbfbf9; --ink: #1a1a1a; --grey: #6f6f6b; --rule: #e2e2dd; }}
 @media (prefers-color-scheme: dark) {{
-  :root {{ --bg: #161617; --ink: #f2f2f2; --muted: #a1a1a6; --faint: #6e6e73; --rule: #2a2a2c; --chip: #222224;
-    --hl: #4d4215; --q: #1d3150; --right: #1e3a24; --wrong: #482225; }}
+  :root {{ --bg: #121212; --ink: #f4f4f1; --grey: #9a9a95; --rule: #2e2e2c; }}
 }}
 * {{ box-sizing: border-box; }}
 body {{ margin: 0; background: var(--bg); color: var(--ink);
-  font: 17px/1.55 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }}
+  font: 17px/1.55 var(--serif); font-optical-sizing: auto; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }}
 main {{ max-width: 640px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) 20px calc(120px + env(safe-area-inset-bottom)); }}
 @media (min-width: 700px) {{ main {{ padding-top: 64px; }} }}
 a {{ color: inherit; }}
-h1 {{ font: 700 30px/1.15 var(--serif); letter-spacing: -.015em; margin: 0 0 40px; text-wrap: balance; }}
+h1 {{ font: 800 34px/1.1 var(--serif); letter-spacing: -.02em; margin: 0 0 40px; text-wrap: balance; }}
 section {{ margin: 0 0 48px; }}
-h2 {{ font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .1em;
-  margin: 0 0 4px; padding-top: 10px; border-top: 1px solid var(--ink); }}
+h2 {{ font: 650 16px/1.4 var(--serif); font-variant-caps: all-small-caps; letter-spacing: .07em; color: var(--ink);
+  margin: 0 0 2px; padding-top: 8px; border-top: 1.5px solid var(--ink); }}
+h2.since {{ border-top-width: 6px; padding-top: 10px; }}
+h2.since::before {{ content: "¶"; font-variant-caps: normal; margin-right: .4em; }}
 ol {{ list-style: none; margin: 0; padding: 0; }}
 li {{ padding: 16px 0; border-bottom: 1px solid var(--rule); }}
 li:last-child {{ border-bottom: 0; }}
-li a {{ text-decoration: none; font: 600 21px/1.25 var(--serif); letter-spacing: -.005em; text-wrap: balance; }}
+li a {{ text-decoration: none; font: 650 21px/1.25 var(--serif); letter-spacing: -.008em; text-wrap: balance; }}
 li a:hover {{ text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }}
-li p {{ margin: 6px 0 0; color: var(--muted); font-size: 16px; line-height: 1.5; text-wrap: pretty; }}
-li span {{ display: block; margin-top: 8px; font-size: 12px; letter-spacing: .02em; color: var(--faint); }}
+li p {{ margin: 6px 0 0; font-size: 16.5px; line-height: 1.5; text-wrap: pretty; }}
+li span {{ display: block; margin-top: 8px; font-size: 13.5px; color: var(--grey); }}
 li span a {{ font: inherit; }}
-li.done a, li.done p {{ color: var(--faint); }}
-ol.updates li {{ padding: 8px 0; border: 0; font-size: 16px; color: var(--muted); }}
-ol.updates li span {{ display: inline; margin: 0 8px 0 0; }}
-.story ol.updates li {{ font-size: 18px; color: var(--ink); }}
+li.done a, li.done p {{ color: var(--grey); }}
+ol.updates li {{ padding: 8px 0; border: 0; font-size: 16.5px; }}
+ol.updates li span {{ display: inline; margin: 0 8px 0 0; font-variant-numeric: tabular-nums; }}
+.story ol.updates li {{ font-size: 18px; }}
 details.earlier {{ margin-top: 8px; }}
-details.earlier summary {{ cursor: pointer; font-size: 13px; color: var(--faint); }}
-li.answer blockquote {{ margin: 0 0 8px; padding-left: 14px; border-left: 2px solid var(--q); color: var(--muted); cursor: pointer;
+details.earlier summary {{ cursor: pointer; font-size: 14px; color: var(--grey); }}
+li.answer blockquote {{ margin: 0 0 8px; padding-left: 14px; border-left: 2px solid var(--ink); font-style: italic; cursor: pointer;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }}
 li.answer blockquote.open {{ display: block; }}
-li.answer p {{ color: var(--ink); }}
 nav, footer {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; }}
-nav {{ flex-wrap: wrap; border-top: 1px solid var(--rule); padding-top: 8px; }}
+nav {{ flex-wrap: wrap; border-top: 1.5px solid var(--ink); padding-top: 8px; }}
 nav > a, nav > span {{ white-space: nowrap; }}
 nav .links {{ display: flex; gap: 20px; }}
 @media (max-width: 520px) {{ nav .links {{ order: 3; flex-basis: 100%; }} }}
-nav a, footer a, header a {{ color: var(--muted); font-size: 15px; text-decoration: none; padding: 10px 0; }}
+nav a, footer a, header a {{ color: var(--grey); font-size: 15.5px; text-decoration: none; padding: 10px 0; }}
 nav a:hover, footer a:hover, header a:hover {{ color: var(--ink); }}
 header {{ display: flex; justify-content: space-between; margin-bottom: 40px; }}
-h1.title {{ font-size: clamp(29px, 7.6vw, 38px); line-height: 1.12; letter-spacing: -.02em; margin: 0 0 12px; }}
-.byline {{ color: var(--faint); font-size: 14px; margin: 0 0 36px; }}
+h1.title {{ font-size: clamp(30px, 7.6vw, 40px); line-height: 1.1; margin: 0 0 12px; }}
+.byline {{ color: var(--grey); font-size: 14.5px; margin: 0 0 36px; }}
 article {{ font: 19px/1.62 var(--serif); margin: 32px 0 48px; overflow-wrap: break-word; hanging-punctuation: first; }}
 article p {{ text-wrap: pretty; }}
-article h2, article h3 {{ font: 700 21px/1.3 var(--serif); color: var(--ink); text-transform: none; letter-spacing: -.01em;
+article a {{ text-decoration: none; font-weight: 600; }}
+article h2, article h3 {{ font: 700 21px/1.3 var(--serif); font-variant-caps: normal; letter-spacing: -.01em;
   border: 0; margin: 40px 0 8px; padding: 0; }}
 article li {{ border: 0; padding: 4px 0; }}
-article blockquote {{ margin: 24px 0; padding-left: 20px; border-left: 2px solid var(--rule); color: var(--muted); }}
+article blockquote {{ margin: 24px 0; padding-left: 20px; border-left: 2px solid var(--ink); font-style: italic; }}
 article table {{ border-collapse: collapse; font-size: 15px; }}
 article td, article th {{ border: 1px solid var(--rule); padding: 4px 8px; }}
-mark {{ color: inherit; border-radius: 3px; cursor: pointer; }}
-mark.highlight {{ background: var(--hl); }}
-mark.question {{ background: var(--q); }}
-article .m-highlight, article .m-question, article .picked {{ border-radius: 4px; }}
-article .m-highlight {{ background: var(--hl); box-shadow: 0 0 0 6px var(--hl); }}
-article .m-question {{ background: var(--q); box-shadow: 0 0 0 6px var(--q); }}
-article .picked {{ outline: 1px solid var(--faint); outline-offset: 6px; }}
+mark {{ color: inherit; background: none; cursor: pointer; text-underline-offset: .24em; text-decoration-skip-ink: auto; }}
+mark.question, article .m-question {{ text-decoration: underline dotted var(--ink) 1.5px; }}
+mark.highlight, article .m-highlight {{ text-decoration: underline solid var(--ink) 1px; text-underline-offset: .24em; }}
+article .m-question {{ text-underline-offset: .24em; }}
+article .m-highlight, article .m-question, article .picked {{ position: relative; }}
+article .m-highlight::before, article .m-question::before {{ position: absolute; left: -30px; top: 0; width: 22px; text-align: right;
+  font: 650 19px/1.62 var(--serif); font-style: normal; text-decoration: none; }}
+article .m-question::before {{ content: "?"; }}
+article .m-highlight::before {{ content: "¶"; }}
+article .m-highlight.m-question::before {{ content: "¶?"; left: -40px; width: 32px; }}
+@media (max-width: 700px) {{
+  article .m-highlight::before, article .m-question::before {{ left: -18px; width: 14px; font-size: 15px; }}
+  article .m-highlight.m-question::before {{ left: -19px; width: 15px; font-size: 11px; line-height: 1.3; top: .2em; white-space: pre; content: "¶\\A?"; }}
+}}
+article .picked {{ outline: 1px solid var(--grey); outline-offset: 6px; border-radius: 2px; }}
 .bar {{ position: fixed; z-index: 2; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom));
-  display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: var(--ink); box-shadow: 0 6px 24px rgba(0,0,0,.22); }}
+  display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: var(--ink); }}
 .bar[hidden] {{ display: none; }}
-.bar button {{ background: transparent; color: var(--bg); padding: 12px 20px; font-size: 16px; white-space: nowrap; }}
+.bar button {{ background: transparent; color: var(--bg); border: 0; padding: 12px 20px; font-size: 16.5px; white-space: nowrap; }}
 .bar button:hover {{ background: rgba(127,127,127,.25); }}
-.thread {{ background: var(--chip); border-radius: 10px; padding: 14px 18px; margin: 0 0 32px; }}
-.thread > summary {{ cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }}
+.thread {{ border-left: 3px solid var(--ink); padding: 2px 0 2px 16px; margin: 0 0 32px; }}
+.thread > summary {{ cursor: pointer; font-weight: 650; font-size: 16px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }}
 .thread > summary::-webkit-details-marker {{ display: none; }}
-.thread > summary::after {{ content: ""; flex: none; width: 7px; height: 7px; margin: 6px 4px 0 0; border: solid var(--muted);
+.thread > summary::after {{ content: ""; flex: none; width: 7px; height: 7px; margin: 6px 4px 0 0; border: solid var(--ink);
   border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); transition: transform .2s ease; }}
 .thread[open] > summary::after {{ transform: rotate(-135deg); margin-top: 10px; }}
-.thread p {{ margin: 8px 0 0; color: var(--muted); font-size: 16px; }}
-button {{ font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); background: var(--chip);
-  border: 0; border-radius: 999px; padding: 8px 18px; cursor: pointer; }}
+.thread p {{ margin: 8px 0 0; font-size: 16.5px; }}
+button {{ font: inherit; font-size: 15.5px; font-weight: 650; color: var(--ink); background: transparent;
+  border: 1px solid var(--ink); border-radius: 999px; padding: 7px 18px; cursor: pointer; }}
 button[data-kept=true], button[aria-pressed=true] {{ background: var(--ink); color: var(--bg); }}
-button.quiet {{ background: transparent; color: var(--faint); font-weight: 500; padding: 8px 10px; }}
+button.quiet {{ border-color: transparent; color: var(--grey); font-weight: 500; padding: 8px 10px; }}
 button.quiet:hover {{ color: var(--ink); }}
-.card {{ border: 1px solid var(--rule); border-radius: 14px; padding: 20px 22px; margin: 0 0 48px; }}
-.card .front {{ font: 600 20px/1.35 var(--serif); margin: 0 0 16px; text-wrap: pretty; }}
-.card .back {{ margin: 0 0 16px; color: var(--muted); }}
+.card {{ border: 1px solid var(--ink); border-radius: 4px; padding: 20px 22px; margin: 0 0 48px; }}
+.card .front {{ font: 650 20px/1.35 var(--serif); margin: 0 0 16px; text-wrap: pretty; }}
+.card .back {{ margin: 0 0 16px; }}
 .card .row, .card .options {{ display: flex; gap: 8px; flex-wrap: wrap; }}
 .card .options {{ flex-direction: column; align-items: stretch; }}
-.card .options button {{ text-align: left; border-radius: 10px; font-weight: 500; }}
-.card button.right {{ background: var(--right); }}
-.card button.wrong {{ background: var(--wrong); }}
+.card .options button {{ display: flex; justify-content: space-between; gap: 12px; text-align: left; border-radius: 4px; font-weight: 500; }}
 .card button:disabled {{ cursor: default; color: var(--ink); }}
-.card .rated {{ color: var(--faint); font-size: 15px; }}
+.card button.right {{ background: var(--ink); color: var(--bg); }}
+.card button.right::after {{ content: "✓"; }}
+.card button.wrong {{ color: var(--grey); text-decoration: line-through; text-decoration-thickness: 1px; }}
+.card .rated {{ color: var(--grey); font-size: 15px; }}
 .card button.quiet {{ margin-top: 8px; }}
 #game .card, #reveal .card {{ margin: 0 0 32px; }}
 #reveal .card {{ margin-top: -16px; }}
-.grid {{ position: relative; display: grid; gap: 3px; width: fit-content; margin: 0 auto 48px; touch-action: manipulation; }}
-.grid .cell {{ position: relative; width: var(--cell); height: var(--cell); border-radius: 4px; background: var(--chip);
-  display: grid; place-items: center; font-weight: 600; font-size: calc(var(--cell) * .5); cursor: pointer; user-select: none; }}
-.grid .cell small {{ position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 500; color: var(--muted); line-height: 1.2; }}
-.grid .cell.on {{ background: var(--q); }}
-.grid .cell.at {{ box-shadow: inset 0 0 0 2px var(--ink); }}
-.grid .cell.solved {{ background: var(--right); }}
+.grid {{ position: relative; display: grid; gap: 1px; width: fit-content; margin: 0 auto 48px; touch-action: manipulation;
+  background: var(--ink); border: 1.5px solid var(--ink); }}
+.grid .cell {{ position: relative; width: var(--cell); height: var(--cell); background: var(--bg);
+  display: grid; place-items: center; font-weight: 650; font-size: calc(var(--cell) * .55); cursor: pointer; user-select: none; }}
+.grid .cell small {{ position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 500; color: var(--grey); line-height: 1.2; }}
+.grid .cell.on {{ background: var(--rule); }}
+.grid .cell.at {{ box-shadow: inset 0 0 0 2.5px var(--ink); }}
+.grid .cell.solved {{ color: var(--ink); }}
+@media (prefers-color-scheme: dark) {{ .grid {{ background: #000; border-color: #000; }} .grid .cell {{ background: #262624; }} .grid .cell.on {{ background: #3a3a37; }} }}
 .grid input {{ position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; font-size: 16px; }}
 #clues li {{ cursor: pointer; padding: 12px 0; }}
-#clues li p {{ margin: 0; color: var(--ink); }}
-#clues li b {{ display: inline-block; min-width: 1.6em; color: var(--muted); font-weight: 600; }}
-#clues li.done p {{ color: var(--faint); }}
-#clues li.on p {{ font-weight: 600; }}
+#clues li p {{ margin: 0; }}
+#clues li b {{ display: inline-block; min-width: 1.6em; color: var(--grey); font-weight: 650; }}
+#clues li.done p {{ color: var(--grey); text-decoration: line-through; text-decoration-thickness: 1px; }}
+#clues li.on p {{ font-weight: 650; }}
 .clue {{ position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
-  background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1.4; }}
+  background: var(--ink); color: var(--bg); font-size: 16.5px; line-height: 1.4; }}
 .clue[hidden] {{ display: none; }}
 .clue b {{ margin-right: 8px; }}
-a.next {{ display: block; margin-top: 56px; padding-top: 12px; border-top: 1px solid var(--ink); text-decoration: none;
-  font: 600 24px/1.25 var(--serif); letter-spacing: -.01em; text-wrap: balance; }}
-a.next span {{ display: block; font: 600 12px/1.5 var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }}
+a.next {{ display: block; margin-top: 56px; padding-top: 10px; border-top: 1.5px solid var(--ink); text-decoration: none;
+  font: 700 25px/1.2 var(--serif); letter-spacing: -.012em; text-wrap: balance; }}
+a.next span {{ display: block; font: 650 16px/1.5 var(--serif); font-variant-caps: all-small-caps; letter-spacing: .07em; margin-bottom: 8px; }}
 a.next:hover {{ text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }}
 a.next:hover span {{ text-decoration: none; }}
-.end {{ font: 700 34px/1.15 var(--serif); letter-spacing: -.02em; margin: 0 0 12px; }}
-.after {{ color: var(--muted); margin: 0 0 64px; }}
-#settings input, #settings textarea {{ font: inherit; font-size: 15px; color: var(--ink); background: transparent;
-  border: 0; border-bottom: 1px solid var(--rule); padding: 8px 0; width: 100%; min-width: 0; }}
-#settings textarea {{ border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; line-height: 1.5; resize: vertical; }}
-#settings input:focus, #settings textarea:focus {{ outline: none; border-color: var(--muted); }}
+.end {{ font: 800 36px/1.1 var(--serif); letter-spacing: -.02em; margin: 0 0 12px; }}
+.after {{ color: var(--grey); margin: 0 0 64px; }}
+#settings input, #settings textarea {{ font: inherit; font-size: 16px; color: var(--ink); background: transparent;
+  border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 8px 0; width: 100%; min-width: 0; }}
+#settings textarea {{ border: 1px solid var(--rule); padding: 12px 14px; line-height: 1.5; resize: vertical; }}
+#settings input:focus, #settings textarea:focus {{ outline: none; border-color: var(--ink); }}
+#settings input::placeholder, #settings textarea::placeholder {{ color: var(--grey); }}
 #settings .row {{ display: grid; gap: 12px; align-items: center; margin-bottom: 4px; }}
 #settings .sec {{ grid-template-columns: 1fr auto auto; row-gap: 0; margin-bottom: 20px; }}
 #settings .sec [name=what], #settings .sec [name=topics] {{ grid-column: 1 / -1; }}
-#settings .sec [name=topics] {{ color: var(--muted); }}
-#settings .sec textarea {{ border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 8px 0; resize: none; overflow: hidden; }}
-#settings .row button.quiet {{ min-width: 44px; min-height: 44px; color: var(--muted); font-size: 17px; }}
+#settings .sec [name=topics] {{ color: var(--grey); font-style: italic; }}
+#settings .sec textarea {{ border: 0; border-bottom: 1px solid var(--rule); padding: 8px 0; resize: none; overflow: hidden; }}
+#settings .row button.quiet {{ min-width: 44px; min-height: 44px; color: var(--grey); font-size: 17px; }}
 #settings .feed {{ grid-template-columns: 2fr 3fr auto; }}
 #settings .link {{ grid-template-columns: 1fr auto; }}
-#settings .sec input[name=name] {{ font-weight: 600; }}
+#settings .sec input[name=name] {{ font-weight: 650; font-size: 18px; }}
 #settings .chips {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-#settings .chip {{ display: inline-flex; align-items: center; background: var(--chip); border-radius: 999px; padding: 2px 4px 2px 14px; font-size: 15px; }}
-#settings .chip button {{ padding: 4px 10px; }}
+#settings .chip {{ display: inline-flex; align-items: center; border: 1px solid var(--ink); border-radius: 999px; padding: 1px 2px 1px 14px; font-size: 15.5px; }}
+#settings .chip button {{ border: 0; padding: 4px 10px; }}
 #settings .choice {{ display: flex; gap: 8px; }}
-#settings .qr svg {{ display: block; width: 180px; height: 180px; border-radius: 10px; }}
-#settings .code {{ font-size: 28px; font-weight: 600; letter-spacing: .08em; margin: 16px 0 0; font-variant-numeric: tabular-nums; }}
-#settings .addr {{ color: var(--muted); font-size: 15px; margin: 12px 0 0; }}
-#settings .err {{ color: var(--muted); font-size: 14px; margin: 8px 0 0; min-height: 1em; }}
-.empty {{ color: var(--muted); }}
-#pair input {{ font: inherit; font-size: 28px; letter-spacing: .2em; width: 8ch; color: var(--ink); background: transparent;
-  border: 0; border-bottom: 1px solid var(--rule); padding: 8px 0; margin: 8px 16px 0 0; }}
-#pair input:focus {{ outline: none; border-color: var(--muted); }}
-#pair .err {{ color: var(--muted); font-size: 15px; min-height: 1.5em; }}
+#settings .qr svg {{ display: block; width: 180px; height: 180px; }}
+#settings .code {{ font-size: 30px; font-weight: 650; letter-spacing: .08em; margin: 16px 0 0; font-variant-numeric: lining-nums tabular-nums; }}
+#settings .addr {{ color: var(--grey); font-size: 15.5px; margin: 12px 0 0; }}
+#settings .err {{ color: var(--grey); font-size: 14.5px; margin: 8px 0 0; min-height: 1em; }}
+.empty {{ color: var(--grey); }}
+#pair input {{ font: inherit; font-size: 30px; letter-spacing: .2em; width: 8ch; color: var(--ink); background: transparent;
+  font-variant-numeric: lining-nums tabular-nums; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; padding: 8px 0; margin: 8px 16px 0 0; }}
+#pair input:focus {{ outline: none; }}
+#pair .err {{ color: var(--grey); font-size: 15.5px; min-height: 1.5em; }}
 @view-transition {{ navigation: auto; }}
 ::view-transition-old(root), ::view-transition-new(root) {{ animation-duration: .2s; }}
 @keyframes rise {{ from {{ opacity: 0; transform: translateY(8px); }} }}
