@@ -4,9 +4,11 @@ version = "0.1.0"
 description = "A morning paper your Claude writes for you: the day's stories ranked by independent outlets, read on localhost."
 requires-python = ">=3.12"
 dependencies = [
+  "cryptography>=43",
   "feedparser>=6.0",
   "fsrs>=6.3.3",
   "httpx>=0.27",
+  "keyring>=25 ; sys_platform != 'darwin'",
   "lxml>=5.0",
   "pyyaml>=6.0",
   "segno>=1.6.6",

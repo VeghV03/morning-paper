@@ -63,6 +63,11 @@ Feeds, writers and journals they like can come later, in Settings or by asking y
 It keeps the page running from login and reaches the phone on the home Wi-Fi; when macOS asks
 whether Python may accept incoming connections, Allow lets the phone in.
 
+What they open, finish, mark and ask is kept encrypted, with the key in the computer's keychain.
+Open <http://localhost:4747/settings> for them: the recovery code is at the top. Ask them to save
+it in their password manager and press the button under it. Say once, plainly: without the code,
+a new computer or a lost keychain means the record starts again from nothing.
+
 The morning run must finish with nobody there to approve its steps. Ask once whether to add
 these rules to `~/.claude/settings.json` (`permissions.allow`, keeping what is there):
 `Bash(~/paper/.tools/bin/paper:*)`, `WebSearch`, `Read(~/paper/**)`, `Edit(~/paper/**)`,
@@ -98,10 +103,12 @@ them, and opening a piece of any running story follows it too.
 ## 6. The phone
 
 Ask whether they want it on their phone too. If so: Settings on the Mac shows a code; they scan
-it with the phone's camera, which opens the paper in Safari and pairs it, then Share, Add to
-Home Screen. The first time the home-screen icon opens, it asks for the six digits shown under
-the code. Say once, plainly: it reads on the home Wi-Fi, where the page is not encrypted, so on
-a shared network someone capturing its traffic could read it.
+it with the phone's camera. The page that opens takes them through it once: install the paper's
+certificate, trust it (on an iPhone that is two places in Settings, both named on the page), then
+Open the paper, which pairs the phone over HTTPS. Then Share, Add to Home Screen. The first time
+the home-screen icon opens, it asks for the six digits shown under the code. If they ask what
+the certificate lets the computer do: it can vouch only for this computer's `.local` name and
+home-network addresses, never for another site.
 
 ## 7. The morning run
 

@@ -1,3 +1,4 @@
+import os
 import json
 import tempfile
 import unittest
@@ -5,6 +6,8 @@ from pathlib import Path
 
 from paper import config, server
 from paper.home import Home
+
+os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
 
 SENT = "<p>The minister said on Tuesday that the plan would go ahead, whatever the courts decide next month.</p>"
 

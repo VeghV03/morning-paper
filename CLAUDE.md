@@ -13,8 +13,9 @@ a language model.
 
 The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `sections.md`,
 `interests.md`, `feeds.yaml`, `inbox.md` and `paper.yaml` are theirs; `issues/`, `digests/`,
-`threads.jsonl`, `reads.jsonl`, `marks.jsonl`, `context.json`, `candidates.json`, `.feed.json` and `cache/` are written by the run and the
-server.
+`threads.jsonl`, `reads.jsonl`, `marks.jsonl`, `context.json`, `candidates.json`, `.feed.json`, `.tls/` and `cache/` are written by the run and the
+server. `reads.jsonl` and `marks.jsonl` are encrypted line by line (`src/paper/vault.py`), the key's recovery code in the
+OS keychain; `context.json` is their plain summary and lives only through the run.
 
 When the user asks to set this up, follow `skills/setup/SKILL.md`.
 

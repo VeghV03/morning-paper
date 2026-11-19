@@ -11,6 +11,8 @@ from pathlib import Path
 from paper import phone, server
 from paper.home import Home
 
+os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
+
 
 class GateTest(unittest.TestCase):
     def setUp(self):

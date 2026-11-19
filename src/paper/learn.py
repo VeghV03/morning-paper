@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from fsrs import Card, Rating, Scheduler
 
+from . import vault
 from .home import Home
 from .issue import all_rows
 
@@ -28,17 +29,7 @@ RATINGS = {"again": Rating.Again, "good": Rating.Good}
 
 
 def _rows(path) -> list[dict]:
-    if not path.exists():
-        return []
-    out = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            row = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(row, dict) and isinstance(row.get("id"), str):
-            out.append(row)
-    return out
+    return [r for r in vault.rows(path) if isinstance(r.get("id"), str)]
 
 
 def marks(h: Home) -> dict[str, dict]:
@@ -66,9 +57,7 @@ def delete_mark(h: Home, mid: str) -> None:
 
 
 def _append(path, row: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    vault.append(path, row)
 
 
 def cards(h: Home) -> dict[str, dict]:

@@ -23,6 +23,11 @@ LABELS = {
         "wrong_code": "That code doesn't match.", "locked": "Too many tries. Open Settings on your Mac.",
         "skip": "Skip", "crossword": "Crossword", "across": "Across", "down": "Down",
         "since": "Since you left", "earlier": "Earlier", "next_at": "The next one comes at {time}.",
+        "recovery": "Recovery code", "recovery_saved": "I've saved it",
+        "connect": "Connect this phone", "install_cert": "Install the certificate",
+        "trust_iphone": "iPhone: Settings › General › VPN & Device Management › install it, then Settings › General › About › Certificate Trust Settings › turn it on.",
+        "trust_android": "Android: open the downloaded file, or Settings › Security › Install a certificate › CA certificate.",
+        "open_paper": "Open the paper",
     },
     "hu": {
         "saved": "Mentett", "kept": "Megtartott", "keep": "Megtartom", "keeping": "Megtartva", "original": "Eredeti",
@@ -40,6 +45,11 @@ LABELS = {
         "wrong_code": "Ez a kód nem egyezik.", "locked": "Túl sok próbálkozás. Nyisd meg a Beállításokat a Macen.",
         "skip": "Kihagyom", "crossword": "Keresztrejtvény", "across": "Vízszintes", "down": "Függőleges",
         "since": "Ahol abbahagytad", "earlier": "Korábban", "next_at": "A következő szám {time}-kor jön.",
+        "recovery": "Helyreállító kód", "recovery_saved": "Elmentettem",
+        "connect": "A telefon csatlakoztatása", "install_cert": "A tanúsítvány telepítése",
+        "trust_iphone": "iPhone: Beállítások › Általános › VPN és eszközkezelés › telepítsd, majd Beállítások › Általános › Névjegy › Tanúsítványmegbízhatósági beállítások › kapcsold be.",
+        "trust_android": "Android: nyisd meg a letöltött fájlt, vagy Beállítások › Biztonság › Tanúsítvány telepítése › CA-tanúsítvány.",
+        "open_paper": "Az újság megnyitása",
     },
 }
 

@@ -11,6 +11,8 @@ from pathlib import Path
 from paper import crossword, issue, learn, reading, server
 from paper.home import Home
 
+os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
+
 SAT = "2026-11-21"
 SUN = "2026-11-22"
 WORDS = ["HUNGARY", "BUDGET", "ORBAN", "VOTE", "DANUBE", "SENATE", "EURO", "COURT", "TAX", "LAW"]

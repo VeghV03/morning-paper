@@ -9,6 +9,7 @@
   paper serve      the issue, the reader and settings on http://localhost:4747 and a paired phone
   paper read URL   the article at URL as the reader will see it, as JSON
   paper install    keep `paper serve` running from login (macOS)
+  paper restore C  the recovery code C opens the reading record on this computer
 
 The tool never calls a language model; Claude does the choosing.
 """
@@ -30,7 +31,7 @@ import feedparser
 import yaml
 
 from . import feed as feed_mod
-from . import issue, net, reading, server
+from . import issue, net, reading, server, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -55,6 +56,13 @@ def init(args) -> int:
     if not h.outlets.exists():
         shutil.copy(PRESETS / "world.json", h.outlets)
         print(f"wrote {h.outlets} (presets/world.json)")
+    try:
+        if vault.ensure(h):
+            print("made the reading record's key: its recovery code is in Settings on this computer")
+        vault.migrate(h)
+    except vault.Locked as e:
+        print(e, file=sys.stderr)
+        return 1
     print(f"home: {h.root}")
     return 0
 
@@ -114,7 +122,12 @@ def check(args) -> int:
 
 def context(args) -> int:
     h = home()
-    out = reading.context(h)
+    try:
+        vault.ensure(h)
+        out = reading.context(h)
+    except vault.Locked as e:
+        _print({"ok": False, "errors": [str(e)]})
+        return 1
     out["today"] = date.today().isoformat()
     out["published_today"] = (h.issues / f"{out['today']}.jsonl").exists() and not pending(h.feed_state).exists()
     out["last_issue"] = next((d for d in reversed(issue.days(h)) if d < out["today"]), None)
@@ -129,7 +142,7 @@ def context(args) -> int:
     path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     _print({"file": str(path), "today": out["today"], "published_today": out["published_today"], "last_issue": out["last_issue"],
             **{k: len(out[k]) for k in ("pieces", "marks", "to_card", "threads")},
-            "warnings": out.get("warnings", [])})
+            "recovery_unsaved": vault.unsaved(h), "warnings": out.get("warnings", [])})
     return 0
 
 
@@ -172,6 +185,7 @@ def publish(args) -> int:
         return 1
     feed_mod.remove_from_inbox(h, [p["url"] for p in pieces if p.get("saved")])
     commit_pending(h.feed_state)
+    (h.root / "context.json").unlink(missing_ok=True)  # the record's plain summary lives only through the run
     url = f"http://localhost:{server.PORT}/{day}"
     print(url if _up() else f"{url} (the server is not running: run `paper install` once, or `paper serve`)")
     if args.open and shutil.which("open"):
@@ -179,7 +193,24 @@ def publish(args) -> int:
     return 0
 
 
+def restore(args) -> int:
+    """Keep a recovery code as this computer's key for the reading record."""
+    try:
+        vault.restore(home(), args.code)
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 1
+    print("restored: this computer reads the record again")
+    return 0
+
+
 def serve(args) -> int:
+    h = home()
+    try:
+        vault.ensure(h)
+        vault.migrate(h)
+    except vault.Locked as e:
+        print(e, file=sys.stderr)  # the pages say so too, until `paper restore`
     print(f"http://localhost:{server.PORT}", flush=True)
     server.serve()
     return 0
@@ -226,8 +257,10 @@ def main(argv: list[str] | None = None) -> int:
     pub.add_argument("--open", action="store_true", help="open the issue in the browser")
     sub.add_parser("serve")
     sub.add_parser("install")
+    rs = sub.add_parser("restore")
+    rs.add_argument("code", help="the 24-character recovery code from Settings")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow, "restore": restore}[args.cmd](args)
 
 
 if __name__ == "__main__":

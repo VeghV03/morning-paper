@@ -1,3 +1,4 @@
+import os
 import json
 import tempfile
 import unittest
@@ -6,6 +7,8 @@ from pathlib import Path
 
 from paper import issue, learn, reading, settings
 from paper.home import Home
+
+os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
 
 DAY = "2026-11-18"
 NEXT = "2026-11-19"

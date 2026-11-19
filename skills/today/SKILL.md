@@ -24,7 +24,11 @@ or python.
 ```
 
 It writes what the reader did to `$PAPER_HOME/context.json` and prints a summary; read the
-file with Read. When `published_today` is true, today's issue is out: say so and stop. One
+file with Read. The record behind it is encrypted, and this file is its only plain copy:
+`paper publish` deletes it, so never copy it anywhere else. When it fails because the record is
+locked, stop: line 3 of the report tells the reader to run
+`~/paper/.tools/bin/paper restore <recovery code>`. When `recovery_unsaved` is true, line 3 asks
+them to open Settings on the computer and save the recovery code. When `published_today` is true, today's issue is out: say so and stop. One
 issue a day.
 
 ```bash

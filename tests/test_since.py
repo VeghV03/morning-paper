@@ -12,6 +12,8 @@ from pathlib import Path
 from paper import reading, server
 from paper.home import Home
 
+os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
+
 FRI, SAT, SUN = "2026-11-20", "2026-11-21", "2026-11-22"
 
 

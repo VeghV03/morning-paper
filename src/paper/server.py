@@ -21,19 +21,25 @@ import json
 import os
 import re
 from pathlib import Path
+import ssl
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 from http.cookies import SimpleCookie
 
-from . import config, crossword, learn, net, phone, reading, settings
+from . import config, crossword, learn, net, phone, reading, settings, tls, vault
 from .home import Home, home
 from .issue import DAY, Invalid, all_pieces, all_rows, days, kind, load, sections, threads
 
 PORT = int(os.environ.get("PAPER_PORT") or 4747)
+TLS_PORT = int(os.environ.get("PAPER_TLS_PORT") or PORT + 1)  # phones: HTTPS only
 ICON = Path(__file__).with_name("icon.png")
 FONTS = Path(__file__).with_name("fonts")
 FONT_FILES = {"/fonts/PaperSerif-Roman.woff2", "/fonts/PaperSerif-Italic.woff2"}
+OPEN_OVER_HTTP = {"/start", "/authority.cer", "/icon.png", *FONT_FILES}  # what a phone may fetch before HTTPS
+CONTEXT_HOURS = 3  # a context.json older than this was left by a run that crashed
 MAX_BODY = 64_000  # bytes; settings with every section and interest fit many times over
 MIN_TEXT = 400  # characters; less is a cookie wall or a teaser, not the article
 NO_FETCH = {"24.hu"}
@@ -480,14 +486,27 @@ def settings_page(h: Home, mac: bool = False) -> str:
     back = f'<nav><a href="/{latest[0]}">← {e(config.short_date(h, latest[0]))}</a></nav>' if latest[0] else ""
     data = {"state": settings.state(h), "t": {k: t[k] for k in (
         "sections", "interests", "feeds", "outlets", "language", "save_link", "add", "name", "what",
-        "topics", "url", "remove", "saved", "phone", "new_code")}}
+        "topics", "url", "remove", "saved", "phone", "new_code", "recovery", "recovery_saved")}}
     if mac:
         url = phone.pair_url(h, PORT)
         phone.open_codes()
-        data["phone"] = {"qr": phone.qr_svg(url), "address": phone.address(PORT), "code": phone.short_code(h)}
+        data["phone"] = {"qr": phone.qr_svg(url), "address": phone.address(TLS_PORT), "code": phone.short_code(h)}
+        if vault.unsaved(h) and vault.code():
+            data["recovery"] = vault.code()
     body = "<div id=settings></div>"
     return _page(h, t["settings"], f"<h1>{e(t['settings'])}</h1>", body, back,
                  f"<script>const PAPER = {_json(data)};</script>{SETTINGS_JS}")
+
+
+def start_page(h: Home) -> str:
+    """What a phone sees first, over plain HTTP: take the certificate, trust it, then open the paper
+    over HTTPS with the pairing key the QR code carried in the fragment."""
+    t = config.labels(h)
+    body = (f'<ol class=steps><li><a href="/authority.cer">{e(t["install_cert"])}</a>'
+            f'<p>{e(t["trust_iphone"])}</p><p>{e(t["trust_android"])}</p></li>'
+            f'<li><a id=go href="/start">{e(t["open_paper"])}</a></li></ol>')
+    go = f'<script>document.getElementById("go").href = `https://${{location.hostname}}:{TLS_PORT}/pair${{location.hash}}`;</script>'
+    return _page(h, t["connect"], f"<h1>{e(t['connect'])}</h1>", body, "", go)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -554,11 +573,45 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             return None
 
+    def _tls(self) -> bool:
+        return isinstance(self.connection, ssl.SSLSocket)
+
+    def _gate(self, handle):
+        """A phone on plain HTTP gets only the way to HTTPS; the computer itself keeps plain
+        localhost. A record this computer cannot open says how to open it."""
+        path = urlsplit(self.path).path.rstrip("/") or "/"
+        if not self._tls() and self.client_address[0] not in phone.LOOPBACK and path not in OPEN_OVER_HTTP:
+            return self._send(302, location="/start")
+        try:
+            return handle()
+        except vault.Locked as err:
+            return self._send(503, str(err), "text/plain; charset=utf-8")
+
     def do_GET(self):
+        return self._gate(self._get)
+
+    def do_POST(self):
+        return self._gate(self._post)
+
+    def do_PUT(self):
+        return self._gate(self._put)
+
+    def _get(self):
         h, url = home(), urlsplit(self.path)
         path = url.path.rstrip("/") or "/"
         if path == "/pair":
             return self._send(200, PAIR_PAGE)
+        if path == "/start":
+            return self._send(200, start_page(h))
+        if path == "/authority.cer":
+            data = tls.authority_der(h)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-x509-ca-cert")
+            self.send_header("Content-Disposition", 'attachment; filename="Morning paper.cer"')
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return None
         if path == "/icon.png":
             return self._send_bytes(ICON.read_bytes(), "image/png")
         if path in FONT_FILES:
@@ -612,7 +665,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(500, "\n".join(err.errors), "text/plain; charset=utf-8")
         return self._send(404, "Not found.", "text/plain; charset=utf-8")
 
-    def do_POST(self):
+    def _post(self):
         h, path = home(), urlsplit(self.path).path
         data = self._body_json()
         if not isinstance(data, dict):
@@ -624,7 +677,8 @@ class Handler(BaseHTTPRequestHandler):
             if not ok:
                 return self._json_reply({"locked": phone.code_locked()}, 403)
             self.send_response(204)
-            self.send_header("Set-Cookie", f"{phone.COOKIE}={phone.key(h)}; Max-Age=315360000; Path=/; HttpOnly; SameSite=Lax")
+            secure = "; Secure" if self._tls() else ""
+            self.send_header("Set-Cookie", f"{phone.COOKIE}={phone.key(h)}; Max-Age=315360000; Path=/; HttpOnly; SameSite=Lax{secure}")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return None
@@ -685,7 +739,7 @@ class Handler(BaseHTTPRequestHandler):
                 _caught_up(h, th, left, new if left else [], piece["day"], piece["id"])
         return self._json_reply({"answer": g.get("answer")})
 
-    def do_PUT(self):
+    def _put(self):
         h, part = home(), urlsplit(self.path).path.removeprefix("/settings/")
         if not self._may_write(h):
             return self._send(403, "", "text/plain")
@@ -693,6 +747,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._mac():
                 return self._send(403, "", "text/plain")
             phone.new_key(h)
+            return self._json_reply({})
+        if part == "recovery":
+            if not self._mac():
+                return self._send(403, "", "text/plain")
+            vault.unsaved(h, False)
             return self._json_reply({})
         data = self._body_json()
         save = settings.SAVE.get(part)
@@ -705,7 +764,54 @@ class Handler(BaseHTTPRequestHandler):
         return self._json_reply(settings.state(h))
 
 
-def serve(port: int = PORT) -> None:
+class TLSServer(ThreadingHTTPServer):
+    """HTTPS for phones. The handshake runs in the request's own thread, so a slow or broken
+    client never holds up the others."""
+
+    def __init__(self, address, ctx: ssl.SSLContext):
+        super().__init__(address, Handler)
+        self.ctx = ctx
+
+    def finish_request(self, request, client_address):
+        try:
+            request.settimeout(10)  # a client that opens and says nothing does not keep a thread
+            request = self.ctx.wrap_socket(request, server_side=True)
+            request.settimeout(None)
+        except (ssl.SSLError, OSError):
+            return  # a phone that does not trust the certificate yet
+        try:
+            super().finish_request(request, client_address)
+        finally:
+            request.close()  # the wrapped socket, which the server's own cleanup no longer holds
+
+    def handle_error(self, request, client_address):
+        pass  # dropped connections are routine on a phone
+
+
+def tidy(h: Home) -> None:
+    """Deletes a context.json a crashed morning run left behind: the record's plain summary lives
+    only through the run."""
+    path = h.root / "context.json"
+    if path.exists() and time.time() - path.stat().st_mtime > CONTEXT_HOURS * 3600:
+        path.unlink(missing_ok=True)
+
+
+def serve(port: int = PORT, tls_port: int = TLS_PORT) -> None:
+    h = home()
+    ctx = tls.context(h)
+    secure = TLSServer(("0.0.0.0", tls_port), ctx)
+    threading.Thread(target=secure.serve_forever, daemon=True).start()
+
+    def hourly():
+        while True:
+            try:
+                tidy(home())
+                tls.refresh(home(), ctx)  # a new address on the home network needs a new certificate
+            except Exception:  # noqa: BLE001 - tried again in an hour
+                pass
+            time.sleep(3600)
+
+    threading.Thread(target=hourly, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
 
 
@@ -1191,7 +1297,14 @@ SETTINGS_JS = """<script>
     }, 30000);
     return block(t.phone, qr, code, el("p", {class: "addr"}, PAPER.phone.address), fresh);
   };
-  root.append(sections(), interests(), feeds(), outlets(), language(), link(), ...(PAPER.phone ? [pairing()] : []));
+  const recovery = () => {
+    const done = el("button", {onclick: async () => {
+      if ((await fetch("/settings/recovery", {method: "PUT", body: "{}"})).ok) location.reload();
+    }}, t.recovery_saved);
+    return block(t.recovery, el("p", {class: "code recovery"}, PAPER.recovery), done);
+  };
+  root.append(...(PAPER.recovery ? [recovery()] : []), sections(), interests(), feeds(), outlets(), language(), link(),
+              ...(PAPER.phone ? [pairing()] : []));
 })();
 </script>"""
 
@@ -1354,9 +1467,13 @@ a.next:hover span {{ text-decoration: none; }}
 #settings .choice {{ display: flex; gap: 8px; }}
 #settings .qr svg {{ display: block; width: 180px; height: 180px; }}
 #settings .code {{ font-size: 30px; font-weight: 650; letter-spacing: .08em; margin: 16px 0 0; font-variant-numeric: lining-nums tabular-nums; }}
+#settings .code.recovery {{ font-size: 22px; letter-spacing: .06em; margin: 12px 0 20px; user-select: all; word-spacing: .2em; }}
 #settings .addr {{ color: var(--grey); font-size: 15.5px; margin: 12px 0 0; }}
 #settings .err {{ color: var(--grey); font-size: 14.5px; margin: 8px 0 0; min-height: 1em; }}
 .empty {{ color: var(--grey); }}
+.steps {{ padding-left: 1.2em; }}
+.steps li {{ margin: 0 0 28px; }}
+.steps p {{ color: var(--grey); font-size: 15.5px; margin: 8px 0 0; }}
 #pair input {{ font: inherit; font-size: 30px; letter-spacing: .2em; width: 8ch; color: var(--ink); background: transparent;
   font-variant-numeric: lining-nums tabular-nums; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; padding: 8px 0; margin: 8px 16px 0 0; }}
 #pair input:focus {{ outline: none; }}

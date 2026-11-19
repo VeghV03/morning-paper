@@ -29,8 +29,8 @@ ten days.
 </p>
 
 That is possible because the record of what you read is yours. What you opened, finished,
-marked and asked is a plain file in `~/paper` on your Mac, read only by your own Claude when it
-writes the issue. No service keeps it, and nothing is sold against it.
+marked and asked is kept in `~/paper` on your Mac, encrypted, with the key in your keychain, and
+read only by your own Claude when it writes the issue. No service keeps it, and nothing is sold against it.
 
 The rest of the paper:
 
@@ -76,8 +76,9 @@ no password), starts the reader, writes a quick first issue while you watch, and
 full one for every morning.
 
 Open <http://localhost:4747> with your coffee, or read it on your phone: scan the code in
-Settings with the phone's camera, then add the page to your home screen. The first time the
-icon opens, type the six digits shown under the code.
+Settings with the phone's camera, install and trust the paper's certificate as the page shows,
+then add the page to your home screen. The first time the icon opens, type the six digits shown
+under the code.
 
 <p align="center">
   <picture>
@@ -118,12 +119,14 @@ flowchart LR
 
 Your files and your reading record live in `~/paper` on your Mac. Each morning Claude reads
 them to choose the issue, as it reads anything in a conversation. The page answers your Mac and
-the phones you paired by scanning that code, and no one else. On your Wi-Fi it travels
-unencrypted, so on a shared network someone capturing traffic could read it.
+the phones you paired by scanning that code, and no one else. To the phone it travels over
+HTTPS, with a certificate your computer made that can vouch only for its own `.local` name and
+home-network addresses. What you read and mark is encrypted on disk; Settings shows its recovery
+code once, and on a new computer `paper restore <code>` opens it again.
 
 ## Make it yours
 
-Everything the paper knows about you is a plain file in `~/paper`. Ask Claude to change it, edit
+What you want from the paper is plain files in `~/paper`. Ask Claude to change it, edit
 it yourself, or open Settings at the foot of any issue.
 
 <p align="center">

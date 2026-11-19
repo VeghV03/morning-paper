@@ -4,8 +4,9 @@ The Mac itself is always let in. Any other device needs the key, which it gets o
 keeps as a cookie: by scanning the QR code in settings (Safari), or by typing the six-digit code
 shown beside it (the home-screen app on iPhone keeps its own cookies, so it cannot use Safari's).
 The six digits change every five minutes; five wrong ones close code pairing until settings is
-opened on the Mac again. A new code makes every paired phone pair again. Over plain Wi-Fi the key travels unencrypted: pairing keeps out whoever just opens the
-address, not someone capturing the network's traffic.
+opened on the Mac again. A new code makes every paired phone pair again. A phone reads the paper
+over HTTPS, once it trusts the paper's own certificate (tls.py); plain HTTP from the network only
+offers that certificate.
 """
 
 import hashlib
@@ -13,12 +14,10 @@ import hmac
 import os
 import re
 import secrets
-import socket
-import subprocess
-import sys
 import time
 from urllib.parse import urlsplit
 
+from . import tls
 from .home import Home
 
 LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
@@ -107,20 +106,14 @@ def same_origin(origin: str | None, host_header: str | None) -> bool:
 
 
 def address(port: int) -> str:
-    """How the phone finds this Mac on the home network: its Bonjour name."""
-    name = ""
-    if sys.platform == "darwin":
-        try:
-            name = subprocess.run(["scutil", "--get", "LocalHostName"], capture_output=True, text=True,
-                                  timeout=2).stdout.strip()
-        except (OSError, subprocess.SubprocessError):
-            name = ""
-    name = name or socket.gethostname().split(".")[0]
-    return f"http://{name}.local:{port}"
+    """Where a paired phone reads the paper: HTTPS at this computer's Bonjour name."""
+    return f"https://{tls.name()}.local:{port}"
 
 
 def pair_url(h: Home, port: int) -> str:
-    return f"{address(port)}/pair#{key(h)}"
+    """What the code in Settings opens: the plain-HTTP page that installs the certificate, then
+    hands the key on to HTTPS in the address's fragment, which is never sent over the network."""
+    return f"http://{tls.name()}.local:{port}/start#{key(h)}"
 
 
 def qr_svg(text: str) -> str:

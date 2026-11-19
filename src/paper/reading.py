@@ -26,7 +26,7 @@ import hashlib
 import json
 from datetime import date, datetime, timedelta
 
-from . import crossword, learn
+from . import crossword, learn, vault
 from .home import Home
 from .issue import all_pieces, all_rows, sections
 
@@ -44,23 +44,11 @@ def now() -> str:
 
 
 def log(h: Home, event: dict) -> None:
-    h.reads.parent.mkdir(parents=True, exist_ok=True)
-    with h.reads.open("a", encoding="utf-8") as f:
-        f.write(json.dumps({"t": now(), **event}, ensure_ascii=False) + "\n")
+    vault.append(h.reads, {"t": now(), **event})
 
 
 def events(h: Home) -> list[dict]:
-    if not h.reads.exists():
-        return []
-    out = []
-    for line in h.reads.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            e = json.loads(line)
-        except ValueError:
-            continue  # a line cut short by a crash
-        if isinstance(e, dict) and isinstance(e.get("id"), str):
-            out.append(e)
-    return out
+    return [e for e in vault.rows(h.reads) if isinstance(e.get("id"), str)]
 
 
 def body_hash(body: str) -> str:
