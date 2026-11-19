@@ -245,3 +245,9 @@ PAPER_RUN_KEY), and Opus 5.5 writing.
 Sonnet 5.5.
 **Accepted cost:** more of the plan each morning. The schedule is in UTC (04:07, 05:07 in
 Budapest in winter); from summer time it runs at 06:07 local unless moved.
+
+## The first cloud run
+
+**D61.** The cleanup commit is pushed, and the history is left alone. The details that e4c5cd9 made public stay in the old commits. They are interests, not secrets, and rewriting the history would break every clone and the routine's checkout.
+
+**D62.** The first cloud run (fired by hand on 2026-11-19) worked from start to finish in 6.4 minutes. It opened 9 sealed files, fetched the feed, wrote 20 pieces, 4 saved links and 3 games, and passed the publish check on its second try. It then pushed one commit to the data repository. One feed outlet refused it with a 403, and a few sites refused the article reader. It picked other sources for those.
