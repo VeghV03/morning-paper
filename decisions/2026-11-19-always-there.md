@@ -328,3 +328,43 @@ the page and the latest issue open from the phone's sealed copy, and an older is
 connection. GitHub's API answers a page from another site with the token and version headers the page
 sends (a preflight to api.github.com). **Not yet checked:** a real iPhone, GitHub Pages, and a
 publish in a real cloud run.
+
+## Step 3: the record on the devices
+
+Checked 2026-11-19: the Mac has no reading record yet (no reads or marks in `~/paper`), so nothing
+moves over. The phone kept only the run key at step 2, so the recovery code is typed once more for
+the record key.
+
+## D70 · The order of step 3
+**Chosen:** two parts. First the record and the brief: seen, opened, finished, keep and the Kept
+page, highlights and questions with their answers, "less of this" and the why line, and the brief
+the run reads. Then cards, games, Since you left, and Settings with Save a link.
+**Not chosen:** all at once.
+**Accepted cost:** cards, games and Since you left wait for the second part.
+
+## D71 · When the phone writes
+**Chosen:** on leaving each piece, and whenever the page goes to the background; what was done
+offline waits on the phone and goes at the next write that reaches GitHub.
+**Not chosen:** on every action (a timed trace of every tap at GitHub); on the next open (the last
+reading of a day misses the next morning's brief).
+**Accepted cost:** GitHub sees roughly when each piece was finished, and a few commits a day.
+
+## D72 · What the record keeps
+**Chosen:** the same events as the Mac: seen, opened, reading time, a headline on screen long
+enough, kept, marks, games, "less of this", card reviews; sealed whole with the record key.
+**Not chosen:** leaving out reading time and headlines on screen.
+**Accepted cost:** the record holds a fine-grained account of reading, readable only on the
+reader's devices.
+
+## D73 · The Mac's local server
+**Chosen:** retired when step 3 ends; the Mac then opens the same page as the phone.
+**Not chosen:** now; keeping it as a fallback.
+**Accepted cost:** until then the local server does not see what is done on the phone.
+
+## D74 · The Kept page
+**Chosen:** with Keep, in step 3's first part.
+
+## D75 · Settings and Save a link
+**Chosen:** on the page, in step 3's second part; what they write is sealed with the run key, since
+the run reads it. Until then, changed through Claude.
+**Not chosen:** through Claude only; Save a link alone on the page.
