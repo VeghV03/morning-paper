@@ -1,10 +1,10 @@
 """The phone: who may read the paper over Wi-Fi.
 
-The Mac itself is always let in. Any other device needs the key, which it gets once and then
+The computer itself is always let in. Any other device needs the key, which it gets once and then
 keeps as a cookie: by scanning the QR code in settings (Safari), or by typing the six-digit code
 shown beside it (the home-screen app on iPhone keeps its own cookies, so it cannot use Safari's).
 The six digits change every five minutes; five wrong ones close code pairing until settings is
-opened on the Mac again. A new code makes every paired phone pair again. A phone reads the paper
+opened on the computer again. A new code makes every paired phone pair again. A phone reads the paper
 over HTTPS, once it trusts the paper's own certificate (tls.py); plain HTTP from the network only
 offers that certificate.
 """
@@ -24,7 +24,7 @@ LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 LOCAL_NAMES = {"localhost", "127.0.0.1"}
 COOKIE = "paper"
 WINDOW = 300  # seconds a six-digit code lasts; the one before it is still taken
-TRIES = 5  # wrong codes before code pairing closes until settings is opened on the Mac
+TRIES = 5  # wrong codes before code pairing closes until settings is opened on the computer
 _wrong = {"n": 0}
 
 
@@ -57,7 +57,7 @@ def hostname(host_header: str | None) -> str:
 
 
 def is_mac(client: str, host_header: str | None) -> bool:
-    """The Mac's own browser: a loopback connection that also names a local host, so a web page
+    """The computer's own browser: a loopback connection that also names a local host, so a web page
     whose domain was pointed at 127.0.0.1 (DNS rebinding) is not taken for it."""
     return client in LOOPBACK and hostname(host_header) in LOCAL_NAMES
 
@@ -74,7 +74,7 @@ def short_code(h: Home, at: float | None = None) -> str:
 
 
 def open_codes() -> None:
-    """Settings opened on the Mac: code pairing takes tries again."""
+    """Settings opened on the computer: code pairing takes tries again."""
     _wrong["n"] = 0
 
 
@@ -105,9 +105,12 @@ def same_origin(origin: str | None, host_header: str | None) -> bool:
     return not origin or urlsplit(origin).netloc.lower() == (host_header or "").lower()
 
 
-def address(port: int) -> str:
-    """Where a paired phone reads the paper: HTTPS at this computer's Bonjour name."""
-    return f"https://{tls.name()}.local:{port}"
+def addresses(port: int) -> list[str]:
+    """What a phone types when it cannot scan: this computer's `.local` name, and its numeric
+    address for a phone that cannot find the name (Android 11 and older, some Windows networks).
+    Both are plain HTTP, which leads to the certificate and on to HTTPS."""
+    ip = tls.lan_ip()
+    return [f"http://{tls.name()}.local:{port}"] + ([f"http://{ip}:{port}"] if ip else [])
 
 
 def pair_url(h: Home, port: int) -> str:

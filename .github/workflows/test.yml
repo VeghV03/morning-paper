@@ -1,0 +1,70 @@
+# The tests and the installer on each system a reader may have; then the server over HTTP and
+# HTTPS. The phone, the keychain prompt and the morning run still need a real machine.
+name: test
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash  # Git Bash on Windows, as the reader's Claude has it
+    env:
+      PAPER_RECOVERY_CODE: TEST-TEST-TEST-TEST-TEST-TEST
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the paper's tools
+        run: |
+          scripts/install.sh
+          for left in .git tests docs engine/out; do   # what the copy leaves out, on GNU tar too
+            [ ! -e ~/paper/.tools/src/$left ] || { echo "copied $left"; exit 1; }
+          done
+          [ -f ~/paper/.tools/src/src/paper/cli.py ]
+
+      - name: Unit tests
+        run: |
+          export PATH="$HOME/paper/.tools/bin:$PATH" PYTHONUTF8=1
+          uv run --python 3.13 python -m unittest discover -s tests
+
+      - name: A new home
+        run: ~/paper/.tools/bin/paper init
+
+      - name: The keyring, without the test code
+        if: runner.os != 'macOS'  # the runner's keychain may wait on a prompt
+        run: |
+          out=$(env -u PAPER_RECOVERY_CODE PAPER_HOME="$HOME/keyring-home" ~/paper/.tools/bin/paper init 2>&1) && ok=1 || ok=0
+          echo "$out"
+          case "$RUNNER_OS" in
+            Linux) [ $ok = 0 ] && grep -q "PAPER_RECOVERY_CODE" <<< "$out" ;;  # no Secret Service here: a refusal
+            Windows) [ $ok = 1 ] ;;                                              # Credential Manager
+          esac
+
+      - name: The server over HTTP and HTTPS
+        run: |
+          paper=~/paper/.tools/bin/paper
+          if [ "$RUNNER_OS" = Windows ]; then
+            py=~/paper/.tools/venv/Scripts/python.exe
+            $paper install                       # the startup entry, started now
+          else
+            py=~/paper/.tools/venv/bin/python
+            nohup $paper serve > serve.out 2>&1 &
+          fi
+          for i in $(seq 60); do curl -fsS -o /dev/null http://localhost:4747/kept && break; sleep 1; done
+          curl -fsS -o /dev/null http://localhost:4747/kept
+          curl -fsS -o ca.der http://localhost:4747/authority.cer
+          openssl x509 -inform der -in ca.der -out ca.pem
+          name=$(PYTHONPATH= "$py" -c "from paper import tls; print(tls.name().lower())")
+          code=$(curl -sS --cacert ca.pem --resolve "$name.local:4748:127.0.0.1" -o /dev/null -w "%{http_code}" \
+                 "https://$name.local:4748/")
+          echo "https://$name.local:4748/ answered $code"
+          [ "$code" = 403 ]                      # trusted, and an unpaired device is asked for the code
+
+      - name: The server's log
+        if: always()
+        run: cat serve.out ~/paper/serve.log 2>/dev/null || true

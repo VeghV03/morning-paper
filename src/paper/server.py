@@ -12,7 +12,7 @@
   screen long enough, `POST /mark` a highlight or question (or its removal), `GET /card?after=<id>`
   the card due after a finished piece and `POST /review` its answer, `PUT /settings/<part>`.
 
-The Mac is let in by its own address; a phone on the Wi-Fi pairs once with the QR code in
+The computer is let in by its own address; a phone on the Wi-Fi pairs once with the QR code in
 settings (`/pair`) and is let in by its key (phone.py). Everyone else gets the page that says so.
 """
 
@@ -490,7 +490,7 @@ def settings_page(h: Home, mac: bool = False) -> str:
     if mac:
         url = phone.pair_url(h, PORT)
         phone.open_codes()
-        data["phone"] = {"qr": phone.qr_svg(url), "address": phone.address(TLS_PORT), "code": phone.short_code(h)}
+        data["phone"] = {"qr": phone.qr_svg(url), "address": " · ".join(phone.addresses(PORT)), "code": phone.short_code(h)}
         if vault.unsaved(h) and vault.code():
             data["recovery"] = vault.code()
     body = "<div id=settings></div>"

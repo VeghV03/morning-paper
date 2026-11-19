@@ -2,6 +2,7 @@ import http.client
 import json
 import os
 import stat
+import sys
 import tempfile
 import threading
 import unittest
@@ -37,6 +38,7 @@ class GateTest(unittest.TestCase):
         phone.new_key(self.h)
         self.assertFalse(phone.allowed(self.h, "192.168.1.20", "mac.local:4747", self.key))
 
+    @unittest.skipIf(sys.platform == "win32", "Windows keeps files private by the folder's access list")
     def test_key_file_is_private(self):
         mode = stat.S_IMODE(os.stat(self.h.root / ".phone-key").st_mode)
         self.assertEqual(mode, 0o600)

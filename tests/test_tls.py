@@ -5,6 +5,7 @@ import datetime as dt
 import http.client
 import os
 import ssl
+import sys
 import tempfile
 import threading
 import time
@@ -67,6 +68,7 @@ class CertificateTest(unittest.TestCase):
         with self.assertRaises(VerificationError):
             _verify(self.h, forged, "bank.example")
 
+    @unittest.skipIf(sys.platform == "win32", "Windows keeps files private by the folder's access list")
     def test_the_key_files_are_private(self):
         tls.server_files(self.h)
         for f in ("ca.key", "server.key"):

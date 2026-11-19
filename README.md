@@ -29,7 +29,7 @@ ten days.
 </p>
 
 That is possible because the record of what you read is yours. What you opened, finished,
-marked and asked is kept in `~/paper` on your Mac, encrypted, with the key in your keychain, and
+marked and asked is kept in `~/paper` on your computer, encrypted, with the key in your keychain, and
 read only by your own Claude when it writes the issue. No service keeps it, and nothing is sold against it.
 
 The rest of the paper:
@@ -62,8 +62,9 @@ The rest of the paper:
 
 ## Set up
 
-You need a Mac and the [Claude app](https://claude.com/download) on a paid plan. In the app's
-Code tab, type:
+You need the [Claude app](https://claude.com/download) on a paid plan, on a Mac, on Windows
+with [Git for Windows](https://git-scm.com/downloads/win), or on Ubuntu or Debian (the app's Linux
+beta). In the app's Code tab, type:
 
 ```
 /plugin install paper --marketplace VeghV03/morning-paper
@@ -87,10 +88,10 @@ under the code.
   </picture>
 </p>
 
-The morning run needs the Claude app open and the Mac awake, or runs when you next open it.
+The morning run needs the Claude app open and the computer awake, or runs when you next open it.
 Each issue uses your Claude plan: Claude searches the web and opens every article it considers.
 
-### What setup changes on your Mac
+### What setup changes on your computer
 
 Setup says what each step does before it runs it, and asks first before touching your Claude
 settings.
@@ -99,10 +100,14 @@ settings.
   system-wide, no password.
 - Adds allow rules for the paper's tool, web search and the `~/paper` folder to
   `~/.claude/settings.json`, so the morning run never stops at a prompt.
-- Starts the reader as a login item, and schedules the morning run in the Claude app.
+- Starts the reader from login, and schedules the morning run in the Claude app.
+- Keeps the reading record's key in the system keychain: Keychain on a Mac, Credential Manager
+  on Windows, GNOME Keyring or KWallet on Linux.
 
-To remove the paper, delete `~/Library/LaunchAgents/local.morning-paper.serve.plist`, the
-paper's rules in that settings file, the morning task in the Claude app, and `~/paper`.
+To remove the paper, delete the paper's rules in that settings file, the morning task in the
+Claude app, `~/paper`, the `morning-paper` keychain entry, and what starts the reader:
+`~/Library/LaunchAgents/local.morning-paper.serve.plist` on a Mac, the "Morning paper" startup
+app on Windows, `~/.config/systemd/user/morning-paper.service` on Linux.
 
 ## How it works
 
@@ -117,8 +122,8 @@ flowchart LR
   G -->|looked, opened, finished, marked| C
 ```
 
-Your files and your reading record live in `~/paper` on your Mac. Each morning Claude reads
-them to choose the issue, as it reads anything in a conversation. The page answers your Mac and
+Your files and your reading record live in `~/paper` on your computer. Each morning Claude reads
+them to choose the issue, as it reads anything in a conversation. The page answers your computer and
 the phones you paired by scanning that code, and no one else. To the phone it travels over
 HTTPS, with a certificate your computer made that can vouch only for its own `.local` name and
 home-network addresses. What you read and mark is encrypted on disk; Settings shows its recovery

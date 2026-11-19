@@ -233,7 +233,7 @@ Every morning, for each thread whose story moved, add today's entry, with `piece
 issue carries it.
 
 **Missed days.** When `context.last_issue` is more than a day before `context.today`, the run
-did not happen on the days between (the Mac was asleep or the app closed), and the reader was
+did not happen on the days between (the computer was asleep or the app closed), and the reader was
 promised those days too. Before anything else in this section, for each thread fill in what
 happened on each missed day, up to 14 days back: one entry a day the story moved, dated the day
 it happened, without `piece`. Start from `feed.news`, which covers the days since the last

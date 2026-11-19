@@ -2,7 +2,9 @@
 
 import json
 import os
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -72,6 +74,23 @@ class VaultTest(unittest.TestCase):
             self.assertEqual(vault.normal(made), made)
             self.assertTrue(vault.unsaved(fresh))
             self.assertIsNone(vault.ensure(fresh))
+
+    def test_a_missing_keyring_is_a_refusal_not_a_crash(self):
+        class KeyringError(Exception):
+            pass
+
+        def broken(*args):
+            raise KeyringError("no backend")
+
+        fake = types.SimpleNamespace(get_password=broken, set_password=broken)
+        errors = types.SimpleNamespace(KeyringError=KeyringError)
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(vault.sys, "platform", "linux"), \
+                mock.patch.dict(sys.modules, {"keyring": fake, "keyring.errors": errors}):
+            with self.assertRaisesRegex(vault.Locked, vault.ENV):
+                vault.ensure(self.h)
+            with self.assertRaises(vault.Locked):
+                reading.log(self.h, {"ev": "open", "id": "r-1"})
+        self.assertFalse(self.h.reads.exists())
 
     def test_codes(self):
         c = vault.new_code()

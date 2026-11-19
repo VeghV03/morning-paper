@@ -7,13 +7,14 @@ and serves it on http://localhost:4747: the issue, a reader view where the reade
 and asks, the cards that come due after a finished piece, and settings. The
 repo is also the `paper` plugin and its own marketplace (`.claude-plugin/`): the writing is
 `skills/today` (`/paper:today`), a new reader starts with `skills/setup` (`/paper:setup`), and
-`scripts/install.sh` puts uv, Node, Python and a copy of this repo in `~/paper/.tools`, run
-again by the session-start hook in `hooks/` when the plugin changes. The `paper` tool never calls
+`scripts/install.sh` puts uv, Node, Python and a copy of this repo in `~/paper/.tools` (macOS,
+Ubuntu or Debian, and Windows under Git Bash), run again by the session-start hook in `hooks/`
+when the plugin changes. The `paper` tool never calls
 a language model.
 
 The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `sections.md`,
 `interests.md`, `feeds.yaml`, `inbox.md` and `paper.yaml` are theirs; `issues/`, `digests/`,
-`threads.jsonl`, `reads.jsonl`, `marks.jsonl`, `context.json`, `candidates.json`, `.feed.json`, `.tls/` and `cache/` are written by the run and the
+`threads.jsonl`, `reads.jsonl`, `marks.jsonl`, `context.json`, `candidates.json`, `.feed.json`, `.tls/`, `.serve.pid` and `cache/` are written by the run and the
 server. `reads.jsonl` and `marks.jsonl` are encrypted line by line (`src/paper/vault.py`), the key's recovery code in the
 OS keychain; `context.json` is their plain summary and lives only through the run.
 

@@ -14,6 +14,12 @@ Never ask what a default answers: they change everything later in Settings.
 Every command is `~/paper/.tools/bin/paper …`, written exactly like that, so the permission
 rules in step 4 match it.
 
+It runs on macOS, Windows and Ubuntu or Debian. On Windows the paper needs Git for Windows, whose
+Git Bash runs these commands: if your shell tool is PowerShell, not Bash, stop before anything
+else and tell them to install it from https://git-scm.com/downloads/win, then reopen the Claude
+app and run setup again. On another Linux, say the morning run needs the Claude app, which is
+for Ubuntu and Debian, before going on.
+
 ## 1. The tools
 
 ```bash
@@ -60,10 +66,13 @@ Feeds, writers and journals they like can come later, in Settings or by asking y
 ~/paper/.tools/bin/paper install
 ```
 
-It keeps the page running from login and reaches the phone on the home Wi-Fi; when macOS asks
-whether Python may accept incoming connections, Allow lets the phone in.
+It keeps the page running from login and reaches the phone on the home Wi-Fi. When the computer
+asks whether Python may accept incoming connections (macOS), or shows a Windows Security alert
+for Python, Allow lets the phone in; on Windows, allow private networks only.
 
-What they open, finish, mark and ask is kept encrypted, with the key in the computer's keychain.
+What they open, finish, mark and ask is kept encrypted, with the key in the computer's keychain
+(Credential Manager on Windows, GNOME Keyring or KWallet on Linux). If a command says there is no
+keyring, stop and tell them what it says: the paper will not keep the key anywhere weaker.
 Open <http://localhost:4747/settings> for them: the recovery code is at the top. Ask them to save
 it in their password manager and press the button under it. Say once, plainly: without the code,
 a new computer or a lost keychain means the record starts again from nothing.
@@ -102,11 +111,13 @@ them, and opening a piece of any running story follows it too.
 
 ## 6. The phone
 
-Ask whether they want it on their phone too. If so: Settings on the Mac shows a code; they scan
+Ask whether they want it on their phone too. If so: Settings on the computer shows a code; they scan
 it with the phone's camera. The page that opens takes them through it once: install the paper's
 certificate, trust it (on an iPhone that is two places in Settings, both named on the page), then
 Open the paper, which pairs the phone over HTTPS. Then Share, Add to Home Screen. The first time
-the home-screen icon opens, it asks for the six digits shown under the code. If they ask what
+the home-screen icon opens, it asks for the six digits shown under the code. A phone that cannot
+open the page from the code (older Android phones, some Windows networks) types the numeric
+address shown under it instead. If they ask what
 the certificate lets the computer do: it can vouch only for this computer's `.local` name and
 home-network addresses, never for another site.
 
@@ -123,5 +134,5 @@ terminal, tell them to say "schedule the morning run" in the app, which starts h
   > Nobody is watching: never stop to ask; where the skill leaves a choice, take the one it
   > recommends and list each assumption in the report.
 
-Tell them it runs while the Claude app is open and the Mac awake, and on the next launch when
+Tell them it runs while the Claude app is open and the computer awake, and on the next launch when
 it was not. End with what their paper is for, in one sentence.

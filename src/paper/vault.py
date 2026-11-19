@@ -60,8 +60,7 @@ def _stored() -> str | None:
         r = subprocess.run(["security", "find-generic-password", "-s", SERVICE, "-a", ACCOUNT, "-w"],
                            capture_output=True, text=True)
         return r.stdout.strip() or None if r.returncode == 0 else None
-    import keyring
-    return keyring.get_password(SERVICE, ACCOUNT)
+    return _keyring("get_password", SERVICE, ACCOUNT)
 
 
 def _store(code: str) -> None:
@@ -71,9 +70,20 @@ def _store(code: str) -> None:
         subprocess.run(["security", "add-generic-password", "-U", "-s", SERVICE, "-a", ACCOUNT, "-w", code],
                        check=True, capture_output=True)
     else:
-        import keyring
-        keyring.set_password(SERVICE, ACCOUNT, code)
+        _keyring("set_password", SERVICE, ACCOUNT, code)
     _cache.clear()
+
+
+def _keyring(call: str, *args):
+    """Windows Credential Manager, or the Secret Service on Linux. A missing or locked one stops
+    the record rather than putting the key somewhere weaker."""
+    import keyring
+    from keyring.errors import KeyringError
+    try:
+        return getattr(keyring, call)(*args)
+    except (KeyringError, RuntimeError, OSError) as e:
+        raise Locked(f"no keyring to keep the record's key ({type(e).__name__}): unlock or install one "
+                     f"(GNOME Keyring or KWallet on Linux), or set {ENV} to the recovery code") from e
 
 
 def code() -> str | None:

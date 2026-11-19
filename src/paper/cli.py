@@ -1,4 +1,4 @@
-"""paper: a morning paper for Claude to write and for the reader to read on their Mac and phone.
+"""paper: a morning paper for Claude to write and for the reader to read on their computer and phone.
 
   paper init       the home folder ($PAPER_HOME, default ~/paper) from the example
   paper check      which outlets and feeds answer, as JSON
@@ -8,7 +8,7 @@
   paper publish    check issues/<date>.jsonl, move the feed cursor, open the issue
   paper serve      the issue, the reader and settings on http://localhost:4747 and a paired phone
   paper read URL   the article at URL as the reader will see it, as JSON
-  paper install    keep `paper serve` running from login (macOS)
+  paper install    keep `paper serve` running from login
   paper restore C  the recovery code C opens the reading record on this computer
 
 The tool never calls a language model; Claude does the choosing.
@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import urllib.request
+import webbrowser
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -38,7 +39,9 @@ REPO = Path(__file__).resolve().parents[2]
 EXAMPLE = REPO / "example"
 PRESETS = REPO / "presets"
 LABEL = "local.morning-paper.serve"
-AGENT = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
+AGENT = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"  # macOS
+UNIT = Path.home() / ".config" / "systemd" / "user" / "morning-paper.service"  # Linux
+RUN_KEY, RUN_NAME = r"Software\Microsoft\Windows\CurrentVersion\Run", "Morning paper"  # Windows
 
 
 def _print(data) -> None:
@@ -188,8 +191,8 @@ def publish(args) -> int:
     (h.root / "context.json").unlink(missing_ok=True)  # the record's plain summary lives only through the run
     url = f"http://localhost:{server.PORT}/{day}"
     print(url if _up() else f"{url} (the server is not running: run `paper install` once, or `paper serve`)")
-    if args.open and shutil.which("open"):
-        subprocess.run(["open", url], check=False)
+    if args.open:
+        webbrowser.open(url)
     return 0
 
 
@@ -197,7 +200,7 @@ def restore(args) -> int:
     """Keep a recovery code as this computer's key for the reading record."""
     try:
         vault.restore(home(), args.code)
-    except ValueError as e:
+    except (ValueError, vault.Locked) as e:
         print(e, file=sys.stderr)
         return 1
     print("restored: this computer reads the record again")
@@ -206,6 +209,8 @@ def restore(args) -> int:
 
 def serve(args) -> int:
     h = home()
+    h.root.mkdir(parents=True, exist_ok=True)
+    (h.root / ".serve.pid").write_text(str(os.getpid()), encoding="utf-8")  # for `paper install --stop`
     try:
         vault.ensure(h)
         vault.migrate(h)
@@ -216,22 +221,26 @@ def serve(args) -> int:
     return 0
 
 
-def install(args) -> int:
-    if sys.platform != "darwin":
-        print("install is for macOS; elsewhere run `paper serve` yourself", file=sys.stderr)
-        return 1
-    h = home()
-    env = {"PAPER_HOME": str(h.root), "PATH": os.environ.get("PATH", "/usr/bin:/bin")}
+def _env(h) -> dict:
+    """What the server needs from the shell the wrapper set up: the home, and Node on the PATH."""
+    return {"PAPER_HOME": str(h.root), "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONUTF8": "1"}
+
+
+def _install_mac(h, again: bool) -> int:
+    uid = os.getuid()
+    if again:
+        if AGENT.exists():
+            subprocess.run(["launchctl", "kickstart", "-k", f"gui/{uid}/{LABEL}"], capture_output=True)
+        return 0
     AGENT.parent.mkdir(parents=True, exist_ok=True)
     AGENT.write_bytes(plistlib.dumps({
         "Label": LABEL,
         "ProgramArguments": [sys.executable, "-m", "paper.cli", "serve"],
-        "EnvironmentVariables": env,
+        "EnvironmentVariables": _env(h),
         "RunAtLoad": True,
         "KeepAlive": True,
         "StandardErrorPath": str(h.root / "serve.log"),
     }))
-    uid = os.getuid()
     subprocess.run(["launchctl", "bootout", f"gui/{uid}", str(AGENT)], capture_output=True)
     r = subprocess.run(["launchctl", "bootstrap", f"gui/{uid}", str(AGENT)], capture_output=True, text=True)
     if r.returncode:
@@ -239,6 +248,90 @@ def install(args) -> int:
         return 1
     print(f"serving http://localhost:{server.PORT} from login ({AGENT})")
     return 0
+
+
+def _install_linux(h, again: bool) -> int:
+    ctl = ["systemctl", "--user"]
+    if again:
+        if UNIT.exists():
+            subprocess.run([*ctl, "restart", UNIT.name], capture_output=True)
+        return 0
+    if not shutil.which("systemctl"):
+        print("install needs systemd; run `paper serve` yourself", file=sys.stderr)
+        return 1
+    env = "".join(f'Environment="{k}={v}"\n' for k, v in _env(h).items())
+    UNIT.parent.mkdir(parents=True, exist_ok=True)
+    UNIT.write_text(f"""[Unit]
+Description=Morning paper
+
+[Service]
+{env}ExecStart="{sys.executable}" -m paper.cli serve
+Restart=on-failure
+StandardError=append:{h.root / "serve.log"}
+
+[Install]
+WantedBy=default.target
+""", encoding="utf-8")
+    for step in (["daemon-reload"], ["enable", UNIT.name], ["restart", UNIT.name]):
+        r = subprocess.run([*ctl, *step], capture_output=True, text=True)
+        if r.returncode:
+            print(r.stderr.strip(), file=sys.stderr)
+            return 1
+    print(f"serving http://localhost:{server.PORT} from login ({UNIT})")
+    return 0
+
+
+def _windows_pid(h) -> int | None:
+    """The running server's process, when the pid file still names one of the paper's Pythons."""
+    try:
+        pid = int((h.root / ".serve.pid").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    r = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True, text=True)
+    return pid if "python" in r.stdout.lower() else None
+
+
+def _install_windows(h, stop: bool, again: bool) -> int:
+    import winreg
+    pid = _windows_pid(h)
+    if pid:
+        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+    if stop:
+        return 0
+    launcher = Path(sys.executable).parents[2] / "serve.pyw"  # .tools/venv/Scripts/python.exe
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:
+        if again:
+            try:
+                winreg.QueryValueEx(key, RUN_NAME)
+            except FileNotFoundError:
+                return 0  # never installed: nothing to start again
+        env = "".join(f"os.environ[{k!r}] = {v!r}\n" for k, v in _env(h).items())
+        launcher.write_text(f"""import os, sys
+{env}sys.stdout = sys.stderr = open({str(h.root / "serve.log")!r}, "a", encoding="utf-8", buffering=1)
+from paper.cli import main
+sys.exit(main(["serve"]))
+""", encoding="utf-8")
+        windowless = Path(sys.executable).with_name("pythonw.exe")
+        command = [str(windowless), "-X", "utf8", str(launcher)]
+        winreg.SetValueEx(key, RUN_NAME, 0, winreg.REG_SZ, subprocess.list2cmdline(command))
+    subprocess.Popen(command, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                     close_fds=True)
+    if not again:
+        print(f"serving http://localhost:{server.PORT} from login (the {RUN_NAME!r} entry in your startup apps)")
+    return 0
+
+
+def install(args) -> int:
+    """Keeps `paper serve` running from login. --again starts it on new code where it was installed;
+    --stop stops it while the tools are replaced (Windows locks a running program's files)."""
+    h = home()
+    if sys.platform == "win32":
+        return _install_windows(h, args.stop, args.again)
+    if args.stop:
+        return 0
+    if sys.platform == "darwin":
+        return _install_mac(h, args.again)
+    return _install_linux(h, args.again)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -256,7 +349,9 @@ def main(argv: list[str] | None = None) -> int:
     pub.add_argument("--date", help="YYYY-MM-DD, default today")
     pub.add_argument("--open", action="store_true", help="open the issue in the browser")
     sub.add_parser("serve")
-    sub.add_parser("install")
+    ins = sub.add_parser("install")
+    ins.add_argument("--again", action="store_true", help=argparse.SUPPRESS)
+    ins.add_argument("--stop", action="store_true", help=argparse.SUPPRESS)
     rs = sub.add_parser("restore")
     rs.add_argument("code", help="the 24-character recovery code from Settings")
     args = p.parse_args(argv)

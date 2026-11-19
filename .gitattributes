@@ -1,0 +1,5 @@
+# Git for Windows checks out CRLF by default, and bash will not run a script with \r in it
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.ico binary
