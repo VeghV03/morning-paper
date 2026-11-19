@@ -1,6 +1,6 @@
 {
   "name": "paper",
-  "description": "A morning paper your own Claude writes from the outlets you trust, read on your Mac and phone.",
+  "description": "Every story you follow, picked up where you left it: a morning paper your own Claude writes from the outlets you trust.",
   "author": {"name": "VeghV03"},
   "homepage": "https://github.com/VeghV03/morning-paper",
   "license": "MIT"

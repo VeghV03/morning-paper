@@ -1,24 +1,31 @@
 <h1 align="center">Morning paper</h1>
 
 <p align="center">
-One issue a day, chosen for you by your own Claude from the outlets you trust,<br>
-ranked by how many independent newsrooms carry each story. Read it, close it, done.
+Every story you follow, picked up where you left it.<br>
+A morning paper your own Claude writes from the outlets you trust.
 </p>
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/issue-dark.png">
-    <img src="docs/issue-light.png" alt="An issue: the answer to a question the reader marked yesterday, above the day's first section" width="640">
+    <img src="docs/issue-light.png" alt="An issue opening with Since you left: the stories the reader follows that moved since they last read them" width="640">
   </picture>
 </p>
 
 ## Why
 
-A feed never ends, so it never tells you when you are informed. A paper does: it has a last
-page. Morning paper gives you one issue every morning, up to three pieces a section, and
-nothing goes in to fill a slot. The next morning, a new issue takes the front page.
+A feed tells every story as if you had never seen it. You reread what you know, or you lose
+the thread. Morning paper remembers what you read. Open a piece on a story once and the paper
+follows it for you: each issue opens with **Since you left**, what changed in each of your
+stories since you last read about it, a dated line a day, newest first, and nothing you already
+know. A story that has not moved stays out, however big it is. Away for ten days, you get the
+ten days.
 
-Three things make it better than a feed:
+That is possible because the record of what you read is yours. What you opened, finished,
+marked and asked is a plain file in `~/paper` on your Mac, read only by your own Claude when it
+writes the issue. No service keeps it, and nothing is sold against it.
+
+The rest of the paper:
 
 - **Independent sources decide what is news.** Every morning the news engine reads your
   outlets, groups their headlines into stories and counts the newsrooms behind each one (`k`).
@@ -26,13 +33,11 @@ Three things make it better than a feed:
 - **One article a story, the best one.** For each story Claude picks the single best account
   you can read whole without paying, usually from the outlet that did the reporting. When a
   story rests on a law, a ruling or a statement, the document itself can be the piece.
-- **You keep what you read.** Pieces open one at a time in a clean reader, with the next one
-  at the end and a last page after the last. Tap a paragraph to highlight it or ask about it:
-  the next issue answers your question, and cards from what you marked and finished come due,
-  one after each piece you finish, on a spaced-repetition schedule. A few pieces ask you to
-  guess their finding before you read, a running story asks what happened last time, and
-  Sunday's issue ends with a crossword of the week you read. Beyond the news, what you look at,
-  open and finish steers which topics come back.
+- **It ends.** Up to three pieces a section, nothing to fill a slot, then a last page.
+- **You keep what you read.** Tap a paragraph to highlight it or ask about it: the next issue
+  answers your question, and cards from what you marked and finished come due, one after each
+  piece you finish. A few pieces ask you to guess their finding before you read, and Sunday's
+  issue ends with a crossword of your week.
 
 <p align="center">
   <picture>
@@ -75,6 +80,20 @@ icon opens, type the six digits shown under the code.
 
 The morning run needs the Claude app open and the Mac awake, or runs when you next open it.
 Each issue uses your Claude plan: Claude searches the web and opens every article it considers.
+
+### What setup changes on your Mac
+
+Setup says what each step does before it runs it, and asks first before touching your Claude
+settings.
+
+- Installs uv, Node and Python for the paper alone in `~/paper/.tools`, about 240 MB. Nothing
+  system-wide, no password.
+- Adds allow rules for the paper's tool, web search and the `~/paper` folder to
+  `~/.claude/settings.json`, so the morning run never stops at a prompt.
+- Starts the reader as a login item, and schedules the morning run in the Claude app.
+
+To remove the paper, delete `~/Library/LaunchAgents/local.morning-paper.serve.plist`, the
+paper's rules in that settings file, the morning task in the Claude app, and `~/paper`.
 
 ## How it works
 

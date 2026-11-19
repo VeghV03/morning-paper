@@ -2,6 +2,6 @@
   "name": "morning-paper",
   "owner": {"name": "VeghV03"},
   "plugins": [
-    {"name": "paper", "source": "./", "description": "A morning paper your own Claude writes from the outlets you trust, read on your Mac and phone."}
+    {"name": "paper", "source": "./", "description": "Every story you follow, picked up where you left it: a morning paper your own Claude writes from the outlets you trust."}
   ]
 }
