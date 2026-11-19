@@ -110,7 +110,7 @@ def _body(fragment: str, title: str = "") -> str:
         text = _plain(el)
         if el.tag == "p" and len(text) >= 40 and not _scrap(el):
             break
-        if not (len(text) < 40 or el.tag == "h1" or _scrap(el) or (title and text.lower().startswith(title.lower()[:40]))):
+        if not (el.tag == "h1" or _scrap(el) or (title and text.lower().startswith(title.lower()[:40]))):
             break
         lead += 1
     tail = len(els)
@@ -126,8 +126,9 @@ def _plain(el) -> str:
 
 # what pages leave around an article: photo credits, sign-ups, "support us"; English and Hungarian
 CREDIT = re.compile(r"getty images|(\w+ ?/ ?){3}\w|\b(photo|photograph|credit|fotó|kép|borítókép)\s*:|\| [^|]*\b(afp|reuters|ap|epa)\b", re.I)
-CALL = re.compile(r"newsletter|sign up|subscribe|patreon|support us|hírlev|feliratkoz|iratkozzon|előfizet|támogass|"
-                  r"csatlakozzon|kövesse", re.I)
+CALL = re.compile(r"newsletter|sign up (for|to|here|now)|subscribe (here|now|today)|subscribe to our|patreon|"
+                  r"support us\b|support our (journalism|work|reporting)|hírlev|feliratkoz|iratkozz", re.I)  # said to the reader
+RELATED = re.compile(r"Published|\bago\b|Publikálva", re.I)
 SENTENCE = re.compile(r"[.!?…\"”»’']\)?$")
 
 
@@ -146,11 +147,12 @@ def _scrap(el, end: bool = False) -> bool:
         return True
     if (words <= 60 and CREDIT.search(text)) or (words <= 40 and CALL.search(text)):
         return True
-    if el.tag in ("ul", "ol"):
-        items = [_plain(li) for li in el if _plain(li)]
-        return not items or sum(bool(SENTENCE.search(i)) for i in items) * 2 < len(items)
+    if el.tag in ("ul", "ol"):  # at the top only "Published"; at the end, the outlet's related links
+        return len(text) < 40 if not end else bool(RELATED.search(text))
     if re.fullmatch(r"h[1-6]", el.tag or ""):
-        return end and words <= 15
+        return words <= 15 and (end or len(text) < 40)
+    if not end and text.endswith(":"):
+        return False  # "Key developments on Nov. 17:" leads into what follows
     return words <= 14 and not SENTENCE.search(text)
 
 
@@ -353,11 +355,14 @@ def _game(h: Home, piece: dict) -> dict | None:
 
 
 def _authors(raw, url: str) -> str:
-    """Up to three names, each once, without the outlet's own name or a stray month or "Szerző"."""
+    """Up to three names, each once, without the outlet's own name, "Szerző", or a month the page
+    glued on ("Charlie Wood November"; "April Rubin" keeps her name)."""
     months = {m for lang in config.LABELS.values() for m in lang["months"].lower().split()}
     host, names = _host(url).split(".")[0], {}
     for name in re.split(r"\s*[;,]\s*|\s+and\s+|\s+és\s+", str(raw or "")):
-        words = [w for w in name.split() if w.lower() not in months]
+        words = name.split()
+        if len(words) >= 3 and words[-1].lower() in months:
+            words = words[:-1]
         key = " ".join(words).replace("-", " ").lower()
         if words and key not in ("szerzo", "szerző", host) and len(key) >= 3 and (key not in names or "-" in names[key]):
             names[key] = " ".join(words)  # "Weiler-Vilmos; Weiler Vilmos" is one writer
@@ -430,7 +435,7 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
         if not asking:
             data["game"].update(answer=game.get("answer"), pick=played.get("pick"))
     script = f"<script>const PAPER = {_json(data)};</script>{READER_JS}"
-    article = f"<article{' hidden' if asking else ''}>{_body(art['html'], title)}</article><div id=reveal></div><div id=card></div>"
+    article = f"<article{' hidden' if asking else ''}>{art['html'] if art.get('digest') else _body(art['html'], title)}</article><div id=reveal></div><div id=card></div>"
     # an outlet's title often states the finding: a prediction shows the paper's own headline until answered
     return _page(h, piece["head"] if asking and not link else title, head, article, foot, script)
 
@@ -1090,7 +1095,7 @@ SETTINGS_JS = """<script>
   const fit = a => { a.style.height = "auto"; a.style.height = a.scrollHeight + "px"; };
   const grow = (a, value) => {
     a.value = value || "";
-    a.addEventListener("input", () => fit(a));
+    a.addEventListener("input", () => { if (a.value.includes("\\n")) a.value = a.value.replace(/\\s*\\n\\s*/g, " "); fit(a); });
     a.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); a.blur(); } });
     requestAnimationFrame(() => fit(a));
     addEventListener("resize", () => fit(a));
@@ -1342,9 +1347,9 @@ a.next:hover span {{ text-decoration: none; }}
 ::view-transition-old(root), ::view-transition-new(root) {{ animation-duration: .2s; }}
 @keyframes rise {{ from {{ opacity: 0; transform: translateY(8px); }} }}
 @keyframes pop {{ from {{ opacity: 0; transform: translate(-50%, 8px); }} }}
-@supports not (view-transition-name: none) {{ main {{ animation: rise .3s ease-out both; }} }}
-article.late, #reveal > *, #card > *, #game > *, .thread[open] > :not(summary) {{ animation: rise .4s cubic-bezier(.2,.7,.2,1) both; }}
-.bar:not([hidden]) {{ animation: pop .18s ease-out both; }}
+@supports not (view-transition-name: none) {{ main {{ animation: rise .3s ease-out backwards; }} }}
+article.late, #reveal > *, #card > *, #game > *, .thread[open] > :not(summary) {{ animation: rise .4s cubic-bezier(.2,.7,.2,1) backwards; }}
+.bar:not([hidden]) {{ animation: pop .18s ease-out backwards; }}
 button {{ transition: transform .12s ease, background-color .2s ease, color .2s ease; }}
 button:active {{ transform: scale(.96); }}
 li a, a.next, nav a, header a, footer a {{ transition: opacity .15s ease, color .15s ease; }}

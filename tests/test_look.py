@@ -45,6 +45,18 @@ class CleanTest(unittest.TestCase):
         self.assertEqual(got[-1], "* Some names have been changed.")
         self.assertTrue(any("So is the second one." in g for g in got))
 
+    def test_news_words_are_not_calls(self):
+        last = "<p>Hungary was asked to join the initiative and to support our partners, the minister said</p>"
+        html = SENT + "<p>A kormány arra kéri a lakosságot, hogy csatlakozzon és támogassa a javaslatot</p>" + SENT + last
+        self.assertEqual(len(blocks(html)), 4)
+
+    def test_lists_that_are_the_article(self):
+        top = "<p>Key developments on Nov. 17:</p><ul><li>A bridge collapses after a long operation</li><li>Two more struck</li></ul>"
+        end = "<ul><li>The game is out 19 November; £69.99 / €79.99 / $79.99</li></ul>"
+        got = blocks(top + SENT + SENT + end)
+        self.assertEqual(got[0], "Key developments on Nov. 17:")
+        self.assertIn("£69.99", got[-1])
+
     def test_nothing_left_keeps_everything(self):
         self.assertEqual(blocks("<p>Sign up</p>"), ["Sign up"])
 
@@ -57,6 +69,7 @@ class BylineTest(unittest.TestCase):
         self.assertEqual(server._authors("Charlie Wood November", "https://a.org/x"), "Charlie Wood")
         self.assertEqual(server._authors("Szerzo; Weiler-Vilmos; Weiler Vilmos", "https://b.hu/x"), "Weiler Vilmos")
         self.assertEqual(server._authors("HVG", "https://hvg.hu/x"), "")
+        self.assertEqual(server._authors("April Rubin; Theresa May", "https://a.org"), "April Rubin, Theresa May")
         self.assertEqual(server._authors("A One; B Two; C Three; D Four", "https://a.org"), "A One, B Two, C Three")
 
     def test_dates(self):
