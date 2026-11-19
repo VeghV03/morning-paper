@@ -405,7 +405,11 @@ derives both keys; the front page shows the answer to a question asked on anothe
 piece shows its why line, and "less of this" changes it and can be undone; Keep, the Kept page, and a
 highlight on a tapped paragraph. Leaving a piece wrote the record and the brief, and Python opened
 both: this phone's events, the other device's file untouched, and a brief for the next day carrying
-both devices' marks. A refused write showed the note, and the next load sent what it had held.
+both devices' marks. A refused write showed the note, and the next load sent what it had held; a write GitHub kept
+turning back as written meanwhile stayed marked for next time. A phone set up at step 2 asks for a
+token that can write and the code once more, then records. A new issue published while the page was
+open got its why lines without a reload. The run's pack leaves `brief.json.sealed` alone when its
+content is unchanged, so a phone writing during a run does not collide with it.
 Python's and the page's evidence, estimates and why lines match on the same events (a test).
 **Not yet checked:** a real iPhone, GitHub taking the writes with a token that can write, and a
 cloud run reading a brief.

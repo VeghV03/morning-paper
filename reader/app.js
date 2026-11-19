@@ -189,7 +189,7 @@ function others(c) {
   })();
   return othersP;
 }
-let indexP = null;
+let indexP = null, latest = null;
 const index = (c) => (indexP = indexP || sealed(c, INDEX).catch(() => ({ steered: {}, pieces: {} })));
 async function record(c) { return [...(await others(c)), ...own]; }
 
@@ -197,7 +197,7 @@ async function record(c) { return [...(await others(c)), ...own]; }
 async function write(c, rel, bytes, message) {
   let b64 = "";
   for (let i = 0; i < bytes.length; i += 0x8000) b64 += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  for (let tries = 0; tries < 2; tries++) {
+  for (let tries = 0; tries < 3; tries++) {
     const meta = await gh(c, `${rel}.sealed`);
     const sha = meta.ok ? (await meta.json()).sha : undefined;
     const res = await gh(c, `${rel}.sealed`, false, { method: "PUT", body: JSON.stringify({ message, content: btoa(b64), sha }) });
@@ -205,6 +205,7 @@ async function write(c, rel, bytes, message) {
     if (res.status === 403 || res.status === 404) throw Object.assign(new Error(s().cant_write), { cantWrite: true });
     if (res.status !== 409 && res.status !== 422) throw new Error(`GitHub ${res.status}`); // 409, 422: written meanwhile
   }
+  throw new Error("GitHub kept moving"); // the month stays marked and goes next time
 }
 let syncing = null, morning = "5:07";
 function sync() {
@@ -476,6 +477,7 @@ async function route() {
   try {
     const list = await days(cfg);
     if (!list.length) return show("Paper", `<p class=empty>${esc(s().no_issue)}</p>`);
+    if (list.at(-1) !== latest) { latest = list.at(-1); othersP = indexP = null; } // a new issue: a new index, and what the other devices did since
     const [day, id] = where.split("/");
     const want = list.includes(day) ? day : list.at(-1);
     const [page, idx, evs] = await Promise.all([sealed(cfg, frontRel(want)), index(cfg), record(cfg)]);
