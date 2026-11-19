@@ -116,6 +116,7 @@ def context(args) -> int:
     out = reading.context(h)
     out["today"] = date.today().isoformat()
     out["published_today"] = (h.issues / f"{out['today']}.jsonl").exists() and not pending(h.feed_state).exists()
+    out["last_issue"] = next((d for d in reversed(issue.days(h)) if d < out["today"]), None)
     try:
         known = issue.threads(h)
         mine = reading.followed(h, known, (date.today() + timedelta(days=1)).isoformat())
@@ -125,7 +126,7 @@ def context(args) -> int:
         out["warnings"] = e.errors
     path = h.root / "context.json"
     path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    _print({"file": str(path), "today": out["today"], "published_today": out["published_today"],
+    _print({"file": str(path), "today": out["today"], "published_today": out["published_today"], "last_issue": out["last_issue"],
             **{k: len(out[k]) for k in ("pieces", "marks", "to_card", "threads")},
             "warnings": out.get("warnings", [])})
     return 0

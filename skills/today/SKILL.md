@@ -223,12 +223,21 @@ A story becomes a thread the second time it is among an issue's pieces (compare 
 the first day too, naming its piece. Then the piece carries `"thread":"t-<slug>"`.
 
 Every morning, for each thread whose story moved, add today's entry, with `piece` when today's
-issue carries it. A story the reader follows (`left_off` in `context.threads`) can move without
+issue carries it.
+
+**Missed days.** When `context.last_issue` is more than a day before `context.today`, the run
+did not happen on the days between (the Mac was asleep or the app closed), and the reader was
+promised those days too. Before anything else in this section, for each thread fill in what
+happened on each missed day, up to 14 days back: one entry a day the story moved, dated the day
+it happened, without `piece`. Start from `feed.news`, which covers the days since the last
+issue as far as the outlets' feeds still hold them, and search the web for the rest. A day the
+story did not move gets no entry. Only then apply the two-week drop, so a story is not dropped
+for news you have not looked for yet. A story the reader follows (`left_off` in `context.threads`) can move without
 a piece worth reading: the entry alone reaches them under Since you left. `new` says how many
 entries they have not seen yet. Write no entry for a story that did not move.
 
-The entries together stay under 4000 bytes: past that, shorten the oldest. Drop a thread that
-had no news for two weeks; 32 at most. A thread from before entries, with one `body` paragraph,
+The entries together stay under 4000 bytes: past that, shorten the oldest. Drop a thread whose
+newest entry is more than two weeks old, after filling in missed days; 32 at most. A thread from before entries, with one `body` paragraph,
 reads as one entry; rewrite it as entries when its story next moves.
 
 ## 5. Publish
