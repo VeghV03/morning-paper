@@ -32,7 +32,7 @@ import feedparser
 import yaml
 
 from . import feed as feed_mod
-from . import issue, learn, net, reading, server, vault
+from . import cloud, issue, learn, net, reading, server, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -126,8 +126,9 @@ def check(args) -> int:
 def context(args) -> int:
     h = home()
     try:
-        vault.ensure(h)
-        learn.refit(h, reading.reviews(h))
+        if not cloud.active():  # the cloud run has no reading record and no key for one (D46)
+            vault.ensure(h)
+            learn.refit(h, reading.reviews(h))
         out = reading.context(h)
     except vault.Locked as e:
         _print({"ok": False, "errors": [str(e)]})
@@ -146,7 +147,7 @@ def context(args) -> int:
     path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     _print({"file": str(path), "today": out["today"], "published_today": out["published_today"], "last_issue": out["last_issue"],
             **{k: len(out[k]) for k in ("pieces", "marks", "to_card", "threads")},
-            "recovery_unsaved": vault.unsaved(h), "warnings": out.get("warnings", [])})
+            "recovery_unsaved": not cloud.active() and vault.unsaved(h), "warnings": out.get("warnings", [])})
     return 0
 
 
@@ -190,6 +191,9 @@ def publish(args) -> int:
     feed_mod.remove_from_inbox(h, [p["url"] for p in pieces if p.get("saved")])
     commit_pending(h.feed_state)
     (h.root / "context.json").unlink(missing_ok=True)  # the record's plain summary lives only through the run
+    if cloud.active():
+        print(f"published {day}: `paper cloud pack` seals it into the data repository")
+        return 0
     url = f"http://localhost:{server.PORT}/{day}"
     print(url if _up() else f"{url} (the server is not running: run `paper install` once, or `paper serve`)")
     if args.open:
@@ -335,6 +339,38 @@ def install(args) -> int:
     return _install_linux(h, args.again)
 
 
+def cloud_cmd(args) -> int:
+    """The data repository: `key` prints the run key for the cloud environment, from this
+    computer's recovery code; `unpack` and `pack` open and seal the repository in the run."""
+    h = home()
+    if args.action == "key":
+        try:
+            code = vault.normal(args.code) if args.code else vault.code()
+        except ValueError as e:
+            print(e, file=sys.stderr)
+            return 1
+        if not code:
+            print("no recovery code on this computer: run `paper init`, or pass --code", file=sys.stderr)
+            return 1
+        print(cloud.encoded(cloud.run_key(code)))
+        return 0
+    if not args.repo:
+        print("--repo: the data repository's folder", file=sys.stderr)
+        return 1
+    repo, out = Path(args.repo).expanduser(), feed_mod.engine_dir() / "out"
+    try:
+        key = cloud.key_from_env()
+        if args.action == "unpack":
+            h.root.mkdir(parents=True, exist_ok=True)
+            _print({"ok": True, "opened": len(cloud.unpack(h, out, repo, key)), "home": str(h.root)})
+        else:
+            _print({"ok": True, **cloud.pack(h, out, repo, key)})
+    except cloud.Locked as e:
+        _print({"ok": False, "errors": [str(e)]})
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="paper", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -355,8 +391,12 @@ def main(argv: list[str] | None = None) -> int:
     ins.add_argument("--stop", action="store_true", help=argparse.SUPPRESS)
     rs = sub.add_parser("restore")
     rs.add_argument("code", help="the 24-character recovery code from Settings")
+    cl = sub.add_parser("cloud")
+    cl.add_argument("action", choices=["key", "unpack", "pack"])
+    cl.add_argument("--repo", help="the data repository's folder (unpack, pack)")
+    cl.add_argument("--code", help="a recovery code (key), instead of this computer's")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow, "restore": restore}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow, "restore": restore, "cloud": cloud_cmd}[args.cmd](args)
 
 
 if __name__ == "__main__":

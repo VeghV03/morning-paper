@@ -52,8 +52,8 @@ week), `games` (what the reader picked in each prediction and link, or that they
 and the crossword words they did not solve) and `steer`, the morning's topic draw (step 3).
 
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
-`feeds.yaml`, `inbox.md`, `outlets.json` and `paper.yaml` are theirs: follow them, never edit
-them. Work from these, the
+`feeds.yaml`, `inbox.md`, `outlets.json`, `paper.yaml`, `taste.md`, `seen.md` and `fields.md` are
+theirs: follow them, never edit them (Field's week mark is the one exception, below). Work from these, the
 feed and web search.
 
 ## 2. The issue: `$PAPER_HOME/issues/<today>.jsonl`
@@ -99,6 +99,19 @@ What each kind of section takes:
   paywalled pages, never the same site twice in an issue. The best new posts from
   `feed.follow` go where they belong; a post that fits no section, or is not an article, is
   left out.
+- **Sections that rest on the reader's own files**, when `sections.md` has them:
+  - **Film**: arrivals in cinemas and on the services its line names, chosen by `taste.md`
+    and never a title in `seen.md`. Up to three a week: count the Film pieces in this week's
+    earlier issues first. The piece is the best free review or the fullest notice of the
+    title; its lead says which line of `taste.md` it answers.
+  - **Field**: this week's field is the first line of `fields.md` without a week mark. On the
+    week's first issue, two pieces: the best free introduction to the field on the web, and
+    its primary text (a classic work of the field that can be read free and whole). Then add
+    the week to that line, `(2026-w48)`: the one edit you make to a reader's file. On other
+    days the section is empty.
+  - **Football**: analyses in English of how a team plays, how a club is run, the numbers
+    behind a match, Brighton and Brentford first. On the week's first issue, the best piece
+    on each club's week, if there is one.
 
 A **digest** is the one piece you write: for an article worth reading in a language the reader
 does not read (`paper.yaml` and `interests.md` say which they do). In the reader's language,
