@@ -6,7 +6,6 @@ import os
 import tempfile
 import threading
 import unittest
-from datetime import date
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -89,10 +88,8 @@ class SinceTest(unittest.TestCase):
         self.assertIn("Sent back.", box.split("earlier")[0])
         self.assertIn("Tabled.", box.split("earlier")[1])
         self.assertNotIn("Passed.", box)  # today's update is the piece itself
-        today = date.today()
-        gap = (today - date.fromisoformat(FRI)).days
-        self.assertEqual([{k: e[k] for k in ("id", "piece", "entries", "gap")} for e in self.since_events()],
-                         [{"id": "t-budget", "piece": f"r-{SUN}-2", "entries": 1, "gap": gap}])
+        self.assertEqual([{k: e[k] for k in ("id", "piece", "entries", "upto", "gap")} for e in self.since_events()],
+                         [{"id": "t-budget", "piece": f"r-{SUN}-2", "entries": 1, "upto": SUN, "gap": 2}])
         self.get(f"/read/r-{SUN}-2")
         self.assertEqual(len(self.since_events()), 1)
 
@@ -102,8 +99,8 @@ class SinceTest(unittest.TestCase):
         self.assertIn("Ruled.", page.split("earlier")[0])
         self.assertEqual(self.since_events()[0]["entries"], 1)
         self.assertEqual(self.get("/thread/t-nope")[0], 404)
-        tomorrow = "9999-12-31"
-        self.assertEqual(reading.left_off(self.h, {"id": "t-court", "entries": []}, tomorrow), date.today().isoformat())
+        # caught up only to the issue it was opened from, whatever day that happens
+        self.assertEqual(reading.left_off(self.h, {"id": "t-court", "entries": []}, "9999-12-31"), SUN)
 
     def test_context_names_where_the_reader_left_each_story(self):
         from paper import issue

@@ -163,14 +163,11 @@ def _updates(h: Home, new: list[dict], old: list[dict]) -> str:
     return out
 
 
-def _caught_up(h: Home, th: dict, left: str | None, new: list[dict], piece: str | None = None) -> None:
-    """Log that the reader opened a story's new updates, once a story a day."""
-    from datetime import date
-
-    today = date.today().isoformat()
-    if not new or any(x.get("ev") == "since" and x["id"] == th["id"] and x["t"][:10] == today for x in reading.events(h)):
+def _caught_up(h: Home, th: dict, left: str | None, new: list[dict], upto: str, piece: str | None = None) -> None:
+    """Log that the reader opened a story's new updates, shown in the issue of `upto`; once each."""
+    if not new or any(x.get("ev") == "since" and x["id"] == th["id"] and x.get("upto") == upto for x in reading.events(h)):
         return
-    event = {"ev": "since", "id": th["id"], "entries": len(new), "gap": reading.gap(left, today)}
+    event = {"ev": "since", "id": th["id"], "entries": len(new), "upto": upto, "gap": reading.gap(left, upto)}
     reading.log(h, {**event, "piece": piece} if piece else event)
 
 
@@ -321,7 +318,7 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
         th, left, new, old = found
         held = asking and kind(game) == "link"  # shown, and logged, once the reader has answered
         if not held:
-            _caught_up(h, th, left, new if left else [], piece["id"])
+            _caught_up(h, th, left, new if left else [], piece["day"], piece["id"])
         thread = (f"<details class=thread{' open' if new else ''}{' hidden' if held else ''}>"
                   f"<summary>{e(th['title'])}</summary>{_updates(h, new, old)}</details>")
     box = "<div id=game></div>" if game else ""
@@ -380,7 +377,7 @@ def thread_page(h: Home, tid: str, day: str | None) -> str | None:
     left = reading.left_off(h, th, day)
     mine = list(reversed(th["entries"]))
     new = [x for x in mine if left and left < x["day"] <= day]
-    _caught_up(h, th, left, new)
+    _caught_up(h, th, left, new, day)
     head = f'<header><a href="/{day}">← {e(config.short_date(h, day))}</a></header><h1 class=title>{e(th["title"])}</h1>'
     return _page(h, th["title"], head, f"<div class=story>{_updates(h, new, [x for x in mine if x not in new])}</div>")
 
@@ -605,7 +602,7 @@ class Handler(BaseHTTPRequestHandler):
             piece = all_pieces(h).get(g.get(what))
             if what == "link" and piece and (found := story(h, piece)):
                 th, left, new, _ = found
-                _caught_up(h, th, left, new if left else [], piece["id"])
+                _caught_up(h, th, left, new if left else [], piece["day"], piece["id"])
         return self._json_reply({"answer": g.get("answer")})
 
     def do_PUT(self):

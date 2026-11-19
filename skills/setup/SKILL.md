@@ -82,7 +82,8 @@ Write it now, with them watching, by `${CLAUDE_PLUGIN_ROOT}/skills/today/SKILL.m
 
 Then tell them in three sentences how it reads: a piece opens in a clean reader with Next at
 its end; tapping a paragraph offers Highlight and Question, and questions are answered in the
-next issue; tomorrow's issue is the full one, with games and cards as their reading grows.
+next issue; tomorrow's issue is the full one, and from then on each issue opens with what
+changed in the stories they read, since they last read them.
 
 ## 6. The phone
 

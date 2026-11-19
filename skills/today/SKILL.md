@@ -86,8 +86,9 @@ What each kind of section takes:
   (a paywalled outlet, or one the reader marked as never the piece) counts in `k` and is never
   the piece;
   when a story has no other source, find the piece on the web or leave the story out.
-  A story the reader follows (a thread in `context.threads` with `left_off`) that has not
-  moved since they left it stays out, however high its `k`: the reader already knows it.
+  A story the reader already opened a piece on (a thread in `context.threads` with
+  `left_off`, or an earlier piece in `context.pieces` with `opened`) that has not moved since
+  stays out, however high its `k`: the reader already knows it.
 - **Every other section**: articles you find on the web that were never in an issue before (any age), that fit its line
   in `sections.md` and `interests.md`, found with WebSearch: essays, research written for
   readers, reporting with a finding. Prefer the piece with an argument or a finding over the piece with an opinion. No
