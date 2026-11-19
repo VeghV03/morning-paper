@@ -32,7 +32,7 @@ import feedparser
 import yaml
 
 from . import feed as feed_mod
-from . import cloud, issue, learn, net, reading, server, vault
+from . import cloud, edition, issue, learn, net, reading, server, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -192,7 +192,9 @@ def publish(args) -> int:
     commit_pending(h.feed_state)
     (h.root / "context.json").unlink(missing_ok=True)  # the record's plain summary lives only through the run
     if cloud.active():
-        print(f"published {day}: `paper cloud pack` seals it into the data repository")
+        built = edition.build(h, day)
+        print(f"published {day}: {built['texts']} of {built['pieces']} pieces with text for the phone; "
+              "`paper cloud pack` seals it into the data repository")
         return 0
     url = f"http://localhost:{server.PORT}/{day}"
     print(url if _up() else f"{url} (the server is not running: run `paper install` once, or `paper serve`)")

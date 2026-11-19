@@ -251,3 +251,76 @@ Budapest in winter); from summer time it runs at 06:07 local unless moved.
 **D61.** The cleanup commit is pushed, and the history is left alone. The details that e4c5cd9 made public stay in the old commits. They are interests, not secrets, and rewriting the history would break every clone and the routine's checkout.
 
 **D62.** The first cloud run (fired by hand on 2026-11-19) worked from start to finish in 6.4 minutes. It opened 9 sealed files, fetched the feed, wrote 20 pieces, 4 saved links and 3 games, and passed the publish check on its second try. It then pushed one commit to the data repository. One feed outlet refused it with a 403, and a few sites refused the article reader. It picked other sources for those.
+
+## Step 2: the reader page
+
+Checked 2026-11-19: a browser rechecks a page's code for updates at least daily, and the page cannot
+refuse its own replacement (W3C ServiceWorker issue threads, 2018 to 2026), so D53's pinning cannot
+be built as a page. GitHub Pages serves only public repositories on a free account. Face ID
+unlocking for web pages (WebAuthn PRF) works from iOS 18.4, with reported failures in some flows.
+
+## D63 · Where the page's code lives (revises D53)
+**Chosen:** its own small public repository, served by GitHub Pages and never given to the
+cloud run. The code is written in morning-paper's `reader/` folder; it reaches the page only
+when the reader copies it over and merges.
+**Not chosen:** morning-paper's own Pages (a run that can push there could rewrite the page and
+take the record key, undoing D46); morning-paper's Pages with a check that warns when the code
+changes (an attacker's update replaces the check within a day).
+**Accepted cost:** one more repository, and a manual step for each update.
+
+## D64 · Article text
+**Chosen:** the run extracts each piece's text and seals it in the data repository, kept 30
+days; older pieces open at the outlet.
+**Not chosen:** headline, lead and a link only (no reader view, nothing for highlights to attach
+to); keeping texts forever (about 70 MB a year, all downloaded by each run); the latest issue only.
+**Accepted cost:** about 6 MB of texts in the repository. A piece whose site refuses the run has
+no text either, and opens at its outlet, as the local reader did.
+
+## D65 · The key on the phone
+**Chosen:** the recovery code typed once; the phone keeps the run key, which the browser will not
+export, in the page's storage under the phone's passcode encryption (as D39). The offline copy
+stays sealed and is opened as it is shown.
+**Not chosen:** Face ID on each open (iOS 18.4 and later, unreliable in reports); typing the code
+each morning.
+**Accepted cost:** whoever holds the unlocked phone can read the paper. The sealed offline copy
+adds little, since its key sits beside it.
+
+## D66 · What step 2 covers
+**Chosen:** reading only: the issue, the reader view, digests, past issues, the latest issue
+offline. Nothing done on the phone is recorded until step 3.
+**Not chosen:** games now, kept on the phone until step 3.
+**Accepted cost:** the learner hears nothing from the phone until step 3.
+
+## D67 · The phone's GitHub token
+**Chosen:** read only, for the data repository alone.
+**Not chosen:** read and write now.
+**Accepted cost:** a second token at step 3.
+
+## D68 · Since you left
+**Chosen:** left out until step 3, which knows what the reader last read. Running stories show
+only as pieces in their sections.
+
+## D69 · What Claude's GitHub app reaches
+**Chosen:** the reader limits it to morning-paper and the data repository, so the page's
+repository is out of a run's reach whatever the run does. This is the reader's step: it is a
+GitHub setting.
+**Not chosen:** leaving it, and trusting my unconfirmed reading that a run pushes only to the
+repositories its routine lists.
+**Accepted cost:** other Claude sessions lose the reader's other repositories until they are
+added back.
+
+## Step 2 as built
+
+`src/paper/edition.py` builds each day's edition when the cloud run publishes: a front page and one
+file a piece, sealed by `cloud pack` like the rest. `reader/` is the page: plain files, no build.
+
+**Assumed, not asked:** pieces keep the issue file's order within each section, since the local
+server's reordering reads the record (step 3). Article HTML is cut down on the phone to a short list
+of tags with no attributes, and the page's policy runs no script but its own: an outlet's text sits on
+the same page as the key, so it must not be able to act. Opened on localhost, the page reads a test
+copy from its own server in place of GitHub.
+
+**Checked in a browser (2026-11-19), against a fake paper-data on localhost:** a wrong code is
+refused at setup; the issue, a digest, an article and a past issue open; a poisoned article loses its
+script, image, style, handler and link; with the server stopped, the page and the latest issue open
+from the phone's own copy. **Not yet checked:** a real iPhone, GitHub Pages, and GitHub's own API.

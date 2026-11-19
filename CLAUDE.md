@@ -23,6 +23,8 @@ cloud run (`scripts/cloud-run.sh start`, then `skills/today`, then `finish`) ope
 private data repository into `~/paper`, writes the issue, and seals what changed back with
 `paper cloud pack` (`src/paper/cloud.py`): each file whole under the run key in `PAPER_RUN_KEY`,
 which `paper cloud key` derives from the recovery code. The reading record never goes there.
+At publish the run also builds the phone's edition (`src/paper/edition.py`); `reader/` is the
+phone page that opens it, served from the reader's own page repository, never from this one (D63).
 The local server below still works until the cloud reader page replaces it.
 
 When the user asks to set this up, follow `skills/setup/SKILL.md`.
