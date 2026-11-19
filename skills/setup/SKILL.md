@@ -100,7 +100,8 @@ first section, Since you left, lists only the stories the reader follows, so fir
 4. One piece a section, two at most: the news from the top stories by `k`, the sections beyond
    it from `follow` or a top story that fits. A piece on a story they chose carries its
    `thread`, and that day's entry names the piece. Open only the articles you choose; no other
-   web search.
+   web search. Every piece in a steered section has `fit` `tries`: nothing has been read yet,
+   so its why line says it is something new.
 5. No answers, cards or games: there is nothing to build them on yet.
 6. Publish, and open http://localhost:4747. No report: they are watching.
 

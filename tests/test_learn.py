@@ -95,27 +95,6 @@ class LearnTest(unittest.TestCase):
         self.assertEqual(learn.due(self.h, reviews, "r-x")["id"], f"c-{DAY}-1")
         self.assertIsNone(learn.due(self.h, reviews, "r-x", then + timedelta(hours=2)))
 
-    def test_passed_over_topic(self):
-        today = date.fromisoformat(DAY)
-        days = [(today - timedelta(days=d)).isoformat() for d in range(5, -1, -1)]
-        for n, day in enumerate(days):
-            self.write([self.piece(1, day, section="ideas", topic="power", fit="fits"),
-                        self.piece(2, day, section="ideas", topic="taste", fit="fits"),
-                        self.piece(3, day, section="ideas", topic="method", fit="tries")], day)
-            for i in (1, 2, 3):
-                reading.log(self.h, {"ev": "seen", "id": f"r-{day}-{i}"})  # on the page, never on screen: no showing
-            reading.log(self.h, {"ev": "look", "id": f"r-{day}-1"})
-            reading.log(self.h, {"ev": "look", "id": f"r-{day}-2"})
-            if n < 2:
-                reading.log(self.h, {"ev": "open", "id": f"r-{day}-1"})
-        ideas = reading.context(self.h, today)["steer"]["ideas"]
-        self.assertEqual(ideas["passed_over"], ["power", "taste"])
-        self.assertEqual(ideas["topics"]["power"], {"shown": 6, "opened": 2, "good": 0})
-        self.assertEqual(ideas["topics"]["method"]["shown"], 0)
-        self.assertFalse(ideas["silent"])  # six days of showings, not 28
-        reading.log(self.h, {"ev": "open", "id": f"r-{days[-1]}-2"})
-        self.assertEqual(reading.context(self.h, today)["steer"]["ideas"]["passed_over"], ["power"])
-
     def test_silent_section(self):
         today = date.fromisoformat(DAY)
         old = (today - timedelta(days=40)).isoformat()

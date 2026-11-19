@@ -16,7 +16,9 @@ Events, one a line, each with `t` (ISO time) and `id` (a piece):
   with nothing of it read yet;
 - `review`: a card (`id` c-…) was answered, `rating` again or good (learn.py);
 - `game`: a prediction or link (`id` p-… or l-…) was answered, `pick` and `right`, or `skipped`;
-  or a crossword (`id` x-…) word was solved, `entry` its index. Only the first answer counts.
+  or a crossword (`id` x-…) word was solved, `entry` its index. Only the first answer counts;
+- `less`: "less of this" on a steered piece, which turns its topic down in its section
+  (topics.py); `less_undo` takes it back.
 
 A piece is finished when the reader got past FINISHED of it and spent at least a third of its
 reading time on it at WPM words a minute, so a quick scroll to the end does not count.
@@ -35,8 +37,7 @@ WPM = 250
 RECENT = 14  # days of pieces in `news context`
 WEEK = 7  # days of minutes per section
 LOOK_MS = 2000  # a headline on screen this long, with the page in front, was looked at (x4r U16)
-STEER = 28  # days of showings the steering rules count (x4r U9)
-PASSED = 4  # a topic whose last PASSED showings were not opened is passed over (x4r U18)
+STEER = 28  # days without an open that make a steered section silent (x4r U21)
 
 
 def now() -> str:
@@ -55,12 +56,13 @@ def body_hash(body: str) -> str:
     return hashlib.sha256(body.encode()).hexdigest()[:16]
 
 
-def state(h: Home) -> dict[str, dict]:
-    """Per piece id: seen, opened, progress, ms, kept, and the thread hashes shown."""
+def state(h: Home, evs: list[dict] | None = None) -> dict[str, dict]:
+    """Per piece id: seen, opened, progress, ms, kept, and the thread hashes shown; from `evs`
+    when given (the record up to a moment), else the whole record."""
     out: dict[str, dict] = {}
-    for e in events(h):
+    for e in events(h) if evs is None else evs:
         ev = e.get("ev")
-        if ev in ("review", "game", "since", "follow"):
+        if ev in ("review", "game", "since", "follow", "less", "less_undo"):
             continue
         s = out.setdefault(e["id"], {"seen": False, "looked": False, "opened": False, "progress": 0.0, "ms": 0, "kept": None, "shown": set()})
         if ev == "seen":
@@ -165,7 +167,7 @@ def games(h: Home) -> dict[str, dict]:
 def context(h: Home, today: date | None = None) -> dict:
     """What `paper context` reports: every piece of the last RECENT days, newest issue first;
     minutes per section over the last WEEK days; the reader's marks; the finished pieces still
-    without a card; the cards; and, for each steered section, what the steering rules see."""
+    without a card; the cards; and, for each steered section, the morning's topic draw."""
     today = today or date.today()
     first = (today - timedelta(days=RECENT - 1)).isoformat()
     week = (today - timedelta(days=WEEK - 1)).isoformat()
@@ -208,7 +210,7 @@ def context(h: Home, today: date | None = None) -> dict:
         "to_card": [r["id"] for r in rows if r["finished"] and r["id"] not in marked and r["id"] not in carded],
         "cards": learn.summary(h, reviews(h)),
         "games": _games(h, first, carded),
-        "steer": steer(h, everything, st, marked, today),
+        "steer": steer(h, everything, st, today),
     }
 
 
@@ -238,36 +240,16 @@ def _games(h: Home, first: str, carded: set) -> list[dict]:
     return sorted(out, key=lambda r: (r["issue"], r["id"]), reverse=True)
 
 
-def steer(h: Home, everything: dict, st: dict, marked: set, today: date) -> dict:
-    """Per steered section, over the last STEER days: each topic's showings (its headline was on
-    screen for LOOK_MS, or it was opened), opens and good outcomes (finished, kept or marked); the
-    topics passed over (their last PASSED showings not opened); the topics with a good outcome;
-    and whether the section is silent: shown for STEER days or more, with nothing opened in the
-    last STEER (x4r U21)."""
+def steer(h: Home, everything: dict, st: dict, today: date) -> dict:
+    """Per steered section: the morning's topic draw (topics.py), and whether the section is
+    silent: shown for STEER days or more, with nothing opened in the last STEER (x4r U21)."""
+    from . import topics
+
     first = (today - timedelta(days=STEER - 1)).isoformat()
-    out = {}
-    for sec in sections(h):
-        if not sec.topics:
-            continue
-        ever = sorted((p for p in everything.values()
-                       if p.get("section") == sec.id and st.get(p["id"], {}).get("looked")),
+    out = topics.draw(h, today.isoformat())
+    for sid, d in out.items():
+        ever = sorted((p for p in everything.values() if p.get("section") == sid and st.get(p["id"], {}).get("looked")),
                       key=lambda p: (p["day"], p["id"]))
         shown = [p for p in ever if p["day"] >= first]
-        topics = {t: {"shown": 0, "opened": 0, "good": 0} for t in sec.topics}
-        last: dict[str, list[bool]] = {t: [] for t in sec.topics}
-        for p in shown:
-            t, s = p.get("topic"), st[p["id"]]
-            if t not in topics:
-                continue
-            good = finished(h, p["id"], s) or kept(p, s) or p["id"] in marked
-            topics[t]["shown"] += 1
-            topics[t]["opened"] += s["opened"]
-            topics[t]["good"] += good
-            last[t].append(s["opened"])
-        out[sec.id] = {
-            "topics": topics,
-            "passed_over": [t for t, xs in last.items() if len(xs) >= PASSED and not any(xs[-PASSED:])],
-            "good": [t for t, x in topics.items() if x["good"]],
-            "silent": bool(ever) and ever[0]["day"] < first and not any(st[p["id"]]["opened"] for p in shown),
-        }
+        d["silent"] = bool(ever) and ever[0]["day"] < first and not any(st[p["id"]]["opened"] for p in shown)
     return out

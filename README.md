@@ -45,6 +45,11 @@ The rest of the paper:
   answers your question, and cards from what you marked and finished come due, one after each
   piece you finish. A few pieces ask you to guess their finding before you read, and Sunday's
   issue ends with a crossword of your week.
+- **It learns mostly from what you finish.** In the sections you steer, each topic
+  has an estimate built from what you finish, keep, mark and later remember, and every section
+  keeps one slot for the topic it has seen least. Each of those pieces says why it is there, with
+  Less of this beside it. Cards come back on a schedule fitted to your own reviews, once that
+  fit predicts them better than the default.
 
 <p align="center">
   <picture>

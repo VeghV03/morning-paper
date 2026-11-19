@@ -29,7 +29,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from http.cookies import SimpleCookie
 
-from . import config, crossword, learn, net, phone, reading, settings, tls, vault
+from . import config, crossword, learn, net, phone, reading, settings, tls, topics, vault
 from .home import Home, home
 from .issue import DAY, Invalid, all_pieces, all_rows, days, kind, load, sections, threads
 
@@ -405,6 +405,13 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
         thread = (f"<details class=thread{' open' if new else ''}{' hidden' if held else ''}>"
                   f"<summary>{e(th['title'])}</summary>{_updates(h, new, old)}</details>")
     box = "<div id=game></div>" if game else ""
+    why = ""
+    if line := topics.why(h, piece, t):
+        less = piece["id"] in topics.pressed(reading.events(h))
+        done = t["less_done"].format(topic=piece["topic"])
+        why = (f'<p class=why data-id="{e(piece["id"])}" data-line="{e(line)}" data-done="{e(done)}">'
+               f'<span>{e(done if less else line)}</span> '
+               f'<button class=quiet data-less="{str(less).lower()}">{e(t["undo"] if less else t["less"])}</button></p>')
     kept = reading.kept(piece, st)
     byline = " · ".join(e(x) for x in (_host(piece["url"]), _authors(art.get("author"), piece["url"]),
                                         _when(h, art.get("date"), piece["day"])) if x)
@@ -414,7 +421,7 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
     title = re.sub(r"\s+[|–—]\s+[^|–—]+$", "", art.get("title") or "") or piece["head"]  # "Title | Site"
     link = game and kind(game) == "link"
     head = (f'<header><a href="/{piece["day"]}">← {e(config.short_date(h, piece["day"]))}</a></header>'
-            f'{box if link else ""}{thread}' + (f'<h1 class=title data-title="{e(title)}">{e(piece["head"])}</h1>'
+            f'{box if link else ""}{why}{thread}' + (f'<h1 class=title data-title="{e(title)}">{e(piece["head"])}</h1>'
                                                 if asking and not link else f"<h1 class=title>{e(title)}</h1>")
             + (f"<p class=byline>{byline}</p>" if byline else "") + ("" if link else box))
     try:
@@ -435,7 +442,8 @@ def reader_page(h: Home, piece: dict, art: dict) -> str:
         "had": st["ms"] if st else 0,
         "marks": [{"id": m["id"], "kind": m["kind"], "text": m["text"]}
                   for m in learn.marks(h).values() if m["piece"] == piece["id"]],
-        "t": {k: t[k] for k in ("keep", "keeping", "highlight", "question", "remove", "show", "again", "good", "skip")},
+        "t": {k: t[k] for k in ("keep", "keeping", "highlight", "question", "remove", "show", "again", "good", "skip",
+                                "less", "undo")},
     }
     if game:
         data["game"] = {"id": game["id"], "kind": kind(game), "prompt": game.get("prompt"), "options": game.get("options"),
@@ -486,7 +494,16 @@ def settings_page(h: Home, mac: bool = False) -> str:
     back = f'<nav><a href="/{latest[0]}">← {e(config.short_date(h, latest[0]))}</a></nav>' if latest[0] else ""
     data = {"state": settings.state(h), "t": {k: t[k] for k in (
         "sections", "interests", "feeds", "outlets", "language", "save_link", "add", "name", "what",
-        "topics", "url", "remove", "saved", "phone", "new_code", "recovery", "recovery_saved")}}
+        "topics", "url", "remove", "saved", "phone", "new_code", "recovery", "recovery_saved", "less", "undo")}}
+    try:
+        names = {s.id: s.name for s in sections(h)}
+    except Invalid:
+        names = {}
+    pieces = all_pieces(h)
+    data["less"] = [{"id": pid, "topic": pieces[pid].get("topic"), "section": names.get(pieces[pid].get("section"), ""),
+                     "day": when.date().isoformat()}
+                    for pid, when in sorted(topics.pressed(reading.events(h)).items(), key=lambda x: x[1], reverse=True)
+                    if pid in pieces]
     if mac:
         url = phone.pair_url(h, PORT)
         phone.open_codes()
@@ -705,6 +722,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, "a mark needs piece, kind and text", "text/plain")
         if path == "/game":
             return self._game(h, data)
+        if path == "/less" and pieces.get(data.get("id"), {}).get("topic"):
+            on = data["id"] in topics.pressed(reading.events(h))
+            if data.get("undo") and on:
+                reading.log(h, {"ev": "less_undo", "id": data["id"]})
+            elif not data.get("undo") and not on:  # a second press is the same press
+                reading.log(h, {"ev": "less", "id": data["id"]})
+            return self._send(204)
         if path == "/review" and data.get("id") in learn.cards(h) and data.get("rating") in learn.RATINGS:
             reading.log(h, {"ev": "review", "id": data["id"], "rating": data["rating"]})
             return self._send(204)
@@ -870,6 +894,14 @@ LOOK_JS = """<script>
 </script>"""
 
 READER_JS = """<script>
+document.querySelector("p.why button")?.addEventListener("click", async ev => {
+  const b = ev.target, p = b.closest("p.why"), on = b.dataset.less === "true";
+  const res = await fetch("/less", {method: "POST", body: JSON.stringify({id: p.dataset.id, undo: on})});
+  if (!res.ok) return;
+  b.dataset.less = String(!on);
+  p.querySelector("span").textContent = on ? p.dataset.line : p.dataset.done;
+  b.textContent = on ? PAPER.t.less : PAPER.t.undo;
+});
 (() => {
   const {id, need, had, t, game} = PAPER;
   const article = document.querySelector("article");
@@ -1303,7 +1335,18 @@ SETTINGS_JS = """<script>
     }}, t.recovery_saved);
     return block(t.recovery, el("p", {class: "code recovery"}, PAPER.recovery), done);
   };
-  root.append(...(PAPER.recovery ? [recovery()] : []), sections(), interests(), feeds(), outlets(), language(), link(),
+  const less = () => block(t.less, ...PAPER.less.map(x => {
+    const undo = el("button", {class: "quiet", onclick: async () => {
+      if (!(await fetch("/less", {method: "POST", body: JSON.stringify({id: x.id, undo: true})})).ok) return;
+      const sec = row.closest("section");
+      row.remove();
+      if (!sec.querySelector(".row")) sec.remove();
+    }}, t.undo);
+    const row = el("div", {class: "row link"}, el("span", {}, `${x.topic} · ${x.section} · ${x.day}`), undo);
+    return row;
+  }));
+  root.append(...(PAPER.recovery ? [recovery()] : []), sections(), ...(PAPER.less.length ? [less()] : []),
+              interests(), feeds(), outlets(), language(), link(),
               ...(PAPER.phone ? [pairing()] : []));
 })();
 </script>"""
@@ -1395,6 +1438,8 @@ article .picked {{ outline: 1px solid var(--grey); outline-offset: 6px; border-r
 .bar[hidden] {{ display: none; }}
 .bar button {{ background: transparent; color: var(--bg); border: 0; padding: 12px 20px; font-size: 16.5px; white-space: nowrap; }}
 .bar button:hover {{ background: rgba(127,127,127,.25); }}
+.why {{ color: var(--grey); font-size: 15.5px; font-style: italic; margin: 0 0 24px; }}
+.why button {{ font-style: normal; font-size: 14.5px; margin-left: 4px; padding: 2px 10px; }}
 .thread {{ border-left: 3px solid var(--ink); padding: 2px 0 2px 16px; margin: 0 0 32px; }}
 .thread > summary {{ cursor: pointer; font-weight: 650; font-size: 16px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }}
 .thread > summary::-webkit-details-marker {{ display: none; }}

@@ -32,7 +32,7 @@ import feedparser
 import yaml
 
 from . import feed as feed_mod
-from . import issue, net, reading, server, vault
+from . import issue, learn, net, reading, server, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -127,6 +127,7 @@ def context(args) -> int:
     h = home()
     try:
         vault.ensure(h)
+        learn.refit(h, reading.reviews(h))
         out = reading.context(h)
     except vault.Locked as e:
         _print({"ok": False, "errors": [str(e)]})

@@ -49,7 +49,7 @@ not for the reader. A story told in two languages, or split by its angles (a sum
 threads, the reader's `marks` (highlights and questions, with `answered` and `carded`),
 `to_card` (finished pieces with no mark and no card), `cards` (how many, due, reviewed this
 week), `games` (what the reader picked in each prediction and link, or that they skipped it,
-and the crossword words they did not solve) and `steer` (step 3).
+and the crossword words they did not solve) and `steer`, the morning's topic draw (step 3).
 
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
 `feeds.yaml`, `inbox.md`, `outlets.json` and `paper.yaml` are theirs: follow them, never edit
@@ -121,26 +121,29 @@ looks in a browser.
 ## 3. Learn from the reader
 
 A section is **steered** when its line in `sections.md` lists topics after a `|`. Every piece
-in it carries `topic`, the one topic on that list it is mostly about, and `fit`: `fits` when it
-follows what the reader reads, `tries` when it tests a topic they have not shown interest in.
-A topic counts as shown interest when `context.steer` has it `opened` or `good` in that
-section. About a third of an issue's steered pieces are `tries`, placed where you think they
-fit; when only untried topics have strong pieces, more is fine (rule 1).
+in it carries `topic`, the one topic on that list it is mostly about, and `fit`: `tries` for the
+piece that explores (below), `fits` for the rest. The page writes each steered piece's why line
+from these two and the reader's record; you write nothing for it.
 
-`context.steer` gives, per steered section over 28 days, each topic's showings (`shown`: its
-headline was on screen for 2 seconds, or it was opened), `opened` and `good` (finished, kept or
-marked), and three lists. Apply these rules, in this order:
+`context.steer` gives, per steered section, the morning's draw from the paper's topic model:
+`order`, the section's topics in the order to prefer; `try`, the topic with the least `evidence`; and
+for each topic its `estimate` (the share of its pieces expected to turn out well) and
+`evidence` (how many recent showings that rests on). The model learns from what the reader
+finished, kept, marked, opened, passed over, remembered as a card, or asked for less of. The
+draw is the same however often you run `paper context` in a day. Apply these rules, in order:
 
 1. **Worth first.** The rules choose only between pieces of similar worth. They never let a
    weak piece in, and never keep a strong one out.
-2. A topic in `passed_over` (its last four showings, none opened) is picked
-   only as a `tries`. One of its `tries` opened brings it back; nothing is shut out for good.
-3. A topic in `good` takes the better slot, between pieces of similar worth.
+2. **Follow the order.** Between pieces of similar worth, the one whose topic comes earlier in
+   `order` takes the slot.
+3. **One try.** Each steered section gives one slot to a piece on its `try` topic, with `fit`
+   `tries`. When no strong piece on it exists, take the topic with the next least
+   `evidence`; when none is strong either, the section has no try that day.
 4. A `silent` section (shown for 28 days, nothing opened in them) gets one piece. An open
    restores three.
 
-News sections are not steered: they stay ranked by `k`. A headline the reader never had on
-screen was never in front of them and says nothing. Name each rule that changed a choice in your report.
+News sections are not steered: they stay ranked by `k`. Name in your report each rule that
+changed a choice, and each section that had no try.
 
 ## Answers and cards
 
@@ -263,7 +266,7 @@ again. Once it succeeds the issue is out: never change it. When it says the serv
 Your last message is the report: three lines, nothing before or after them.
 
 1. The pieces by section, then answers, cards and games: `World 3 · Science 1 · Saved 2 · 1 answer · 4 cards · 2 games`.
-2. Each steering rule that changed a choice, or `no change`.
+2. Each steering rule that changed a choice and each steered section with no try, or `no change`.
 3. What the reader has to do, such as starting the server, in one sentence; else `nothing to do`.
 
 Each line is one sentence of 30 words at most. Feed warnings, stories left out and the choices
