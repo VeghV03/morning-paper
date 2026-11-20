@@ -889,3 +889,76 @@ the page in Hungarian; a past issue without the new fields on the real data.
 ## R14 · The games line's words
 **Chosen:** Lede, Crossword, then Guess 1, Guess 2 (Tipp in Hungarian) for the pieces that ask first.
 **Not chosen:** the pieces' headlines; Predict and Link.
+
+## Gap 1: setup never run from nothing
+Every name setup uses is already your real paper's on this Mac and these accounts: `~/paper`,
+`~/paper-data`, the repos `paper-data` and `paper-reader`, the `morning-paper` environment, the
+routine "Morning paper". A test run here as you would land on them. With `PAPER_RECOVERY_CODE` set,
+the paper never writes the keychain, and `vault.ensure` never replaces a stored code. CI already
+runs the install and a new home on Ubuntu, Windows and macOS. What never ran is everything after.
+
+## D109 · How real the test is
+**Chosen:** staged. First Claude checks the setup skill and README against the code, and runs the
+local steps twice in a sandbox (a test code, a temporary home, a local repository). Then you walk it
+once for real, with a checklist.
+**Not chosen:** the full walk now; a friend setting it up; the sandbox only.
+**Accepted cost:** the sandbox alone does not close the gap.
+
+## D110 · The routine in the real walk
+**Chosen:** the walk stops before the routine; that step is checked by reading what it would send.
+**Not chosen:** a renamed test routine, deleted afterwards.
+**Accepted cost:** making the routine stays unproven.
+
+## D111 · The GitHub account for the real walk
+**Chosen:** yours, with renamed repositories.
+**Not chosen:** a second account.
+**Accepted cost:** not the script as written; the path without the GitHub CLI stays untested; test
+repositories sit beside the real `paper-data`.
+
+## D112 · Windows
+**Chosen:** its time-zone step stays named as unchecked until someone on Windows sets it up.
+**Not chosen:** dropping Windows from setup's promises for now.
+
+## D113 · Where the real walk runs
+**Chosen:** a new macOS user, with its own home and keychain.
+**Not chosen:** another Mac; your own user with PAPER_HOME and a test code.
+**Why it matters:** as your own user, setup would find your real recovery code and reuse it, and its
+step 3 would rewrite `outlets.json`, `sections.md`, `interests.md` and `paper.yaml` in your real
+`~/paper`.
+
+## Gap 1, stage one as built
+**Checked alone, 21 Nov:**
+- The setup skill and the README read against the code.
+- Steps 1, 3 and 4 run twice in a sandbox, with a test code, a temporary home and a local repository.
+  `init` wrote the six files; all 23 World outlets and 3 feeds answered. The pack sealed them and
+  pushed. On the second pass `init` wrote nothing and the pack changed nothing, so a rerun leaves an
+  existing paper alone.
+- The routine step 5 would create matches the working "Morning paper" routine in every field:
+  prompt, model, tools, schedule, sources, no connectors. That routine delivered on 20 Nov.
+- `${CLAUDE_PLUGIN_ROOT}` is filled in inside a plugin's SKILL.md (Claude Code's skills docs), so
+  step 1's line resolves.
+
+**Broke, fixed:** step 6 turned Pages on with `gh api repos/{owner}/…` in a command of its own. `gh`
+fills `{owner}` from the folder's git remote, and outside the clone it fails ("unable to expand
+placeholder"). It now runs `cd ~/paper-reader &&` first.
+
+**Found, not fixed:**
+- Two pages under one GitHub account share an address (`<them>.github.io`). The phone keeps one
+  store per address, so a second paper page opened on the same phone takes over the first's
+  settings. It only matters for a test page or two papers on one account; the walk's checklist
+  routes around it.
+- The sandbox pack also sealed the engine's own record from this checkout (public gazette text).
+  A stranger's first pack would not have it. Harmless; noted so it isn't read as a leak.
+
+**Not run here:** the cloud run's start and finish. The run is always Linux, which CI covers, and
+running them here would rebuild this checkout's environment without its dev tools.
+
+**Still open, for the real walk** (`decisions/2026-11-21-setup-walk.md`):
+- the install line in the app;
+- the app's environment screens;
+- the GitHub app's reach;
+- the path without the GitHub CLI;
+- Pages from nothing;
+- a fresh keychain code.
+
+Making the routine stays unproven (D110), and so does Windows (D112).

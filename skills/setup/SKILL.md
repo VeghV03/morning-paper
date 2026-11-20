@@ -153,7 +153,7 @@ cd ~ && gh repo create paper-reader --public --clone && cd paper-reader && cp -R
 ```
 
 ```bash
-gh api -X POST repos/{owner}/paper-reader/pages -f "source[branch]=main" -f "source[path]=/"
+cd ~/paper-reader && gh api -X POST "repos/{owner}/{repo}/pages" -f "source[branch]=main" -f "source[path]=/"
 ```
 
 Without the CLI, they make the repository on https://github.com/new, upload the files of
