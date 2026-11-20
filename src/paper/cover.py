@@ -28,7 +28,10 @@ MONO = HERE / "fonts"
 SERIF = MONO / "PaperSerif-Roman.ttf"  # reader/fonts' woff2 unpacked: not every FreeType reads woff2
 YELLOW = "#FFD400"
 THEMES = {"light": {"bg": "#fbfbf9", "ink": "#1a1a1a", "grey": "#6f6f6b", "dim": 1.0},
-          "dark": {"bg": "#121212", "ink": "#f4f4f1", "grey": "#9a9a95", "dim": 0.86}}
+          "dark": {"bg": "#121212", "ink": "#f4f4f1", "grey": "#9a9a95", "dim": 0.86},
+          # The X4 (V43 in x4-reader): light, with the date in ink, since a grey dithers to dots at four levels.
+          "eink": {"bg": "#fbfbf9", "ink": "#1a1a1a", "grey": "#1a1a1a", "dim": 1.0}}
+PHONE = ("light", "dark")  # the themes the phone's pair is drawn in
 UA = "morning-paper cover"  # generic: the Art Institute asks for a name, never a person's details
 HEADERS = {"User-Agent": UA, "AIC-User-Agent": UA}
 

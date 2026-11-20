@@ -310,7 +310,7 @@ def cover_cmd(args) -> int:
     folder = home().root / "edition" / day
     folder.mkdir(parents=True, exist_ok=True)
     files = []
-    for theme in cover.THEMES:
+    for theme in cover.PHONE:
         path = folder / f"cover-{theme}.jpg"
         cover.draw(day, args.claim, img, (size[0] * 2, size[1] * 2), theme, lang, crop).save(path, "JPEG", quality=90)
         files.append(str(path))

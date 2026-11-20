@@ -30,6 +30,14 @@ class ComposerTest(unittest.TestCase):
         self.assertAlmostEqual(rows[0], 96, delta=2)
         self.assertAlmostEqual(rows[-1] - rows[0] + 1, 500, delta=2)
 
+    def test_the_x4s_date_is_in_ink(self):
+        # The date's corner of the header: as dark as the ink on the X4, grey on the phone.
+        box = (300, 60, 456, 100)
+        darkest = lambda theme: min(cover.draw("2026-11-21", CLAIM, self.photo, (480, 800), theme).convert("L").crop(box).getdata())
+        self.assertLess(darkest("eink"), 40)
+        self.assertGreater(darkest("light"), 80)
+        self.assertEqual(cover.PHONE, ("light", "dark"))
+
     def test_a_grim_day_has_no_photo(self):
         img = np.asarray(cover.draw("2026-11-21", "A test.", None).convert("L"))
         self.assertEqual(img[300:].std(), 0)  # below a short claim: the ground alone, no grain
