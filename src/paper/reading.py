@@ -201,12 +201,18 @@ def reviews(h: Home) -> list[dict]:
 
 def games(h: Home) -> dict[str, dict]:
     """Per game id, the first answer: `pick` and `right`, or `skipped`; a crossword's `solved`
-    entries."""
+    entries; Lede's `tries` and whether it was `solved`, from each guess the record keeps (R7, R9)."""
     out: dict[str, dict] = {}
+    words = {gid: g.get("lede") for gid, g in all_rows(h, "lede").items()}
     for e in events(h):
         if e.get("ev") != "game":
             continue
-        if isinstance(e.get("entry"), int):
+        if isinstance(e.get("guess"), str):
+            g = out.setdefault(e["id"], {"tries": 0, "solved": False})
+            if not g["solved"]:
+                g["tries"] += 1
+                g["solved"] = e["guess"] == words.get(e["id"])
+        elif isinstance(e.get("entry"), int):
             out.setdefault(e["id"], {"solved": set()})["solved"].add(e["entry"])
         elif e["id"] not in out:
             out[e["id"]] = {k: e[k] for k in ("pick", "right", "skipped") if k in e}
@@ -267,11 +273,15 @@ def _games(h: Home, first: str, carded: set, played: dict | None = None) -> list
     """The games of the last RECENT days and what the reader did with each, newest first;
     `played` as `games` gives it, from the record unless the brief gives it."""
     played, out = games(h) if played is None else played, []
-    for what in ("predict", "link", "crossword"):
+    for what in ("predict", "link", "crossword", "lede"):
         for gid, g in all_rows(h, what).items():
             if g["day"] < first:
                 continue
             got = played.get(gid, {})
+            if what == "lede":  # the word, and how it went once played
+                out.append({"id": gid, "kind": what, "issue": g["day"], "piece": g.get("piece"), "word": g.get("lede"),
+                            **{k: got[k] for k in ("tries", "solved") if k in got}})
+                continue
             if what == "crossword":  # the words on the grid; missed only once the reader started it
                 words = g.get("crossword") or []
                 placed = [x["i"] for x in crossword.layout([w.get("answer") for w in words])["entries"]]

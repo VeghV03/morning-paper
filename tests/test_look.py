@@ -73,6 +73,13 @@ class BylineTest(unittest.TestCase):
         self.assertEqual(article.authors("HVG", "https://hvg.hu/x"), "")
         self.assertEqual(article.authors("April Rubin; Theresa May", "https://a.org"), "April Rubin, Theresa May")
         self.assertEqual(article.authors("A One; B Two; C Three; D Four", "https://a.org"), "A One, B Two, C Three")
+        self.assertEqual(article.authors("Pal-Tamas, Pál Tamás", "https://telex.hu/x"), "Pál Tamás")  # one writer, accented
+        self.assertEqual(article.authors("Pál Tamás; Pal Tamas", "https://telex.hu/x"), "Pál Tamás")
+
+    def test_footnotes(self):
+        raw = 'selected randomly<sup data-fn="9" class="fn"><a href="#9" id="9-link">1</a></sup> from 12<sup>[2]</sup>'
+        self.assertEqual(article.FOOTNOTE.sub("", raw), "selected randomly from 12")
+        self.assertEqual(blocks("<ol><li>" + "See the replication report for every detail of the study. " * 2 + "↩︎</li></ol>" + SENT * 2)[0][-6:], "study.")
 
     def test_dates(self):
         self.assertEqual(article.when(self.h, "2026-11-17", "2026-11-19"), "17 November")

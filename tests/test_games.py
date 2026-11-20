@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from paper import crossword, issue, learn, reading
+from paper import crossword, edition, issue, learn, reading
 from paper.home import Home
 
 os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
@@ -57,6 +57,20 @@ class CheckTest(Base):
         self.assertIn("must name a piece of this issue", text)
         self.assertIn("answer is the right option's index", text)
         self.assertIn("4 predictions", text)
+
+    def test_lede(self):
+        w = {"id": f"w-{SUN}", "lede": "taxes", "piece": f"r-{SUN}-1"}
+        self.write([self.piece(1), w])
+        issue.validate(self.h, SUN)
+        self.assertEqual(edition.front(self.h, SUN)["lede"], {"id": f"w-{SUN}", "word": "taxes", "piece": f"r-{SUN}-1"})
+        for bad, says in (({"lede": "Taxes"}, "five lowercase letters"), ({"lede": "xqzzy"}, "five lowercase letters"),
+                          ({"piece": "r-nope"}, "must name the piece"), ({"id": "w-1999-01-01"}, f"needs id, w-{SUN}")):
+            self.write([self.piece(1), {**w, **bad}])
+            self.assertIn(says, self.errors())
+        self.h.config.write_text("language: hu\n", encoding="utf-8")  # no Lede on a Hungarian page (R6)
+        self.write([self.piece(1), w])
+        self.assertIn("English page only", self.errors())
+        self.assertNotIn("lede", edition.front(self.h, SUN)["labels"])
 
     def test_a_link_needs_an_earlier_piece_the_reader_opened(self):
         self.write([self.piece(1, SAT)], SAT)

@@ -27,7 +27,9 @@ And the games (each a choice of three, `"prompt", "options": [three], "answer": 
   what happened in `from`, an earlier piece of the story the reader opened; asked before the
   story so far;
 - the Sunday crossword, `{"id": "x-<date>", "crossword": [{"answer", "clue", "piece"}, …]}`,
-  from pieces of the past week the reader opened; crossword.py lays it out.
+  from pieces of the past week the reader opened; crossword.py lays it out;
+- Lede, `{"id": "w-<date>", "lede": "<word>", "piece": "r-…"}`: a five-letter word central to a
+  piece of this issue, guessed in six tries; on an English page only, the word in LEDE_WORDS (R5, R6).
 """
 
 import json
@@ -36,9 +38,13 @@ import unicodedata
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
+from functools import cache
+from pathlib import Path
 
 from . import embed
 from .home import Home
+
+LEDE_WORDS = Path(__file__).resolve().parents[2] / "reader" / "lede" / "words.txt"  # the page checks guesses on it too
 
 MAX_SECTIONS = 8
 PER_SECTION = 3
@@ -125,9 +131,9 @@ def days(h: Home) -> list[str]:
 
 
 def kind(row: dict) -> str:
-    """`piece`, `answer`, `card`, `predict`, `link` or `crossword`, by the id's prefix."""
+    """`piece`, `answer`, `card`, `predict`, `link`, `crossword` or `lede`, by the id's prefix."""
     pid = str(row.get("id") or "")
-    return {"a-": "answer", "c-": "card", "p-": "predict", "l-": "link", "x-": "crossword"}.get(pid[:2], "piece")
+    return {"a-": "answer", "c-": "card", "p-": "predict", "l-": "link", "x-": "crossword", "w-": "lede"}.get(pid[:2], "piece")
 
 
 def load(h: Home, day: str) -> list[dict]:
@@ -275,7 +281,7 @@ def _choice(r: dict, at: str, errors: list[str], what: str) -> None:
 
 def _check_learning(h: Home, rows: list[dict], pieces: dict, day: str, errors: list[str]) -> None:
     """Answers, cards and games; `pieces` are this issue's, by id."""
-    from . import crossword, reading  # they read issues too
+    from . import config, crossword, reading  # they read issues too
     from .learn import marks
 
     where = h.issues / f"{day}.jsonl"
@@ -328,6 +334,16 @@ def _check_learning(h: Home, rows: list[dict], pieces: dict, day: str, errors: l
                 if not before or before["day"] >= day or not st.get(before["id"], {}).get("opened"):
                     errors.append(f"{at}: from must name the earlier piece of the story, one the reader opened")
             _choice(r, at, errors, f"a {what}")
+        elif what == "lede":
+            word = r.get("lede")
+            if rid != f"w-{day}":
+                errors.append(f"{at}: needs id, w-{day}")
+            if config.language(h) != "en":
+                errors.append(f"{at}: Lede is on an English page only; this one speaks {config.language(h)}")
+            elif not isinstance(word, str) or word not in lede_words():
+                errors.append(f"{at}: lede is five lowercase letters a to z, a word in reader/lede/words.txt (no names)")
+            if r.get("piece") not in pieces:
+                errors.append(f"{at}: piece must name the piece of this issue the word comes from")
         elif what == "crossword":
             if rid != f"x-{day}":
                 errors.append(f"{at}: needs id, x-{day}")
@@ -362,6 +378,11 @@ def _check_learning(h: Home, rows: list[dict], pieces: dict, day: str, errors: l
         errors.append(f"{where}: {count['predict']} predictions; an issue asks {PREDICTS} at most")
     if count["crossword"] > 1:
         errors.append(f"{where}: one crossword an issue")
+
+
+@cache
+def lede_words() -> frozenset[str]:
+    return frozenset(LEDE_WORDS.read_text(encoding="ascii").split())
 
 
 def validate(h: Home, day: str) -> list[dict]:

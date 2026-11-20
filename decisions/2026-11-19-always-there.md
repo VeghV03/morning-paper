@@ -825,3 +825,52 @@ downloaded and checked both files in 47 s. 125 tests pass.
 **Not yet checked:** a real cloud run: the encoder's speed on its CPUs, the download time, and
 whether a routine gets the setup script's cache. Also real thread entries, which the 0.93 rests
 on only through pairs I wrote.
+
+## R9 · What the five-letter game tells the run
+**Chosen:** solved or not, and in how many tries; the guess words stay on the reader's devices.
+**Not chosen:** every guess; nothing.
+**Accepted cost:** Claude cannot see which words tripped the reader.
+
+## R10 · Its name
+**Chosen:** Lede.
+**Not chosen:** Five; Word of the day.
+
+## R11 · Its word list
+**Chosen:** ENABLE (public domain by its maintainers' README, which asks for credit), from the
+enable1.txt mirror on norvig.com since Debian's package carries the documents but not the list; its
+8,636 five-letter words ship with the page and the run's check, with a credit file.
+**Not chosen:** SCOWL from Debian.
+**Accepted cost:** obscure Scrabble words count as guesses. The mirror holds 172,819 words, 709
+fewer than the README's count for its master list (I think the enable1 edition).
+
+## The redesign as built (R1 to R11)
+Every page opens with the bar: today's date, which leads to today's issue, then Kept and Settings.
+On today's front page that date is the page's title. The foot holds Save a link and the days on
+either side. Under the bar, one line names the day's games: Lede, the crossword, and each piece that
+asks first, as Guess 1 and Guess 2; a game played is grey with a tick. A piece opens under the
+headline tapped; the outlet's own title heads the byline in italics, hidden while a prediction waits.
+The why line sits under the byline, with Less of this as a small button. Words selected bring up
+Highlight and Question at the bottom; a tap on marked words offers Remove; a tap on a paragraph
+marks the whole paragraph, as before. Lede is `#<day>/lede`: six rows of five letters, a keyboard on
+the page as well as the phone's, guesses checked against `reader/lede/words.txt`, each one logged.
+Black means in place, a ring means elsewhere in the word, grey means not in it. Once it is solved or
+lost, the keyboard goes, and the word and its piece show. The page's cache is `shell-v4`, with the
+word list in it.
+
+**Assumed, not asked:**
+- Today's bar drops the year ("Thursday 19 November"). The full dateline does not fit beside Kept
+  and Settings at 375 px, even at 17 px. The tab title keeps the year, and so does a past issue's
+  heading under the bar.
+- A selection that runs past its paragraph keeps only the part in the first one.
+- The games line's wording, "Guess" and "Tipp", and "Not in the word list." are drafted by Claude,
+  not decided. So are the rules for Claude picking a Lede word in `skills/today`.
+- A Lede guess made offline, before the word list was ever saved, is taken as any five letters.
+
+**Checked:** at 375 px, in light and dark, on a test paper sealed as the run seals it. Covered: the
+front page, a past issue, a piece with the outlet's own title, the prediction holding that title
+back, the why line, a selection marked and restored after a reload, a selection across an italic
+word, Remove, and a Lede played, solved and restored. The tests cover the run's side: the check,
+the edition, the brief's tries, and the phone's brief matching the record.
+
+**Not yet checked:** selection on a real iPhone, where the phone's own menu competes with the bar;
+the page in Hungarian; a past issue without the new fields on the real data.

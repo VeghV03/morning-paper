@@ -170,7 +170,7 @@ page down to see it. If the run failed, read its log (`get_run_log`) and fix wha
 you go.
 
 Then tell them in three sentences how it reads: a piece opens in a clean reader with Next at its
-end; tapping a paragraph offers Highlight and Question, and questions are answered in the next
+end; tapping a paragraph or selecting words offers Highlight and Question, and questions are answered in the next
 issue; once they open a piece of a running story, each issue opens with what changed in it since
 they last read it. End with what their paper is for, in one sentence.
 

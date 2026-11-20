@@ -52,7 +52,7 @@ A merge can be wrong (two bridge strikes on one day); read the sources' titles b
 threads, the reader's `marks` (highlights and questions, with `answered` and `carded`),
 `to_card` (finished pieces with no mark and no card), `cards` (how many, due, reviewed this
 week), `games` (what the reader picked in each prediction and link, or that they skipped it,
-and the crossword words they did not solve) and `steer`, the morning's topic draw (step 3).
+the crossword words they did not solve, and how many tries each Lede took) and `steer`, the morning's topic draw (step 3).
 
 In the cloud run, `context` comes from the brief the reader's phone leaves in the data
 repository, and `context.brief` says which day it was made for. It holds decisions, not counts:
@@ -175,8 +175,8 @@ What the reader marks in the reader comes back to them.
 - **Answers.** For each mark with `kind` `question` and not `answered`, open its piece with
   `~/paper/.tools/bin/paper read` and answer it: `{"id":"a-<today>-<n>","answer":"<mark id>","text":"…"}`,
   in the page's language, 120 words at most, plain sentences that start from the passage. A
-  mark is the whole paragraph the reader tapped, so a question is the wish to have it
-  explained: say what the passage means and what the reader needed to know; never pad.
+  mark is the paragraph the reader tapped or the words they selected, so a question is the wish
+  to have it explained: say what the passage means and what the reader needed to know; never pad.
 Answers and cards are lines of the issue file, after its pieces.
 
 - **Cards.** For each mark not `carded`, one or two cards on what it says. For each piece in
@@ -199,7 +199,7 @@ one after each finished piece, on a schedule the reader's answers set.
 
 ## Games
 
-Three games, each a line of the issue file. They ask the reader to recall or guess before
+Four games, each a line of the issue file. They ask the reader to recall or guess before
 reading, which is what makes the reading stick; a game on a detail is worse than none.
 
 - **Predictions.** On up to three pieces with one clear finding (a study's result, a vote's
@@ -225,6 +225,18 @@ Three options of the same kind and length, as on a choice card, in the page's la
 
 ```json
 {"id":"x-2026-11-22","crossword":[{"answer":"Danube","clue":"The river the new bridge crosses","piece":"r-2026-11-19-3"}]}
+```
+
+- **Lede, every day, on an English page only.** One five-letter word the reader guesses in six
+  tries, each letter marked as in place, elsewhere in the word, or absent. Pick a plain English
+  word central to one of today's pieces (`piece` names it), one the reader would know: never a
+  name, a plural made with a final s, or a word only in that article. `paper publish` checks it
+  against the page's word list and refuses one not in it. When the last Ledes in
+  `context.games` took five or six tries or were not solved, pick an easier word; when they
+  took two or three, a harder one. Solving it shows the piece.
+
+```json
+{"id":"w-2026-11-22","lede":"truce","piece":"r-2026-11-22-2"}
 ```
 
 ## 4. Threads: `$PAPER_HOME/threads.jsonl`

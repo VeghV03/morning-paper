@@ -32,7 +32,7 @@ LABEL_KEYS = ("saved", "empty", "original", "digest", "next", "done", "no_issue"
               "less_done", "why_new", "why_less", "why_finished", "why_finished_one", "why_kept", "why_kept_one",
               "why_opened", "why_opened_one", "why_passed", "why_passed_one", "since", "earlier", "show", "again", "good",
               "skip", "crossword", "across", "down", "settings", "sections", "interests", "feeds", "outlets", "language",
-              "save_link", "add", "name", "what", "topics", "url")
+              "save_link", "add", "name", "what", "topics", "url", "lede", "not_word", "guess")  # a key a language lacks stays out: no Lede in Hungarian (R6)
 STEER_KEYS = ("section", "topic", "fit")
 
 
@@ -63,10 +63,12 @@ def front(h: Home, day: str) -> dict:
     games = [{"id": r["id"], "kind": kind(r), "piece": r.get(kind(r)), "prompt": r.get("prompt"),
               "options": r.get("options"), "answer": r.get("answer")} for r in rows if kind(r) in ("predict", "link")]
     out_ = {"day": day, "lang": config.language(h), "dateline": config.dateline(h, day), "morning": config.morning(h),
-            "labels": {k: labels[k] for k in LABEL_KEYS}, "answers": answers, "sections": out,
+            "labels": {k: labels[k] for k in LABEL_KEYS if k in labels}, "answers": answers, "sections": out,
             "saved": [item(p) for p in pieces if p.get("saved")], "games": games}
     if cw := grid(next((r for r in rows if kind(r) == "crossword"), None)):
         out_["crossword"] = cw
+    if w := next((r for r in rows if kind(r) == "lede"), None):
+        out_["lede"] = {"id": w["id"], "word": w["lede"], "piece": w["piece"]}
     return out_
 
 

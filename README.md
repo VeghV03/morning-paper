@@ -43,10 +43,11 @@ The rest of the paper:
   you can read whole without paying, usually from the outlet that did the reporting. When a
   story rests on a law, a ruling or a statement, the document itself can be the piece.
 - **It ends.** Up to three pieces a section, nothing to fill a slot, then a last page.
-- **You keep what you read.** Tap a paragraph to highlight it or ask about it: the next issue
-  answers your question, and cards from what you marked and finished come due, one after each
-  piece you finish. A few pieces ask you to guess their finding before you read, and Sunday's
-  issue ends with a crossword of your week.
+- **You keep what you read.** Tap a paragraph, or select a few words, to highlight them or ask
+  about them: the next issue answers your question, and cards from what you marked and finished
+  come due, one after each piece you finish. A few pieces ask you to guess their finding before
+  you read, an English issue has Lede, a five-letter word from one of its pieces to guess in six
+  tries, and Sunday's issue has a crossword of your week.
 - **It learns mostly from what you finish.** In the sections you steer, each topic
   has an estimate built from what you finish, keep, mark and later remember, and every section
   keeps one slot for the topic it has seen least. Each of those pieces says why it is there, with

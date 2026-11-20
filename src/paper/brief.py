@@ -12,7 +12,7 @@ with the run key, holding only decisions:
 - `to_card`: the finished pieces of the last RECENT days with no mark and no card;
 - `stories`: per running story the reader follows, the day they last caught up on it;
 - `games`: per game of the last RECENT days, the first pick (`{"pick": n}`) or `{"skipped": true}`,
-  and per crossword the entries solved (`{"solved": [i, ...]}`).
+  per crossword the entries solved (`{"solved": [i, ...]}`), and Lede's `{"tries": n, "solved": bool}`.
 
 No reading times, no counts. `context` turns it into what `paper context` gives the morning
 skill, with the same keys as on a computer that holds the record. When the reader has been away,
@@ -81,6 +81,8 @@ def played(h: Home, b: dict) -> dict[str, dict]:
             out[gid] = {"solved": {i for i in g["solved"] if isinstance(i, int)}}
         elif g.get("skipped") is True:
             out[gid] = {"skipped": True}
+        elif isinstance(g.get("tries"), int) and not isinstance(g.get("tries"), bool) and isinstance(g.get("solved"), bool):
+            out[gid] = {"tries": g["tries"], "solved": g["solved"]}  # Lede: the guesses stay on the phone (R9)
         elif isinstance(g.get("pick"), int) and gid in asked and 0 <= g["pick"] < len(asked[gid].get("options") or []):
             out[gid] = {"pick": g["pick"], "right": g["pick"] == asked[gid].get("answer")}
     return out

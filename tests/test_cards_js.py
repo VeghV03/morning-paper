@@ -64,6 +64,7 @@ class CardsAndStoriesParityTest(unittest.TestCase):
             if day == "2026-11-03":
                 rows.append({"id": "x-2026-11-03", "crossword": [{"answer": w, "clue": "C.", "piece": f"r-{day}-1"}
                                                                   for w in ("Danube", "budget", "vote", "senate", "bridge", "debt")]})
+                rows.append({"id": "w-2026-11-03", "lede": "taxes", "piece": f"r-{day}-1"})
             if day == "2026-10-28":  # a card from a missed game belongs to the game's piece
                 rows.append({"id": "c-2026-10-28-9", "card": "flip", "front": "Q?", "back": "A.", "from": "p-2026-10-28-1"})
             (h.issues / f"{day}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
@@ -93,7 +94,10 @@ class CardsAndStoriesParityTest(unittest.TestCase):
                   {"t": iso(t0 + timedelta(days=33)), "ev": "game", "id": "l-2026-11-03-1", "pick": 2, "right": True},
                   {"t": iso(t0 + timedelta(days=33)), "ev": "game", "id": "x-2026-11-03", "entry": 3},
                   {"t": iso(t0 + timedelta(days=33)), "ev": "game", "id": "x-2026-11-03", "entry": 0},
-                  {"t": iso(t0 + timedelta(days=33)), "ev": "game", "id": "x-2026-11-03", "entry": 3}]
+                  {"t": iso(t0 + timedelta(days=33)), "ev": "game", "id": "x-2026-11-03", "entry": 3},
+                  # Lede: solved on the third guess; a guess after that is not a try
+                  *({"t": iso(t0 + timedelta(days=33, minutes=n)), "ev": "game", "id": "w-2026-11-03", "guess": g, "right": g == "taxes"}
+                    for n, g in enumerate(("house", "trade", "taxes", "zebra")))]
         cards = sorted(learn.cards(h))
         for _ in range(60):
             when = t0 + timedelta(days=rng.randint(0, 60), hours=rng.randint(0, 23), minutes=rng.randint(0, 59))
@@ -138,7 +142,8 @@ class CardsAndStoriesParityTest(unittest.TestCase):
         self.assertEqual(js["to_card"], py_to_card)
         self.assertEqual(py_to_card, ["r-2026-11-03-2"])  # finished; its neighbour is marked
         # the run reads the same games from the phone's brief as from the record
-        self.assertEqual(sorted(js["games"]), ["l-2026-10-28-1", "l-2026-11-03-1", "p-2026-10-28-1", "x-2026-11-03"])
+        self.assertEqual(sorted(js["games"]), ["l-2026-10-28-1", "l-2026-11-03-1", "p-2026-10-28-1", "w-2026-11-03", "x-2026-11-03"])
+        self.assertEqual(js["games"]["w-2026-11-03"], {"tries": 3, "solved": True})  # the guess words stay on the phone (R9)
         self.assertEqual(js["games"]["p-2026-10-28-1"], {"pick": 0})  # a pick, never whether it was right
         (h.root / brief.NAME).write_text(json.dumps({"games": js["games"]}), encoding="utf-8")
         today = datetime.fromisoformat(day).date()

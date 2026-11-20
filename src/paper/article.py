@@ -6,6 +6,7 @@ byline. Claude's digests are shown the same way. The morning run builds the edit
 
 import html
 import re
+import unicodedata
 from urllib.parse import urlsplit
 
 from . import config, net
@@ -13,6 +14,10 @@ from .home import Home
 
 MIN_TEXT = 400  # characters; less is a cookie wall or a teaser, not the article
 NO_FETCH = {"24.hu"}
+# a footnote's number in the text, a superscript link ("randomly<sup><a>1</a></sup>"), and the
+# list's way back up ("↩︎"): the reader view has no links, so both would read as stray marks
+FOOTNOTE = re.compile(r"<sup\b[^>]*>\s*(?:<a\b[^>]*>)?\s*\[?\d{1,3}\]?\s*(?:</a>)?\s*</sup>", re.I)
+BACK = re.compile(r"\s*↩\ufe0e?\ufe0f?")
 e = html.escape
 
 
@@ -31,7 +36,7 @@ def extract(url: str) -> dict:
     import trafilatura
 
     try:
-        raw = net.fetch(url).decode("utf-8", errors="replace")
+        raw = FOOTNOTE.sub("", net.fetch(url).decode("utf-8", errors="replace"))
     except Exception:  # noqa: BLE001 - any failure means: read it on the site
         return {}
     body = trafilatura.extract(raw, url=url, output_format="html", include_comments=False,
@@ -61,7 +66,7 @@ def digest(h: Home, piece: dict) -> dict:
 def body(fragment: str, title: str = "") -> str:
     """trafilatura's HTML without its outer <html><body>, its <head> renamed to h2, and without
     the scraps some pages leave before the first paragraph (the title again, "Published")."""
-    fragment = re.sub(r"</?(html|body|doc|main)[^>]*>", "", fragment)
+    fragment = BACK.sub("", re.sub(r"</?(html|body|doc|main)[^>]*>", "", fragment))
     fragment = re.sub(r"<(/?)head\b[^>]*>", r"<\1h2>", fragment)
     try:
         import lxml.html
@@ -133,10 +138,18 @@ def authors(raw, url: str) -> str:
         words = name.split()
         if len(words) >= 3 and words[-1].lower() in months:
             words = words[:-1]
-        key = " ".join(words).replace("-", " ").lower()
-        if words and key not in ("szerzo", "szerző", site) and len(key) >= 3 and (key not in names or "-" in names[key]):
-            names[key] = " ".join(words)  # "Weiler-Vilmos; Weiler Vilmos" is one writer
+        key = unicodedata.normalize("NFKD", " ".join(words).replace("-", " ").lower())
+        key = "".join(c for c in key if not unicodedata.combining(c))  # "Pal-Tamas; Pál Tamás" is one writer
+        name = " ".join(words)
+        if words and key not in ("szerzo", site) and len(key) >= 3 and (key not in names or _plainer(names[key], name)):
+            names[key] = name  # "Weiler-Vilmos; Weiler Vilmos" is one writer, kept in the fuller spelling
     return ", ".join(list(names.values())[:3])
+
+
+def _plainer(had: str, new: str) -> bool:
+    """The new spelling is the fuller one: no hyphen for a space, more accents."""
+    marks = lambda x: sum(1 for c in unicodedata.normalize("NFKD", x) if unicodedata.combining(c))
+    return ("-" in had and "-" not in new) or ("-" in had) == ("-" in new) and marks(new) > marks(had)
 
 
 def when(h: Home, raw, day: str) -> str:
