@@ -214,9 +214,10 @@ def context(h: Home, today: date | None = None) -> dict:
     }
 
 
-def _games(h: Home, first: str, carded: set) -> list[dict]:
-    """The games of the last RECENT days and what the reader did with each, newest first."""
-    played, out = games(h), []
+def _games(h: Home, first: str, carded: set, played: dict | None = None) -> list[dict]:
+    """The games of the last RECENT days and what the reader did with each, newest first;
+    `played` as `games` gives it, from the record unless the brief gives it."""
+    played, out = games(h) if played is None else played, []
     for what in ("predict", "link", "crossword"):
         for gid, g in all_rows(h, what).items():
             if g["day"] < first:

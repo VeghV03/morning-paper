@@ -3,16 +3,17 @@
 `edition/<day>.json` is the front page: the dateline, the labels, the sections in sections.md's
 order with each piece's headline, lead and outlet, then saved links. `edition/<day>/<id>.json` is
 one piece as the reader view shows it: the article's text, cleaned, or Claude's digest. A piece
-whose site refused gets no text and opens at its outlet. `cloud pack` seals them like any other
+whose site refused gets no text and opens at its outlet. The front page also carries the day's
+predictions and links with their answers, and Sunday's crossword as laid out here. `cloud pack` seals them like any other
 file, so the phone opens them with the run key and nothing on the page parses HTML or Markdown.
 
 Texts older than KEEP_DAYS go (D64); front pages stay, and their pieces then open at the outlet.
 `edition/months/<YYYY-MM>.json` lists the month's pieces (day, section, topic, length, story) and
 cards, so the phone's learner and cards read a file a month, not every issue (D70, D84). Only the
-month being published is rewritten: a past month's file stays as it was. `edition/index.json` is
+month being published is rewritten; it also maps each game to its piece: a past month's file stays as it was. `edition/index.json` is
 small: the steered sections and the months there are. Answers to the reader's questions are on the
 front page by mark id; the phone quotes the mark from its own record. Running stories are read
-from `threads.jsonl` itself. Games wait for step 3's second round (D80).
+from `threads.jsonl` itself.
 """
 
 import json
@@ -21,7 +22,7 @@ import shutil
 from datetime import date, timedelta
 from typing import Callable
 
-from . import config
+from . import config, crossword
 from .home import Home
 from .issue import DAY, all_pieces, all_rows, kind, load, sections
 
@@ -29,7 +30,9 @@ KEEP_DAYS = 30
 LABEL_KEYS = ("saved", "empty", "original", "digest", "next", "done", "no_issue", "months", "days", "answers",
               "kept", "nothing_kept", "keep", "keeping", "highlight", "question", "remove", "less", "undo",
               "less_done", "why_new", "why_less", "why_finished", "why_finished_one", "why_kept", "why_kept_one",
-              "why_opened", "why_opened_one", "why_passed", "why_passed_one", "since", "earlier", "show", "again", "good")
+              "why_opened", "why_opened_one", "why_passed", "why_passed_one", "since", "earlier", "show", "again", "good",
+              "skip", "crossword", "across", "down", "settings", "sections", "interests", "feeds", "outlets", "language",
+              "save_link", "add", "name", "what", "topics", "url")
 STEER_KEYS = ("section", "topic", "fit")
 
 
@@ -55,11 +58,30 @@ def front(h: Home, day: str) -> dict:
         name = named.get(sid) or str(sid).replace("-", " ").capitalize()
         out.append({"name": name, "pieces": [item(p) for p in pieces if p.get("section") == sid and not p.get("saved")]})
     labels = config.labels(h)
+    rows = load(h, day)
     answers = [{"id": r["id"], "mark": r["answer"], "text": str(r.get("text", ""))}
-               for r in load(h, day) if kind(r) == "answer" and r.get("answer")]
-    return {"day": day, "lang": config.language(h), "dateline": config.dateline(h, day), "morning": config.morning(h),
+               for r in rows if kind(r) == "answer" and r.get("answer")]
+    # the games carry their answers: the phone checks a pick itself, with no server to ask
+    games = [{"id": r["id"], "kind": kind(r), "piece": r.get(kind(r)), "prompt": r.get("prompt"),
+              "options": r.get("options"), "answer": r.get("answer")} for r in rows if kind(r) in ("predict", "link")]
+    out_ = {"day": day, "lang": config.language(h), "dateline": config.dateline(h, day), "morning": config.morning(h),
             "labels": {k: labels[k] for k in LABEL_KEYS}, "answers": answers, "sections": out,
-            "saved": [item(p) for p in pieces if p.get("saved")]}
+            "saved": [item(p) for p in pieces if p.get("saved")], "games": games}
+    if cw := grid(next((r for r in rows if kind(r) == "crossword"), None)):
+        out_["crossword"] = cw
+    return out_
+
+
+def grid(row: dict | None) -> dict | None:
+    """Sunday's crossword as laid out here: its layout draws on Python's random numbers, so the
+    phone takes the grid as it is (`{id, rows, cols, entries}`, each entry with its answer)."""
+    if not row:
+        return None
+    words = row.get("crossword") or []
+    g = crossword.layout([w.get("answer") for w in words])
+    entries = [{**x, "answer": crossword.normal(words[x["i"]].get("answer")), "clue": str(words[x["i"]].get("clue") or ""),
+                "piece": words[x["i"]].get("piece")} for x in g["entries"]]
+    return {"id": row["id"], "rows": g["rows"], "cols": g["cols"], "entries": entries}
 
 
 def _words(html: str) -> int:
@@ -93,7 +115,11 @@ def index(h: Home, words: dict[str, int], day: str) -> dict:
     cards: dict[str, dict] = {}
     for cid, c in all_rows(h, "card").items():
         cards.setdefault(c["day"][:7], {})[cid] = c
-    for month in sorted(set(pieces) | set(cards)):
+    games: dict[str, dict] = {}  # a game's piece, for a card made from a missed game
+    for what in ("predict", "link"):
+        for gid, g in all_rows(h, what).items():
+            games.setdefault(g["day"][:7], {})[gid] = g.get(what)
+    for month in sorted(set(pieces) | set(cards) | set(games)):
         path = root / f"{month}.json"
         if month != day[:7] and path.exists():
             continue
@@ -103,7 +129,8 @@ def index(h: Home, words: dict[str, int], day: str) -> dict:
                                 **{k: p[k] for k in (*STEER_KEYS, "saved", "thread") if p.get(k)}}
                           for pid, p in pieces.get(month, {}).items()},
                "cards": {cid: {"day": c["day"], **{k: c[k] for k in CARD_KEYS if k in c}}
-                         for cid, c in cards.get(month, {}).items()}}
+                         for cid, c in cards.get(month, {}).items()},
+               "games": games.get(month, {})}
         path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     return {"steered": {s.id: list(s.topics) for s in sections(h) if s.topics},
             "months": sorted(p.stem for p in root.glob("*.json"))}

@@ -10,12 +10,14 @@ with the run key, holding only decisions:
 - `marks`: the reader's live highlights and questions of the last RECENT days, `{id, piece, kind, text}`;
 - `opened`: the pieces of the last RECENT days the reader opened;
 - `to_card`: the finished pieces of the last RECENT days with no mark and no card;
-- `stories`: per running story the reader follows, the day they last caught up on it.
+- `stories`: per running story the reader follows, the day they last caught up on it;
+- `games`: per game of the last RECENT days, the first pick (`{"pick": n}`) or `{"skipped": true}`,
+  and per crossword the entries solved (`{"solved": [i, ...]}`).
 
 No reading times, no counts. `context` turns it into what `paper context` gives the morning
 skill, with the same keys as on a computer that holds the record. When the reader has been away,
-the run works from the last brief (D47). Games come with step 3's second round (D80); until
-then `games` is empty. `cards` says only how many there are (D82).
+the run works from the last brief (D47). Whether a pick was right, and which crossword words were
+missed, the run reads from the issue, as on a computer. `cards` says only how many there are (D82).
 """
 
 import json
@@ -64,8 +66,24 @@ def context(h: Home, today: date | None = None) -> dict:
     to_card = [pid for pid in b.get("to_card") or [] if isinstance(pid, str) and pid in everything
                and everything[pid]["day"] >= first and pid not in marked and pid not in carded]
     return {"pieces": rows, "minutes": {}, "marks": marks, "to_card": to_card,
-            "cards": {"cards": len(learn.cards(h))}, "games": [],
+            "cards": {"cards": len(learn.cards(h))}, "games": reading._games(h, first, carded, played(h, b)),
             "steer": steer, "brief": {"day": b.get("day"), "made": b.get("made")}}
+
+
+def played(h: Home, b: dict) -> dict[str, dict]:
+    """reading.games, from the brief: a pick is checked against the issue's answer here."""
+    asked = {**all_rows(h, "predict"), **all_rows(h, "link")}
+    out = {}
+    for gid, g in (b.get("games") or {}).items():
+        if not isinstance(g, dict):
+            continue
+        if isinstance(g.get("solved"), list):
+            out[gid] = {"solved": {i for i in g["solved"] if isinstance(i, int)}}
+        elif g.get("skipped") is True:
+            out[gid] = {"skipped": True}
+        elif isinstance(g.get("pick"), int) and gid in asked and 0 <= g["pick"] < len(asked[gid].get("options") or []):
+            out[gid] = {"pick": g["pick"], "right": g["pick"] == asked[gid].get("answer")}
+    return out
 
 
 def followed(h: Home, threads: dict, before: str) -> dict[str, dict]:

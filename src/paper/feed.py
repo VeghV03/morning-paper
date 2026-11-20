@@ -30,7 +30,7 @@ import lxml.html
 import yaml
 from lxml import etree
 
-from . import net, primary
+from . import net, primary, settings
 from .home import Home, pending, read_json, write_json
 
 ENGINE = Path(__file__).resolve().parents[2] / "engine"
@@ -369,6 +369,20 @@ def inbox(h: Home) -> tuple[list[str], list[str]]:
     return links, warnings
 
 
+def fold_saved(h: Home) -> list[str]:
+    """The links the phone saved, a file each in `saved/` so a save never meets the run's own edit
+    of inbox.md (D86), moved into inbox.md. Returns them."""
+    d = h.root / "saved"
+    files = sorted(d.glob("*.txt")) if d.is_dir() else []
+    links = [x for f in files for x in map(_link, f.read_text(encoding="utf-8").splitlines()) if x]
+    if links:
+        text = h.inbox.read_text(encoding="utf-8") if h.inbox.exists() else settings.INBOX_HEAD
+        h.inbox.write_text(text.rstrip("\n") + "\n" + "\n".join(links) + "\n", encoding="utf-8")
+    for f in files:
+        f.unlink()
+    return links
+
+
 def remove_from_inbox(h: Home, urls: list[str]) -> list[str]:
     """Drop the lines holding these links from inbox.md; returns the links removed."""
     if not urls or not h.inbox.exists():
@@ -402,6 +416,7 @@ def feed(h: Home) -> dict:
     entries, w_follow = follow(h, state)
     stories = stories[:MAX_NEWS]
     w_primary = primary.attach(stories, engine_dir(), today, lambda *a: run_node(*a)) if stories else []
+    fold_saved(h)
     links, w_inbox = inbox(h)
     state["last"] = datetime.now().astimezone().isoformat(timespec="seconds")
     write_json(pending(h.feed_state), state)

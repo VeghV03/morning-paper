@@ -15,7 +15,7 @@ a language model.
 The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `sections.md`,
 `interests.md`, `feeds.yaml`, `inbox.md`, `paper.yaml`, and `taste.md`, `seen.md` and `fields.md` when a section rests on them, are theirs; `issues/`, `digests/`,
 `threads.jsonl`, `reads.jsonl`, `marks.jsonl`, `context.json`, `candidates.json`, `.feed.json`, `.tls/`, `.serve.pid`, `.fsrs.json` and `cache/` are written by the run and the
-server. `reads.jsonl` and `marks.jsonl` are encrypted line by line (`src/paper/vault.py`), the key's recovery code in the
+server; `saved/` holds links the phone saved until the run moves them into `inbox.md`. `reads.jsonl` and `marks.jsonl` are encrypted line by line (`src/paper/vault.py`), the key's recovery code in the
 OS keychain; `context.json` is their plain summary and lives only through the run.
 
 The paper is moving to the cloud (decisions/2026-11-19-always-there.md, D45 on). A scheduled

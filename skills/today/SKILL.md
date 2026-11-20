@@ -54,8 +54,8 @@ and the crossword words they did not solve) and `steer`, the morning's topic dra
 In the cloud run, `context` comes from the brief the reader's phone leaves in the data
 repository, and `context.brief` says which day it was made for. It holds decisions, not counts:
 pieces carry `opened` but not `finished`, `kept` or `min`; `to_card` comes from the phone;
-`minutes` and `games` are empty; `cards` says only how many there are; `steer` has no `topics`
-estimates. With no brief yet, `steer` is the flat draw and nobody follows a story.
+`minutes` is empty; `games` has the picks the phone made, checked against the issue as on a
+computer; `cards` says only how many there are; `steer` has no `topics` estimates. With no brief yet, `steer` is the flat draw and nobody follows a story.
 
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
 `feeds.yaml`, `inbox.md`, `outlets.json`, `paper.yaml`, `taste.md`, `seen.md` and `fields.md` are
@@ -198,9 +198,6 @@ one after each finished piece, on a schedule the reader's answers set.
 
 Three games, each a line of the issue file. They ask the reader to recall or guess before
 reading, which is what makes the reading stick; a game on a detail is worse than none.
-
-In the cloud run, write no games: the phone cannot play them yet (D80), and a predicted piece's
-headline would hide its finding for a question nobody is asked.
 
 - **Predictions.** On up to three pieces with one clear finding (a study's result, a vote's
   outcome, a number), ask what it is before the piece opens. The reader picks, reads, and sees

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from paper import edition
+from paper import crossword, edition
 from paper.home import Home
 
 DAY = "2026-11-19"
@@ -56,7 +56,7 @@ class EditionTest(unittest.TestCase):
         self.assertEqual(self.read("months/2026-10.json"), {"pieces": {}, "cards": {}})  # a past month is final
         self.assertTrue((self.h.root / "edition" / "months").is_dir())  # not taken for an old day's texts
 
-    def test_front_page_follows_sections_md_and_leaves_games_out(self):
+    def test_front_page_follows_sections_md_and_carries_the_games(self):
         built = edition.build(self.h, DAY, fake_extract)
         self.assertEqual(built, {"pieces": 4, "texts": 3, "dropped": []})
         page = self.read(f"{DAY}.json")
@@ -64,8 +64,23 @@ class EditionTest(unittest.TestCase):
         self.assertEqual([p["id"] for p in page["sections"][0]["pieces"]], ["r-2", "r-3"])
         self.assertEqual(page["sections"][0]["pieces"][0]["host"], "daily.com")
         self.assertEqual([p["id"] for p in page["saved"]], ["r-4"])
-        self.assertNotIn("Will it pass?", json.dumps(page))
+        self.assertEqual(page["games"], [{"id": "p-1", "kind": "predict", "piece": "r-2", "prompt": "Will it pass?",
+                                          "options": ["Yes", "No"], "answer": 0}])  # the phone checks a pick itself
+        self.assertNotIn("crossword", page)
         self.assertEqual(page["dateline"], "Thursday 19 November 2026")
+
+    def test_the_crossword_comes_laid_out_and_a_game_card_finds_its_piece(self):
+        words = [{"answer": w, "clue": f"Clue {w}", "piece": "r-2"} for w in ("Danube", "budget", "vote", "senate", "bridge", "debt")]
+        rows = [json.loads(x) for x in (self.h.issues / f"{DAY}.jsonl").read_text().splitlines()]
+        self.write(DAY, rows + [{"id": f"x-{DAY}", "crossword": words}])
+        page = edition.front(self.h, DAY)
+        grid = crossword.layout([w["answer"] for w in words])
+        self.assertEqual((page["crossword"]["rows"], page["crossword"]["cols"]), (grid["rows"], grid["cols"]))
+        self.assertEqual([(x["i"], x["row"], x["col"], x["down"], x["num"]) for x in page["crossword"]["entries"]],
+                         [(x["i"], x["row"], x["col"], x["down"], x["num"]) for x in grid["entries"]])
+        self.assertEqual(page["crossword"]["entries"][0]["answer"], crossword.normal(words[page["crossword"]["entries"][0]["i"]]["answer"]))
+        edition.index(self.h, {}, DAY)
+        self.assertEqual(self.read("months/2026-11.json")["games"], {"p-1": "r-2"})
 
     def test_pieces_carry_text_a_digest_or_only_their_address(self):
         edition.build(self.h, DAY, fake_extract)

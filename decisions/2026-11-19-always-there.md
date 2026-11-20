@@ -504,3 +504,65 @@ The page live before this one cannot read the new index, so the page ships befor
 writes it. A past month's file stays as written; the one index
 from before is split on the first run (a test). **Not yet checked:** a real morning run writing
 cards and stories, and a real iPhone.
+
+## Step 3's second part, second round
+
+## D86 · Saving a link on the phone
+**Chosen:** a Save a link button at the foot of the front page that reads the clipboard: Share,
+Copy, open the paper, tap. iOS asks once to allow pasting.
+**Not chosen:** a field in Settings, as on the Mac; an iOS Shortcut in the share sheet (it opens
+Safari, which likely keeps its storage apart from a home-screen page). iOS does not let a web page
+take shares (as of sources from late 2025).
+**Accepted cost:** a few taps more than a share target.
+
+## D87 · What Settings on the phone holds
+**Chosen:** all the Mac's: sections, interests, feeds, outlets (remove only), language, and the
+Less list with undo. Not pairing or the recovery code.
+**Not chosen:** sections and interests only.
+**Accepted cost:** the largest port of the round.
+
+## D88 · Feeds on the phone
+**Chosen:** the phone removes a feed's line or adds a name and address; every other line of
+`feeds.yaml` (topics, limits, notes) stays as written.
+**Not chosen:** feeds through Claude only. (The Mac's own edit rewrites the file and drops each
+feed's topic; the phone does not copy that.)
+**Accepted cost:** a feed added on the phone has no topic until Claude gives it one.
+
+## D89 · Following stories by name
+**Chosen:** not now; a story joins Since you left once a piece of it is opened (D85).
+**Not chosen:** a Follow list in Settings.
+
+## Step 3's second part, second round, as built
+
+The front page carries the day's predictions and links with their answers, and Sunday's crossword
+laid out by the run (its layout draws on Python's random numbers, so the phone takes it as it is).
+The phone asks a piece's game before the piece, as the Mac does: the article and, for a
+prediction, the outlet's own title wait for a pick or a skip; a link's story waits for the answer.
+It checks the pick itself and logs it as the Mac did. The crossword page is the Mac's, with each
+solved word logged. The brief adds `games`: each pick or skip, and each crossword's solved entries;
+the run checks a pick against the issue and works out the words missed, so `paper context` gives
+the same games as on a computer that holds the record. Month files map each game to its piece, so a
+card from a missed game is never shown right after that piece. Settings (D87, D88) and Save a link
+(D86) are on the page; a saved link is a file of its own in `saved/`, which `paper feed` moves into
+`inbox.md`, so a save during the run never meets the run's own edit of the inbox. The cloud run
+writes games again.
+
+**Assumed, not asked:**
+- The brief carries the crossword's solved entries, not the words missed: the same fact, and the
+  run already has the words (D82 named the missed words).
+- Forget this phone moves from the bottom bar into Settings once the edition has Settings' words.
+- A refused paste or a bad link shows the browser's or the Mac's English message, as the Mac's
+  Settings does.
+- Letters typed in the crossword stay on the phone that typed them; solved words reach the record.
+- A language change shows from the next issue, since the page's words come with the edition.
+
+**Checked (2026-11-20):** tests hold the phone's settings checks to the Mac's on sections (accents,
+`:`, `|`, twins, length, too many), interests, language, outlets and feeds (topics, flags and notes
+kept); the brief's games give `paper context` the same games as the record; a game card maps to its
+piece. In a browser against a fake paper-data: a prediction (article and title held, answer at the
+end), a link (story held, answer above), the crossword (a word solved and logged), a bad and a good
+section edit, interests, a feed refused, added and removed, an outlet removed, the language, Less
+undone, and a saved link folded into the inbox by the run's own code. On a test copy of the real
+paper: the edition of the 20th as it is opens as before; rebuilt with this code, it asks its three
+predictions and Settings shows all 8 sections, 44 feeds and 38 newsrooms. **Not yet checked:** a
+real iPhone (the Paste bubble, the crossword keyboard), and a real morning run writing games.
