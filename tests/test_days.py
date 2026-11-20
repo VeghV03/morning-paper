@@ -62,6 +62,14 @@ class DaysTest(unittest.TestCase):
     def test_no_run_commit_is_no_delivery_and_a_quick_scroll_is_not_finished(self):
         self.assertEqual(self.tally()[2], {"day": "2026-11-23", "at": None, "delivered": False, "opened": True, "finished": 0})
 
+    def test_the_cover_shown_that_day_is_opened(self):  # BR32
+        late = {"t": "2026-11-22T23:30:00.000Z", "ev": "cover", "id": "2026-11-22"}  # 00:30 the next day, local
+        self.seal(vault._derive(CODE), "record/def456/2026-11-16.jsonl", json.dumps(late) + "\n")
+        self.assertFalse(self.tally()[1]["opened"])
+        shown = {"t": "2026-11-22T07:00:00.000Z", "ev": "cover", "id": "2026-11-22"}
+        self.seal(vault._derive(CODE), "record/def456/2026-11-16.jsonl", json.dumps(shown) + "\n")
+        self.assertTrue(self.tally()[1]["opened"])
+
     def test_the_window_is_thirty_days_and_stops_at_today(self):
         self.assertEqual(len(self.tally()), 3)
         rows = self.tally(today="2027-01-31")

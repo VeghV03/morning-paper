@@ -62,7 +62,7 @@ def state(h: Home, evs: list[dict] | None = None) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for e in events(h) if evs is None else evs:
         ev = e.get("ev")
-        if ev in ("review", "game", "since", "follow", "less", "less_undo"):
+        if ev in ("review", "game", "since", "follow", "less", "less_undo", "cover"):
             continue
         s = out.setdefault(e["id"], {"seen": False, "looked": False, "opened": False, "progress": 0.0, "ms": 0, "kept": None, "shown": set()})
         if ev == "seen":

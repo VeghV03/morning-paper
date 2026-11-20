@@ -286,6 +286,42 @@ The entries together stay under 4000 bytes: past that, shorten the oldest. Drop 
 newest entry is more than two weeks old, after filling in missed days; 32 at most. A thread from before entries, with one `body` paragraph,
 reads as one entry; rewrite it as entries when its story next moves.
 
+## The cover
+
+The phone opens on the day's cover (BR14): the wordmark, the date, an archive photo, and the lead
+claim. Draw it after the issue and the threads, before you publish.
+
+The lead claim is the issue's most important fact in one sentence of the paper's language,
+dry and exact (BR16): a number where there is one, no adjectives doing the work, under 110
+characters. It comes from the first news piece you chose, never from a saved link.
+
+When the lead is grim (deaths, a disaster, an attack, abuse), there is no photo (BR37):
+
+```bash
+~/paper/.tools/bin/paper cover --date <today> --claim "<the claim>" --grim
+```
+
+Otherwise search two or three plain words from the lead (a place, a thing, an institution):
+
+```bash
+~/paper/.tools/bin/paper cover search <words>
+```
+
+It prints CC0 pictures from the Met, Cleveland and the Art Institute. The match is loose by
+design (BR11): a harbour for shipping, a bank for a bank. Pick one whose title says it fits;
+prefer architecture, places and objects; never a portrait or a scene that seems to show today's
+people or events. Try other words when nothing fits; after three searches, call the day grim.
+Then draw it:
+
+```bash
+~/paper/.tools/bin/paper cover --date <today> --claim "<the claim>" --photo <id>
+```
+
+Read `$PAPER_HOME/edition/<today>/cover-light.jpg` and look at it. When a mount, a plate's
+edge or a frame shows around the picture, draw it again with `--crop left,top,right,bottom`,
+fractions of the photo (`--crop 0.1,0.08,0.9,0.92`), until only the picture shows. The command
+refuses a photo whose record is not CC0; take another. Run it again freely until you publish.
+
 ## 5. Publish
 
 ```bash

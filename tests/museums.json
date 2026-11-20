@@ -1,0 +1,70 @@
+{
+ "_note": "Trimmed answers saved 2026-11-20; the second Cleveland and Art Institute records were edited to be not CC0.",
+ "cleveland": {
+  "data": [
+   {
+    "id": 163456,
+    "title": "Harbor of Boston, with the City in the Distance",
+    "creators": [
+     {
+      "description": "Fitz Henry Lane (American, 1804–1865)"
+     }
+    ],
+    "creation_date": "c. 1846–47",
+    "share_license_status": "CC0",
+    "images": {
+     "web": {
+      "url": "https://openaccess-cdn.clevelandart.org/2004.35/2004.35_web.jpg"
+     }
+    },
+    "url": "https://clevelandart.org/art/2004.35"
+   },
+   {
+    "id": 74601,
+    "title": "Two Boats at the Harbor of Dieppe",
+    "creators": [
+     {
+      "description": "Eugène Delacroix (French, 1798–1863)"
+     }
+    ],
+    "creation_date": "1854",
+    "share_license_status": "Copyrighted",
+    "images": {
+     "web": {
+      "url": "https://openaccess-cdn.clevelandart.org/2021.108/2021.108_web.jpg"
+     }
+    },
+    "url": "https://clevelandart.org/art/2021.108"
+   }
+  ]
+ },
+ "met_object": {
+  "objectID": 335809,
+  "title": "Harbor Scene",
+  "isPublicDomain": true,
+  "primaryImageSmall": "https://images.metmuseum.org/CRDImages/dp/web-large/DP804388.jpg",
+  "artistDisplayName": "Nikolaus Gottfried Stuber",
+  "objectDate": "ca. 1730",
+  "objectURL": "https://www.metmuseum.org/art/collection/search/335809"
+ },
+ "art_institute": {
+  "data": [
+   {
+    "id": 152747,
+    "title": "York Harbor, Coast of Maine",
+    "date_display": "1877",
+    "artist_display": "Martin Johnson Heade (American, 1819–1904)",
+    "is_public_domain": true,
+    "image_id": "3192ae4d-ffca-fe91-af12-2ca681f43e13"
+   },
+   {
+    "id": 196350,
+    "title": "Plate 110 from The Plan of Chicago, 1909: Chicago. Plan of the Complete System of Street Circulation; Railway Stations; Parks, Boulevard Circuits and Radial Arteries; Public Recreation Piers, Yacht Harbor, and Pleasure-Boat Piers; Treatment of Grant Park; the Main Axis and the Civic Center, Presenting the City as a Complete Organism in which All its Functions are Related One to Another in such a Manner that it will Become a Unit",
+    "date_display": "1909",
+    "artist_display": "Daniel Hudson Burnham, American, 1846-1912\nEdward Herbert Bennett, American, born England, 1874-1954",
+    "is_public_domain": false,
+    "image_id": "3acc2e28-aac0-64ea-8276-4274011ba9d8"
+   }
+  ]
+ }
+}

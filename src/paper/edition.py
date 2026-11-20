@@ -4,7 +4,8 @@
 order with each piece's headline, lead and outlet, then saved links. `edition/<day>/<id>.json` is
 one piece as the reader view shows it: the article's text, cleaned, or Claude's digest. A piece
 whose site refused gets no text and opens at its outlet. The front page also carries the day's
-predictions and links with their answers, and Sunday's crossword as laid out here. `cloud pack` seals them like any other
+predictions and links with their answers, Sunday's crossword as laid out here, and `cover` when
+`paper cover` drew one into `edition/<day>/` (cover-light.jpg, cover-dark.jpg). `cloud pack` seals them like any other
 file, so the phone opens them with the run key and nothing on the page parses HTML or Markdown.
 
 Texts older than KEEP_DAYS go (D64); front pages stay, and their pieces then open at the outlet.
@@ -69,6 +70,8 @@ def front(h: Home, day: str) -> dict:
         out_["crossword"] = cw
     if w := next((r for r in rows if kind(r) == "lede"), None):
         out_["lede"] = {"id": w["id"], "word": w["lede"], "piece": w["piece"]}
+    if c := _read(_dir(h) / day / "cover.json"):  # `paper cover` drew the day's cover: the phone opens on it (BR14)
+        out_["cover"] = {"claim": str(c.get("claim") or "")}
     return out_
 
 

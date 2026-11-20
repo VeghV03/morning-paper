@@ -4,7 +4,9 @@ repository.
 
 Delivered is the run's "Issue <date>" commit landing by BY, the computer's local time (T1, T5):
 nothing more is logged for it. Opened and finished come from the devices' week files, opened here
-with the record key and counted only on the issue's own calendar day (T6). Nothing is written. The
+with the record key and counted only on the issue's own calendar day (T6). Opened is the cover
+shown (BR32) or, for issues before the cover and any day it could not load, a piece seen on the
+front page. Nothing is written. The
 cloud run cannot call this, since it holds no recovery code (D46, D47), and a Claude session must
 not: the counts are for the reader's own terminal (T2).
 """
@@ -51,11 +53,15 @@ def tally(repo: Path, first: date, today: date, code: str, tz: tzinfo | None = N
     for text in _sealed(repo, "home/edition/months/*.json", cloud.run_key(code)):
         pieces.update(json.loads(text).get("pieces") or {})
     same_day: dict[str, list[dict]] = {}  # an issue's events made on its own day
+    covers: set[str] = set()  # the days whose cover was shown that day
     for text in _sealed(repo, "record/*/*.jsonl", vault._derive(code)):
         for line in filter(None, text.splitlines()):
             e = json.loads(line)
+            on = datetime.fromisoformat(e["t"]).astimezone(tz).date().isoformat()
+            if e.get("ev") == "cover" and e.get("id") == on:
+                covers.add(on)
             p = pieces.get(e.get("id"))
-            if p and datetime.fromisoformat(e["t"]).astimezone(tz).date().isoformat() == p["day"]:
+            if p and on == p["day"]:
                 same_day.setdefault(p["day"], []).append(e)
     landed, rows = delivered(repo, tz), []
     for n in range(DAYS):
@@ -65,7 +71,7 @@ def tally(repo: Path, first: date, today: date, code: str, tz: tzinfo | None = N
         st, at = reading.state(None, same_day.get(day, [])), landed.get(day)
         rows.append({"day": day, "at": at.strftime("%H:%M") if at else None,
                      "delivered": bool(at) and at.time() <= BY,
-                     "opened": any(s["seen"] for s in st.values()),
+                     "opened": day in covers or any(s["seen"] for s in st.values()),
                      "finished": sum(s["progress"] >= reading.FINISHED
                                      and s["ms"] >= (pieces[pid].get("words") or 0) / reading.WPM * 60000 / 3
                                      for pid, s in st.items())})

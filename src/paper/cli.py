@@ -11,6 +11,7 @@
   paper cloud      code: the recovery code, for the reader to save; key: the run key; pack, unpack
   paper days       the reader's own 30 days, counted in their own terminal (never in a session)
   paper model      download the local text encoder that groups stories and checks threads
+  paper cover      the day's cover from the lead claim and a CC0 archive photo; `cover search` finds photos
 
 The tool never calls a generative model or a model API; Claude does the choosing. It may run a
 local text encoder, which turns text into numbers and writes nothing (D107).
@@ -31,7 +32,7 @@ import httpx
 import yaml
 
 from . import feed as feed_mod
-from . import article, brief, cloud, days, edition, embed, issue, learn, net, reading, vault
+from . import article, brief, cloud, config, cover, days, edition, embed, issue, learn, net, reading, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -272,6 +273,52 @@ def days_cmd(args) -> int:
     return 0
 
 
+def cover_cmd(args) -> int:
+    """`cover search <words>` prints CC0 candidates; `cover` draws the cover. With --out, one PNG at
+    --size (the X4 calls it so). Without, the phone's pair in the edition: light and dark JPEGs at
+    twice --size, the density the specimen was approved at, and cover.json for the front page."""
+    if args.action == "search":
+        found, errors = cover.search(" ".join(args.words))
+        _print({"candidates": found, "warnings": errors})
+        return 0 if found else 1
+    try:
+        day = date.fromisoformat(args.date).isoformat()
+        w, _, h = args.size.lower().partition("x")
+        size = (int(w), int(h))
+        crop = tuple(float(f) for f in args.crop.split(",")) if args.crop else None
+        if size[0] < 100 or size[1] < 100 or (crop and (len(crop) != 4 or not 0 <= crop[0] < crop[2] <= 1 or not 0 <= crop[1] < crop[3] <= 1)):
+            raise ValueError
+    except (TypeError, ValueError):
+        _print({"ok": False, "errors": ["--date YYYY-MM-DD, --size WxH (100 or more), --crop left,top,right,bottom as fractions"]})
+        return 1
+    if bool(args.photo) == args.grim:
+        _print({"ok": False, "errors": ["either --photo <id from `paper cover search`> or --grim"]})
+        return 1
+    try:
+        rec = cover.record(args.photo) if args.photo else None
+        img = cover.photo(rec) if rec else None
+    except cover.Refused as e:
+        _print({"ok": False, "errors": [str(e)]})
+        return 1
+    lang = args.lang or config.language(home())
+    if args.out:
+        out = Path(args.out).expanduser()
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(cover.png(cover.draw(day, args.claim, img, size, args.theme, lang, crop)))
+        _print({"ok": True, "files": [str(out)]})
+        return 0
+    folder = home().root / "edition" / day
+    folder.mkdir(parents=True, exist_ok=True)
+    files = []
+    for theme in cover.THEMES:
+        path = folder / f"cover-{theme}.jpg"
+        cover.draw(day, args.claim, img, (size[0] * 2, size[1] * 2), theme, lang, crop).save(path, "JPEG", quality=90)
+        files.append(str(path))
+    (folder / "cover.json").write_text(json.dumps({"claim": args.claim, "photo": rec}, ensure_ascii=False), encoding="utf-8")
+    _print({"ok": True, "files": files})
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="paper", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -296,8 +343,23 @@ def main(argv: list[str] | None = None) -> int:
     dy = sub.add_parser("days")
     dy.add_argument("--repo", required=True, help="a clone of the data repository")
     dy.add_argument("--from", dest="first", required=True, type=date.fromisoformat, help="the first morning, YYYY-MM-DD")
+    cv = sub.add_parser("cover")
+    cv.add_argument("--date", help="YYYY-MM-DD, the issue's day")
+    cv.add_argument("--claim", help="the lead claim, one sentence")
+    cv.add_argument("--photo", help="a photo id from `paper cover search`: met-, cma- or aic-<number>")
+    cv.add_argument("--grim", action="store_true", help="a grim lead: no photo, the claim alone, set large (BR37)")
+    cv.add_argument("--crop", help="left,top,right,bottom as fractions of the photo: the picture inside a mount")
+    cv.add_argument("--size", default="390x844", help="WxH in pixels, default 390x844")
+    cv.add_argument("--theme", choices=list(cover.THEMES), default="light", help="with --out")
+    cv.add_argument("--lang", choices=list(config.LABELS), help="the date's language; default the paper's")
+    cv.add_argument("--out", help="write one PNG here; without it, the phone's pair goes into the edition")
+    cv_sub = cv.add_subparsers(dest="action")
+    cs = cv_sub.add_parser("search")
+    cs.add_argument("words", nargs="+")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "check": check, "read": read, "follow": follow, "restore": restore, "model": model, "cloud": cloud_cmd, "days": days_cmd}[args.cmd](args)
+    if args.cmd == "cover" and args.action != "search" and not (args.date and args.claim):
+        p.error("cover: --date and --claim, or `cover search <words>`")
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "check": check, "read": read, "follow": follow, "restore": restore, "model": model, "cloud": cloud_cmd, "days": days_cmd, "cover": cover_cmd}[args.cmd](args)
 
 
 if __name__ == "__main__":
