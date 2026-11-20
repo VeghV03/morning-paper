@@ -43,7 +43,7 @@ EOF
     model  # after the reader's files are open: a failed download costs the merging, never the run
     ;;
   finish)
-    "$BIN/paper" cloud pack --repo "$DATA"
+    "$BIN/paper" cloud pack --repo "$DATA" --prune  # old texts and folded saved links go
     cd "$DATA"
     git add -A
     if git diff --cached --quiet; then echo "paper: nothing changed"; exit 0; fi

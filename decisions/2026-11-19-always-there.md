@@ -912,8 +912,8 @@ once for real, with a checklist.
 ## D111 · The GitHub account for the real walk
 **Chosen:** yours, with renamed repositories.
 **Not chosen:** a second account.
-**Accepted cost:** not the script as written; the path without the GitHub CLI stays untested; test
-repositories sit beside the real `paper-data`.
+**Accepted cost:** not the script as written; test repositories sit beside the real `paper-data`.
+Which GitHub path the walk takes is D117.
 
 ## D112 · Windows
 **Chosen:** its time-zone step stays named as unchecked until someone on Windows sets it up.
@@ -929,10 +929,10 @@ step 3 would rewrite `outlets.json`, `sections.md`, `interests.md` and `paper.ya
 ## Gap 1, stage one as built
 **Checked alone, 21 Nov:**
 - The setup skill and the README read against the code.
-- Steps 1, 3 and 4 run twice in a sandbox, with a test code, a temporary home and a local repository.
-  `init` wrote the six files; all 23 World outlets and 3 feeds answered. The pack sealed them and
-  pushed. On the second pass `init` wrote nothing and the pack changed nothing, so a rerun leaves an
-  existing paper alone.
+- In a sandbox, with a test code, a temporary home and a local bare repository: `paper init`, step
+  3's files, `paper check`, and step 4's pack and push. `install.sh` did not run (CI covers it), nor
+  did `gh repo create`. `init` wrote the six files; all 23 World outlets and 3 feeds answered.
+  `init` and `pack` repeat cleanly when nothing changed in between. That is not a rerun; see below.
 - The routine step 5 would create matches the working "Morning paper" routine in every field:
   prompt, model, tools, schedule, sources, no connectors. That routine delivered on 20 Nov.
 - `${CLAUDE_PLUGIN_ROOT}` is filled in inside a plugin's SKILL.md (Claude Code's skills docs), so
@@ -940,13 +940,10 @@ step 3 would rewrite `outlets.json`, `sections.md`, `interests.md` and `paper.ya
 
 **Broke, fixed:** step 6 turned Pages on with `gh api repos/{owner}/…` in a command of its own. `gh`
 fills `{owner}` from the folder's git remote, and outside the clone it fails ("unable to expand
-placeholder"). It now runs `cd ~/paper-reader &&` first.
+placeholder"). It now runs `cd ~/paper-reader &&` first. Checked with a read through the same
+placeholder; the POST itself has not run.
 
 **Found, not fixed:**
-- Two pages under one GitHub account share an address (`<them>.github.io`). The phone keeps one
-  store per address, so a second paper page opened on the same phone takes over the first's
-  settings. It only matters for a test page or two papers on one account; the walk's checklist
-  routes around it.
 - The sandbox pack also sealed the engine's own record from this checkout (public gazette text).
   A stranger's first pack would not have it. Harmless; noted so it isn't read as a leak.
 
@@ -962,3 +959,47 @@ running them here would rebuild this checkout's environment without its dev tool
 - a fresh keychain code.
 
 Making the routine stays unproven (D110), and so does Windows (D112).
+
+## Gap 1: what a second setup did
+A real rerun meets a data repository days ahead of the computer: the cloud has written issues, the
+phone has changed Settings. In the sandbox, setup run again over such a repository (step 3's
+files, then step 4's pack) deleted the issue from the repository and wrote the computer's old
+`sections.md` over the phone's. Git history kept both, but the phone reads only the latest state.
+That was D94's "setup run a second time", and it failed.
+
+Every GitHub Pages site on an account is served from `<them>.github.io`, and the phone page keeps
+its token and keys in that address's storage. A script on any other Pages site of the account could
+read the token and use the keys. Today `paper-reader` is the account's only Pages site. This widens
+D63: whoever can change any page on that address can take the record.
+
+## D114 · A second setup
+**Chosen:** open the paper first. When `paper-data` exists, setup restores the reader's code (if
+the computer made a new one), clones and unpacks before anything, skips the questions and the
+files, and does only what is missing.
+**Not chosen:** refusing a second setup.
+**Accepted cost:** a longer setup skill.
+
+## D115 · Pack deletes only when told
+**Chosen:** `paper cloud pack` refuses when the repository has files the folder lacks, unless given
+`--prune`. Only the morning run's finish passes it, for the 30-day texts and folded saved links.
+**Not chosen:** no guard.
+**Decided by Claude, not asked:** pack also never seals over a file its key cannot open. Setup on a
+new computer makes a new code, and the old pack sealed every file again with it, which locks the
+phone out. Nothing needs re-keying: there is no key rotation, and the run and the phone seal with
+one key. The alternative was to leave it to setup's order of steps.
+
+## D116 · The shared address
+**Chosen:** a rule, said by setup and the README: no other Pages site on the account that holds the
+page. Setup lists the account's Pages sites and asks before going on when there is one.
+**Not chosen:** an address of its own (a GitHub organization); accepting it.
+**Accepted cost:** nothing enforces it, and that account cannot host another site.
+
+## D117 · The walk's GitHub path
+**Chosen:** with the `gh` CLI signed in: setup's main path, where the Pages break was.
+**Not chosen:** without the CLI; both.
+**Accepted cost:** the github.com/new path stays unwalked.
+
+**Checked, 21 Nov:** in the sandbox, a stale computer's pack is refused and writes nothing. The
+repair path opens the paper, with the issue and the phone's edit, and a pack after it changes
+nothing. A new computer with a new code stops at the first file. Two new tests cover the guard; 102
+pass.

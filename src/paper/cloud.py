@@ -102,11 +102,15 @@ def _areas(h: Home, engine_out: Path):
     return {"home": (h.root, _home_files), "engine": (engine_out, _engine_files)}
 
 
-def pack(h: Home, engine_out: Path, repo: Path, key: bytes) -> dict:
+def pack(h: Home, engine_out: Path, repo: Path, key: bytes, prune: bool = False) -> dict:
     """Seals the working folders into the repository. A file whose content did not change keeps
-    its sealed bytes, so git sees only what changed; a file gone from the folder goes from the
-    repository. Returns the paths written and removed."""
-    written, removed = [], []
+    its sealed bytes, so git sees only what changed. Returns the paths written and removed.
+
+    A file gone from the folder goes from the repository only with `prune`, which the morning run
+    passes (old texts, saved links folded in): any other pack is from a folder that may be behind
+    the repository, a computer's setup run again, and would delete what the run and the phone wrote
+    (D115). A file this key cannot open is never sealed over: it is another code's paper (D115)."""
+    plan, removed = [], []
     for area, (root, files) in _areas(h, engine_out).items():
         keep = set()
         for rel, p in (files(root) if root.exists() else ()):
@@ -114,21 +118,21 @@ def pack(h: Home, engine_out: Path, repo: Path, key: bytes) -> dict:
             target = repo / (name + SUFFIX)
             keep.add(target)
             data = p.read_bytes()
-            if target.exists():
-                try:
-                    if open_(key, name, target.read_bytes()) == data:
-                        continue
-                except Locked:
-                    pass  # sealed with another key: sealed again with this one
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(seal(key, name, data))
-            written.append(name)
+            if target.exists() and open_(key, name, target.read_bytes()) == data:  # Locked: another code's
+                continue
+            plan.append((name, target, data))
         base = repo / area
-        for target in sorted(base.rglob("*" + SUFFIX)) if base.exists() else ():
-            if target not in keep:
-                target.unlink()
-                removed.append(target.relative_to(repo).as_posix()[: -len(SUFFIX)])
-    return {"written": written, "removed": removed}
+        removed += [t for t in sorted(base.rglob("*" + SUFFIX)) if t not in keep] if base.exists() else []
+    gone = [t.relative_to(repo).as_posix()[: -len(SUFFIX)] for t in removed]
+    if gone and not prune:
+        raise Locked(f"the repository has files this folder lacks ({', '.join(gone[:5])}"
+                     f"{', …' if len(gone) > 5 else ''}): open it first with `paper cloud unpack`")
+    for name, target, data in plan:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(seal(key, name, data))
+    for t in removed:
+        t.unlink()
+    return {"written": [n for n, _, _ in plan], "removed": gone}
 
 
 def unpack(h: Home, engine_out: Path, repo: Path, key: bytes) -> list[str]:

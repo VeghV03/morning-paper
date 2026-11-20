@@ -42,6 +42,19 @@ against their checksums; nothing system-wide, no password), then writes the read
 the defaults, never overwriting one that is there, and makes the recovery code. If it says there
 is no keyring, stop and tell them what it says: the paper will not keep the code anywhere weaker.
 
+**A paper they already have** (with the CLI, `gh repo view paper-data` answers; without it, ask
+once) makes this a repair, not a new paper (D114). Their paper's files are newer than anything
+here, so open them before anything else:
+
+- If `paper init` said it made the recovery code, this computer's code is new and opens nothing of
+  theirs: never ask them to save it. They run `~/paper/.tools/bin/paper restore <their code>` in
+  their own terminal, with the code from their password manager.
+- Clone it if `~/paper-data` is not there (`gh repo clone paper-data ~/paper-data`), then open it:
+  `K="$(~/paper/.tools/bin/paper cloud key 2>/dev/null)" && PAPER_RUN_KEY="$K" ~/paper/.tools/bin/paper cloud unpack --repo ~/paper-data; unset K`.
+  A file sealed with another key means the code is not this paper's: back to restore.
+- Skip sections 2 and 3: their files are the paper's own, changed only where they ask. In 4, pack
+  and push only what changed; in 5 and 6, do only what is missing.
+
 Ask them to run this in their own terminal and save what it prints in their password manager:
 
 ```bash
@@ -92,7 +105,8 @@ cd ~ && gh repo create paper-data --private --clone && cd paper-data
 Without the CLI, send them to https://github.com/new to make a private repository named
 `paper-data` with nothing in it, then clone it into `~/paper-data`.
 
-Seal their files into it and push:
+Seal their files into it and push. On a new repository the pack only writes; one that says the
+repository has files this folder lacks means a paper already there: open it first (section 1).
 
 ```bash
 K="$(~/paper/.tools/bin/paper cloud key 2>/dev/null)" && PAPER_RUN_KEY="$K" ~/paper/.tools/bin/paper cloud pack --repo ~/paper-data; unset K
@@ -145,8 +159,12 @@ takes about six minutes; set up the phone while it works.
 ## 6. The phone
 
 The page is plain files from this plugin's `reader/` folder, served from a public repository of
-their own, never from this one: whoever can change the page can take the record. With the CLI,
-ask once, naming it, then:
+their own, never from this one: whoever can change the page can take the record. That reaches
+further than the repository: every GitHub Pages site on their account is served from
+`<them>.github.io`, and a script on any of them can read the phone's token and use its keys. Say so
+in one sentence, as a rule: no other Pages site on this account (D116). With the CLI, check
+`gh api "user/repos?per_page=100&affiliation=owner" --jq '.[] | select(.has_pages) | .name'`; name
+any site it lists and ask whether to go on. Then, with the CLI, ask once, naming the repository:
 
 ```bash
 cd ~ && gh repo create paper-reader --public --clone && cd paper-reader && cp -R "${CLAUDE_PLUGIN_ROOT}/reader/." . && git add -A && git commit -qm "The phone page" && git push -qu origin HEAD:main

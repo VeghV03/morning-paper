@@ -242,7 +242,7 @@ def cloud_cmd(args) -> int:
             h.root.mkdir(parents=True, exist_ok=True)
             _print({"ok": True, "opened": len(cloud.unpack(h, out, repo, key)), "home": str(h.root)})
         else:
-            _print({"ok": True, **cloud.pack(h, out, repo, key)})
+            _print({"ok": True, **cloud.pack(h, out, repo, key, prune=args.prune)})
     except cloud.Locked as e:
         _print({"ok": False, "errors": [str(e)]})
         return 1
@@ -292,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
     cl.add_argument("action", choices=["code", "key", "unpack", "pack"])
     cl.add_argument("--repo", help="the data repository's folder (unpack, pack)")
     cl.add_argument("--code", help="a recovery code (key), instead of this computer's")
+    cl.add_argument("--prune", action="store_true", help="pack: let files gone from the folder go from the repository (the morning run)")
     dy = sub.add_parser("days")
     dy.add_argument("--repo", required=True, help="a clone of the data repository")
     dy.add_argument("--from", dest="first", required=True, type=date.fromisoformat, help="the first morning, YYYY-MM-DD")

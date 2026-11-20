@@ -71,8 +71,20 @@ class PackTest(Base):
         cloud.pack(self.h, self.out, self.repo, self.key)
         before = (self.repo / "home" / "sections.md.sealed").read_bytes()
         (self.h.root / "inbox.md").unlink()
-        done = cloud.pack(self.h, self.out, self.repo, self.key)
+        with self.assertRaises(cloud.Locked):  # a folder behind the repository deletes nothing (D115)
+            cloud.pack(self.h, self.out, self.repo, self.key)
+        self.assertTrue((self.repo / "home" / "inbox.md.sealed").exists())
+        done = cloud.pack(self.h, self.out, self.repo, self.key, prune=True)
         self.assertEqual(done, {"written": [], "removed": ["home/inbox.md"]})
+        self.assertEqual((self.repo / "home" / "sections.md.sealed").read_bytes(), before)
+
+    def test_pack_never_seals_over_another_codes_file(self):
+        self.write(self.h.root, "sections.md", "World: news")
+        cloud.pack(self.h, self.out, self.repo, self.key)
+        before = (self.repo / "home" / "sections.md.sealed").read_bytes()
+        self.write(self.h.root, "sections.md", "World: other")
+        with self.assertRaises(cloud.Locked):  # setup again on a new computer, with a new code (D115)
+            cloud.pack(self.h, self.out, self.repo, cloud.run_key("B" * 24))
         self.assertEqual((self.repo / "home" / "sections.md.sealed").read_bytes(), before)
 
     def test_unpack_stops_on_a_file_it_cannot_open(self):

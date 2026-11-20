@@ -103,7 +103,9 @@ Setup says what each step does before it runs it, and asks before it makes anyth
   nothing system-wide and no password; your files in `~/paper`; the recovery code in the system
   keychain (Keychain on a Mac, Credential Manager on Windows, GNOME Keyring or KWallet on Linux).
 - On GitHub: `paper-data`, private, holding only sealed files, and `paper-reader`, public,
-  holding the phone page's code and nothing of yours.
+  holding the phone page's code and nothing of yours. The page is served from `<you>.github.io`, an
+  address every GitHub Pages site of your account shares, so keep it the only one there: a script
+  on another could read what the phone keeps.
 - In the Claude app: the `morning-paper` cloud environment and the Morning paper routine.
 
 To remove the paper, delete those: the routine and the environment in the Claude app, the two
