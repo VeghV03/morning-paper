@@ -613,3 +613,40 @@ show, comes from `paper cloud code`, run by the reader in their own terminal. Th
 the server's pages went with it (115 tests then, 81 now); the logic under them is still tested
 directly. The QR code library left the dependencies. The setup skill and the README still describe
 the Mac server until D94's rewrite.
+
+## D96 · Who makes a new reader's repositories
+**Chosen:** Claude, with the GitHub CLI when it is signed in, asking before each: the private data
+repository, and the public page repository with `reader/` copied in and Pages on. Without it,
+links the reader follows.
+**Not chosen:** the reader by hand every time.
+**Accepted cost:** two ways through one step; the CLI becomes a soft requirement.
+
+## D97 · The end of setup
+**Chosen:** setup runs the morning routine once, and the reader opens that issue on the phone.
+**Not chosen:** an empty paper until the next morning.
+**Accepted cost:** a full issue's worth of the plan, and about six minutes' wait.
+
+## D98 · Stories named at setup
+**Chosen:** dropped. A story joins Since you left when a piece of it is opened (D85).
+**Not chosen:** a file of named stories the run reads as follows.
+**Accepted cost:** the first issue has no Since you left.
+
+## D99 · The run's time zone
+**Chosen:** the reader's own, written into the schedule (`CRON_TZ=…`), so 5:07 stays 5:07 through
+summer time; the first reader's routine moved too. Revises D60's note.
+**Not chosen:** UTC; the reader's for new readers only.
+
+## D94 as built
+`skills/setup` sets up a reader for the cloud: the tools and files on a computer once, the recovery
+code saved by the reader from `paper cloud code` in their own terminal, `paper-data` made and sealed
+(with the GitHub CLI when it is signed in, D96), the environment and the GitHub app's reach as the
+reader's steps, the routine in the reader's time zone (D99) with no connectors, `paper-reader` on
+Pages, the phone's token as the reader's step, and one run while the phone is set up (D97). The
+README says the same, and what setup leaves behind.
+
+**Assumed, not asked:** new routines get no connectors, since the run reads untrusted pages; the
+permission rules for an unattended run on the computer went with that run; `/paper:today` left the
+README's commands, since on a computer it now only checks an issue.
+**Not yet checked:** a setup from nothing on a new account; the Claude app's screens for the
+environment; setup run a second time over an existing paper; the Windows time zone. The README's
+screenshots are of the Mac's pages, to be retaken after the redesign.
