@@ -286,6 +286,14 @@ function played(evs) {
   }
   return out;
 }
+// Lede: each letter of a guess in place, elsewhere in the word, or not in it; a letter is marked
+// as often as the word has it (R5)
+function ledeScore(word, guess) {
+  const out = Array(5).fill("no"), left = [...word];
+  for (let i = 0; i < 5; i++) if (guess[i] === word[i]) { out[i] = "in"; left[i] = null; }
+  for (let i = 0; i < 5; i++) if (out[i] !== "in") { const k = left.indexOf(guess[i]); if (k >= 0) { out[i] = "near"; left[k] = null; } }
+  return out;
+}
 const gameDay = (id) => (String(id).match(/^[plxw]-(\d{4}-\d{2}-\d{2})/) || [])[1];
 async function brief(index, evs, day, threads = []) {
   const st = state(evs);

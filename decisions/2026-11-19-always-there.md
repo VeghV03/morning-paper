@@ -869,8 +869,9 @@ word list in it.
 **Checked:** at 375 px, in light and dark, on a test paper sealed as the run seals it. Covered: the
 front page, a past issue, a piece with the outlet's own title, the prediction holding that title
 back, the why line, a selection marked and restored after a reload, a selection across an italic
-word, Remove, and a Lede played, solved and restored. The tests cover the run's side: the check,
-the edition, the brief's tries, and the phone's brief matching the record.
+word, Remove, and a Lede played, solved, lost after six tries, and restored; the games line ticks Lede only once it is over. An install made as `install.sh` makes it finds its own copy of the word list. The tests cover the run's side: the check,
+the edition, the brief's tries, and the phone's brief matching the record. The phone's scoring has a test of its own, with repeated letters. Selection marking has none: it was walked, not tested unattended.
 
-**Not yet checked:** selection on a real iPhone, where the phone's own menu competes with the bar;
+**Not yet checked:** selection on a real iPhone, where the phone's own menu competes with the bar
+and a finger on the bar may drop the selection (the bar now stays until the tap ends);
 the page in Hungarian; a past issue without the new fields on the real data.

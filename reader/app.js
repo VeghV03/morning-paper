@@ -367,8 +367,9 @@ async function saveLink(page, button) {
 }
 // the day's games in one line under the date (R8): Lede, the crossword, then each piece that asks first
 function gamesLine(page, all, evs) {
-  const t = page.labels, done = played(evs.concat(own));
-  const a = (href, label, id) => `<a href="${href}"${done[id] ? " class=played" : ""}>${esc(label)}</a>`;
+  const t = page.labels, done = played([...new Set([...evs, ...own])]);
+  const over = (d) => d && (!("tries" in d) || d.solved || d.tries >= 6);
+  const a = (href, label, id) => `<a href="${href}"${over(done[id]) ? " class=played" : ""}>${esc(label)}</a>`;
   const out = [];
   if (page.lede && t.lede) out.push(a(`#${page.day}/lede`, t.lede, page.lede.id));
   if (page.crossword && t.crossword) out.push(a(`#${page.day}/crossword`, t.crossword, page.crossword.id));
@@ -709,7 +710,9 @@ function reader(page, art, id, idx, evs, ths = []) {
   const mark = async (kind, text) => light(log({ ev: "mark", id: await markId(id, kind, text), piece: id, kind, text }));
   const bar = document.createElement("div");
   bar.className = "bar"; bar.hidden = true; document.body.appendChild(bar);
-  let picked = null, bySelection = false;
+  bar.addEventListener("pointerdown", () => { pressing = true; });
+  for (const ev of ["pointerup", "pointercancel"]) bar.addEventListener(ev, () => setTimeout(() => { pressing = false; }, 300));
+  let picked = null, bySelection = false, pressing = false;
   const pick = (b) => { picked?.classList.remove("picked"); picked = b; b?.classList.add("picked"); };
   const close = () => { bar.hidden = true; bySelection = false; pick(null); };
   const open = (acts, sel = false) => {
@@ -726,7 +729,7 @@ function reader(page, art, id, idx, evs, ths = []) {
   const onSelect = () => {
     if (!t.highlight) return;
     const sel = getSelection();
-    if (sel.isCollapsed || !sel.rangeCount) { if (bySelection) close(); return; }
+    if (sel.isCollapsed || !sel.rangeCount) { if (bySelection && !pressing) close(); return; }
     const r = sel.getRangeAt(0).cloneRange();
     const start = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement;
     const block = start && start.closest(BLOCKS);
@@ -967,19 +970,13 @@ function ledePage(page, idx, evs) {
       ? `<button data-k=back aria-label=Delete>⌫</button>` : `<button data-k=${k}>${k}</button>`).join("")}</div>`).join("")}</div>` +
     `<div id=after></div>`);
   const board = document.getElementById("board"), said = document.getElementById("said"), keyEls = document.getElementById("keys");
-  const score = (g) => { // in place, elsewhere in the word, or not in it; a letter counts as often as the word has it
-    const out = Array(5).fill("no"), left = [...word];
-    for (let i = 0; i < 5; i++) if (g[i] === word[i]) { out[i] = "in"; left[i] = null; }
-    for (let i = 0; i < 5; i++) if (out[i] !== "in") { const k = left.indexOf(g[i]); if (k >= 0) { out[i] = "near"; left[k] = null; } }
-    return out;
-  };
   const rank = { no: 1, near: 2, in: 3 };
   let typed = "";
   const over = () => guesses.includes(word) || guesses.length >= 6;
   const draw = () => {
     const best = {};
     board.replaceChildren(...Array.from({ length: 6 }, (_, r) => {
-      const g = guesses[r], marks = g ? score(g) : [], letters = g || (r === guesses.length && !over() ? typed : "");
+      const g = guesses[r], marks = g ? ledeScore(word, g) : [], letters = g || (r === guesses.length && !over() ? typed : "");
       const row = document.createElement("div");
       for (let i = 0; i < 5; i++) {
         const c = document.createElement("span");

@@ -1,5 +1,7 @@
 import json
 import os
+import shutil
+import subprocess
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -71,6 +73,21 @@ class CheckTest(Base):
         self.write([self.piece(1), w])
         self.assertIn("English page only", self.errors())
         self.assertNotIn("lede", edition.front(self.h, SUN)["labels"])
+
+    @unittest.skipUnless(shutil.which("node"), "node is not installed")
+    def test_lede_marks_a_letter_as_often_as_the_word_has_it(self):
+        learn_js = Path(__file__).resolve().parent.parent / "reader" / "learn.js"
+        run = ("const fs = require('fs'), vm = require('vm'); const c = vm.createContext({ crypto: globalThis.crypto, TextEncoder });"
+               f"vm.runInContext(fs.readFileSync({json.dumps(str(learn_js))}, 'utf8'), c);"
+               "process.stdout.write(JSON.stringify([['spend','speed'],['spend','spade'],['spend','dense'],['eerie','geese']]"
+               ".map(([w, g]) => vm.runInContext(`ledeScore(${JSON.stringify(w)}, ${JSON.stringify(g)})`, c))))")
+        out = subprocess.run(["node", "-e", run], capture_output=True, text=True, timeout=30)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout), [
+            ["in", "in", "in", "no", "in"],  # the second e: spend has one, already in place
+            ["in", "in", "no", "near", "near"],
+            ["near", "near", "near", "near", "no"],
+            ["no", "in", "near", "no", "in"]])
 
     def test_a_link_needs_an_earlier_piece_the_reader_opened(self):
         self.write([self.piece(1, SAT)], SAT)
