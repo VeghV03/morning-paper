@@ -467,6 +467,13 @@ in the second); one file trimmed to 180 days (the phone's learner would drift fr
 The current month's file is still saved whole each morning: a guessed 30 MB a year (corrected from
 "a few MB", said when this was asked).
 
+## D85 · Following a story on the phone
+**Chosen:** by reading: a story joins Since you left once the reader opens a piece or an update of it.
+Naming stories can come with Settings in the second round.
+**Not chosen:** a Follow button now; every story the run keeps.
+**Accepted cost:** a story the reader cares about but has not opened on the phone shows only as
+pieces in its section until they open one.
+
 ## Step 3's second part, first round, as built
 
 The run writes the edition's lists a file a month, cards included (`edition/months/`), and keeps
@@ -477,8 +484,6 @@ the Mac's server does. Reviews and story catch-ups go into the record as the Mac
 brief adds `to_card` and `stories` (D82), which `paper context` passes on.
 
 **Assumed, not asked:**
-- Stories are followed only by reading them. The Mac's "follow" at setup has no phone equivalent
-  yet, so a story the reader never opened stays out of Since you left.
 - In the cloud `cards` in `paper context` says only how many there are (D82).
 - A card's piece is found through the reader's own marks; through games once games exist.
 - The cloud run writes no games until the phone can play them (D80), said in the morning skill.
