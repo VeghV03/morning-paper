@@ -509,11 +509,12 @@ cards and stories, and a real iPhone.
 
 ## D86 · Saving a link on the phone
 **Chosen:** a Save a link button at the foot of the front page that reads the clipboard: Share,
-Copy, open the paper, tap. iOS asks once to allow pasting.
+Copy, open the paper, tap, then tap Safari's Paste button. (Said when asked: "iOS asks once".
+Corrected: WebKit shows its Paste button on every read the page did not get from a paste itself.)
 **Not chosen:** a field in Settings, as on the Mac; an iOS Shortcut in the share sheet (it opens
 Safari, which likely keeps its storage apart from a home-screen page). iOS does not let a web page
 take shares (as of sources from late 2025).
-**Accepted cost:** a few taps more than a share target.
+**Accepted cost:** a few taps more than a share target, one of them on every save.
 
 ## D87 · What Settings on the phone holds
 **Chosen:** all the Mac's: sections, interests, feeds, outlets (remove only), language, and the
@@ -555,6 +556,8 @@ writes games again.
   Settings does.
 - Letters typed in the crossword stay on the phone that typed them; solved words reach the record.
 - A language change shows from the next issue, since the page's words come with the edition.
+- Settings draws Forget this phone before reading the files, so it stays within reach offline; a
+  write leaves the phone's saved copy current, so Settings never reopens an older file.
 
 **Checked (2026-11-20):** tests hold the phone's settings checks to the Mac's on sections (accents,
 `:`, `|`, twins, length, too many), interests, language, outlets and feeds (topics, flags and notes

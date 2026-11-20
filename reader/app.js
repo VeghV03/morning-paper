@@ -219,7 +219,7 @@ async function write(c, rel, bytes, message) {
     const meta = await gh(c, `${rel}.sealed`);
     const sha = meta.ok ? (await meta.json()).sha : undefined;
     const res = await gh(c, `${rel}.sealed`, false, { method: "PUT", body: JSON.stringify({ message, content: btoa(b64), sha }) });
-    if (res.ok) return;
+    if (res.ok) { await (await caches.open(DATA)).put(saved(rel), new Response(bytes)); return; }
     if (res.status === 403 || res.status === 404) throw Object.assign(new Error(s().cant_write), { cantWrite: true });
     if (res.status !== 409 && res.status !== 422) throw new Error(`GitHub ${res.status}`); // 409, 422: written meanwhile
   }
@@ -343,6 +343,7 @@ function issue(page, list, idx, evs, ths = []) {
 async function saveLink(page, button) {
   const err = button.nextElementSibling, c = cfg;
   err.textContent = "";
+  button.disabled = true;
   try {
     const url = savedLink(await navigator.clipboard.readText());
     const rel = `home/saved/${new Date().toISOString().replace(/[:.]/g, "-")}-${c.device}.txt`;
@@ -350,6 +351,8 @@ async function saveLink(page, button) {
     err.textContent = `${page.labels.saved}: ${url}`;
   } catch (e) {
     err.textContent = e.errors ? e.errors.join(" · ") : e.message;
+  } finally {
+    button.disabled = false;
   }
 }
 function updates(page, fresh, old) {
@@ -387,13 +390,21 @@ function keptPage(page, list, idx, evs) {
 // with the run key, and read by the next morning's run
 async function settingsPage(page, list, idx, evs) {
   const t = page.labels, c = cfg;
+  // Forget this phone first: it stays within reach when the files cannot be read
+  show(t.settings, `<header><a href="#${page.day}">← ${esc(short(page, page.day))}</a></header><h1>${esc(t.settings)}</h1><div id=settings></div>` +
+    `<section><p><a href="#forget">${esc(s().forget)}</a></p></section>`, navFor({ ...page, day: "" }, list, true));
+  const root = document.getElementById("settings");
   const text = (name) => sealed(c, `home/${name}`, c.key, true).catch(none(""));
-  const [secT, intT, feedT, outT, papT] = await Promise.all(["sections.md", "interests.md", "feeds.yaml", "outlets.json", "paper.yaml"].map(text));
+  let secT, intT, feedT, outT, papT;
+  try {
+    [secT, intT, feedT, outT, papT] = await Promise.all(["sections.md", "interests.md", "feeds.yaml", "outlets.json", "paper.yaml"].map(text));
+  } catch (e) {
+    if (e.wrongKey || e.status === 401) throw e; // a new token or code: route asks for it
+    root.innerHTML = `<p class=empty>${esc(e.message)}</p>`;
+    return;
+  }
   let feedText = feedT, outlets = [], paperText = papT;
   try { outlets = JSON.parse(outT || "[]"); } catch { /* shown empty, and not saved over */ }
-  show(t.settings, `<header><a href="#${page.day}">← ${esc(short(page, page.day))}</a></header><h1>${esc(t.settings)}</h1><div id=settings></div>`,
-    navFor({ ...page, day: "" }, list, true));
-  const root = document.getElementById("settings");
   const el = (tag, attrs = {}, ...kids) => {
     const x = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) k.startsWith("on") ? x.addEventListener(k.slice(2), v) : x.setAttribute(k, v);
@@ -507,8 +518,7 @@ async function settingsPage(page, list, idx, evs) {
     return block(t.language, row, err);
   };
 
-  const phone = el("section", {}, el("p", {}, el("a", { href: "#forget" }, s().forget)));
-  root.append(...[sections(), less(), interests(), feeds(), outletsB(), language(), phone].filter(Boolean));
+  root.append(...[sections(), less(), interests(), feeds(), outletsB(), language()].filter(Boolean));
   stop = () => sync();
 }
 
@@ -921,7 +931,7 @@ async function route() {
     lang = page.lang in SETUP ? page.lang : lang;
     morning = page.morning || morning;
     if (day === "kept") return keptPage(page, list, idx, evs);
-    if (day === "settings" && page.labels.settings) return settingsPage(page, list, idx, evs);
+    if (day === "settings" && page.labels.settings) return await settingsPage(page, list, idx, evs);
     if (id === "done") return done(page, list);
     if (id === "crossword" && page.crossword && page.labels.crossword) return crosswordPage(page, idx, evs);
     if (id && id.startsWith("t-")) {
