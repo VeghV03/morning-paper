@@ -875,3 +875,17 @@ the edition, the brief's tries, and the phone's brief matching the record. The p
 **Not yet checked:** selection on a real iPhone, where the phone's own menu competes with the bar
 and a finger on the bar may drop the selection (the bar now stays until the tap ends);
 the page in Hungarian; a past issue without the new fields on the real data.
+
+## R12 · The date in today's bar
+**Chosen:** "Thursday 19 November", no year, on one line beside Kept and Settings.
+**Not chosen:** the full date on a line of its own; the full date with smaller links.
+**Accepted cost:** today's page never shows the year on screen; the tab title and past issues do.
+
+## R13 · A selection across paragraphs
+**Chosen:** the mark keeps the part in the first paragraph.
+**Not chosen:** one mark per paragraph touched.
+**Accepted cost:** the rest of a long selection is dropped without a word.
+
+## R14 · The games line's words
+**Chosen:** Lede, Crossword, then Guess 1, Guess 2 (Tipp in Hungarian) for the pieces that ask first.
+**Not chosen:** the pieces' headlines; Predict and Link.
