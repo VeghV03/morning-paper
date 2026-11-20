@@ -19,7 +19,7 @@ const fs = require("fs"), vm = require("vm");
 const [learn, input] = process.argv.slice(2);
 const ctx = vm.createContext({ crypto: globalThis.crypto, TextEncoder, console });
 vm.runInContext(fs.readFileSync(learn, "utf8"), ctx);
-const { index, events, at, pieces, labels, day } = JSON.parse(fs.readFileSync(input, "utf8"));
+const { index, events, at, pieces, labels, day, weeks } = JSON.parse(fs.readFileSync(input, "utf8"));
 (async () => {
   const now = vm.runInContext(`startOf(${JSON.stringify(at)})`, ctx);
   const ev = ctx.evidence(index, events, now), out = { estimates: {}, why: {} };
@@ -28,6 +28,7 @@ const { index, events, at, pieces, labels, day } = JSON.parse(fs.readFileSync(in
   for (const id of pieces) out.why[id] = ctx.why(index, events, id, labels);
   out.brief = await ctx.brief(index, events, day);
   out.again = await ctx.brief(index, events, day);
+  out.weeks = weeks.map(vm.runInContext("week", ctx));
   process.stdout.write(JSON.stringify(out));
 })();
 """
@@ -66,6 +67,7 @@ class LearnParityTest(unittest.TestCase):
             {"t": t("2026-11-15", 10), "ev": "less_undo", "id": "r-6"},
         ]
         mark = {"id": "h-1", "piece": "r-6", "kind": "highlight", "text": "A line.", "t": t("2026-11-15", 9)}
+        old = {"ev": "mark", "id": "h-0", "piece": "r-0", "kind": "question", "text": "Long ago?", "t": t("2026-11-01", 9)}  # past 14 days
         for e in events:
             vault.append(h.reads, e)
         vault.append(h.marks, mark)
@@ -82,7 +84,7 @@ class LearnParityTest(unittest.TestCase):
 
         tmp = Path(tempfile.mkdtemp())
         (tmp / "in.json").write_text(json.dumps({
-            "index": index, "events": events + [{"ev": "mark", **mark}], "at": at, "pieces": pieces,
+            "index": index, "events": events + [{"ev": "mark", **mark}, old], "at": at, "weeks": [e["t"] for e in events[:1]] + ["2026-11-16T00:30:00+01:00", "2026-11-22T23:59:00Z"], "pieces": pieces,
             "labels": labels, "day": at}), encoding="utf-8")
         (tmp / "run.js").write_text(RUN, encoding="utf-8")
         out = subprocess.run(["node", str(tmp / "run.js"), str(LEARN), str(tmp / "in.json")], capture_output=True, text=True, timeout=30)
@@ -99,6 +101,8 @@ class LearnParityTest(unittest.TestCase):
         self.assertEqual(b["marks"], [{k: mark[k] for k in ("id", "piece", "kind", "text")}])
         self.assertEqual(sorted(b["opened"]), ["r-1", "r-2"])  # opened within the 14 days before the 20th
         self.assertNotIn("ms", json.dumps(b))
+        # weeks start on Monday, UTC: 10 Nov is a Tuesday; 00:30 on Monday the 16th in Budapest is still Sunday in UTC
+        self.assertEqual(js["weeks"], ["2026-11-09", "2026-11-09", "2026-11-16"])
 
 
 if __name__ == "__main__":

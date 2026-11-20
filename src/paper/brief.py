@@ -7,7 +7,7 @@ with the run key, holding only decisions:
 - `day`: the issue the brief was made for;
 - `steer`: per steered section, the topic order, the try, the topics from least evidence up
   (`tries`) and whether it is silent;
-- `marks`: the reader's live highlights and questions, `{id, piece, kind, text}`;
+- `marks`: the reader's live highlights and questions of the last RECENT days, `{id, piece, kind, text}`;
 - `opened`: the pieces of the last RECENT days the reader opened.
 
 No reading times, no counts. `context` turns it into what `paper context` gives the morning

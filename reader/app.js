@@ -37,7 +37,7 @@ const enc = (x) => new TextEncoder().encode(x);
 const $main = document.getElementById("main");
 let cfg = null; // {repo, token, key, rkey, device}
 let own = []; // this phone's record, oldest first
-let dirty = new Set(); // its months not yet written back
+let dirty = new Set(); // its weeks not yet written back
 let lang = navigator.language.toLowerCase().startsWith("hu") ? "hu" : "en";
 let cantWrite = false;
 const s = () => SETUP[lang];
@@ -65,8 +65,8 @@ const get = (k) => kv("readonly", (st) => st.get(k));
 const put = (k, v) => kv("readwrite", (st) => st.put(v, k));
 const forget = async () => { await kv("readwrite", (st) => st.clear()); await caches.delete(DATA); };
 const saveOwn = () => kv("readwrite", (st) => { st.put(own, "events"); st.put([...dirty], "dirty"); });
-let again = null; // months touched while a write is under way
-const touch = (e) => { const m = e.t.slice(0, 7); dirty.add(m); again?.add(m); };
+let again = null; // weeks touched while a write is under way
+const touch = (e) => { const w = week(e.t); dirty.add(w); again?.add(w); };
 function log(ev) {
   const e = { t: new Date().toISOString(), ...ev };
   own.push(e);
@@ -159,7 +159,7 @@ const frontRel = (day) => `home/edition/${day}.json`;
 const pieceRel = (day, id) => `home/edition/${day}/${id}.json`;
 const INDEX = "home/edition/index.json";
 const BRIEF = "home/brief.json";
-const recordRel = (device, month) => `record/${device}/${month}.jsonl`;
+const recordRel = (device, wk) => `record/${device}/${wk}.jsonl`; // one file a week, so a write stays small (D76)
 
 // keep the latest issue whole for offline reading, and nothing older (D37)
 async function keep(c, page) {
@@ -179,9 +179,9 @@ function others(c) {
     for (const dir of await listing(c, "record").catch(() => [])) {
       if (dir.type !== "dir" || dir.name === c.device) continue;
       for (const f of await listing(c, `record/${dir.name}`).catch(() => [])) {
-        const month = (f.name.match(/^(\d{4}-\d{2})\.jsonl\.sealed$/) || [])[1];
-        if (!month) continue;
-        const text = await sealed(c, recordRel(dir.name, month), c.rkey, true).catch(() => "");
+        const wk = (f.name.match(/^(\d{4}-\d{2}-\d{2})\.jsonl\.sealed$/) || [])[1];
+        if (!wk) continue;
+        const text = await sealed(c, recordRel(dir.name, wk), c.rkey, true).catch(() => "");
         for (const line of text.split("\n")) if (line.trim()) try { out.push(JSON.parse(line)); } catch { /* a torn line */ }
       }
     }
@@ -193,7 +193,7 @@ let indexP = null, latest = null;
 const index = (c) => (indexP = indexP || sealed(c, INDEX).catch(() => ({ steered: {}, pieces: {} })));
 async function record(c) { return [...(await others(c)), ...own]; }
 
-// writing back: this phone's months that changed, then the brief (D71)
+// writing back: this phone's weeks that changed, then the brief (D71)
 async function write(c, rel, bytes, message) {
   let b64 = "";
   for (let i = 0; i < bytes.length; i += 0x8000) b64 += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -205,24 +205,24 @@ async function write(c, rel, bytes, message) {
     if (res.status === 403 || res.status === 404) throw Object.assign(new Error(s().cant_write), { cantWrite: true });
     if (res.status !== 409 && res.status !== 422) throw new Error(`GitHub ${res.status}`); // 409, 422: written meanwhile
   }
-  throw new Error("GitHub kept moving"); // the month stays marked and goes next time
+  throw new Error("GitHub kept moving"); // the week stays marked and goes next time
 }
 let syncing = null, morning = "5:07";
 function sync() {
   if (!cfg || !cfg.rkey || syncing) return syncing;
   if (!dirty.size) return null;
-  const c = cfg, months = [...dirty];
+  const c = cfg, weeks = [...dirty];
   again = new Set();
   syncing = (async () => {
     try {
-      for (const m of months) {
-        const rel = recordRel(c.device, m);
-        const lines = own.filter((e) => e.t.startsWith(m)).map((e) => JSON.stringify(e)).join("\n") + "\n";
+      for (const w of weeks) {
+        const rel = recordRel(c.device, w);
+        const lines = own.filter((e) => week(e.t) === w).map((e) => JSON.stringify(e)).join("\n") + "\n";
         await write(c, rel, await seal(c.rkey, rel, lines), "Record");
       }
       const b = await brief(await index(c), await record(c), nextDay(morning));
       await write(c, BRIEF, await seal(c.key, BRIEF, JSON.stringify(b)), "Brief");
-      months.forEach((m) => { if (!again.has(m)) dirty.delete(m); }); // a month stays marked until it is written
+      weeks.forEach((w) => { if (!again.has(w)) dirty.delete(w); }); // a week stays marked until it is written
       cantWrite = false;
     } catch (e) {
       if (e.cantWrite) { cantWrite = true; document.querySelector("nav .note")?.removeAttribute("hidden"); }
