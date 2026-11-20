@@ -1020,3 +1020,11 @@ reverses D111. Setup then runs exactly as written, and the walk's page gets its 
 can be opened on your phone.
 **Not taken:** an opening instruction telling the walk to leave the real repositories alone.
 **Accepted cost:** you make an account and its email, about 5 min.
+
+## D119 · A second reader follows main
+A colleague sets up his own paper from the public repository.
+**Chosen:** his routine clones `VeghV03/morning-paper` as setup writes it, so each morning runs
+whatever `main` holds.
+**Not chosen:** a fork he controls, which updates only when he pulls.
+**Accepted cost:** a push to `main` reaches his next morning run, a broken one included, and he
+trusts that code with his run key. CI on each push is the only gate.
