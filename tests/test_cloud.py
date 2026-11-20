@@ -74,8 +74,14 @@ class PackTest(Base):
         with self.assertRaises(cloud.Locked):  # a folder behind the repository deletes nothing (D115)
             cloud.pack(self.h, self.out, self.repo, self.key)
         self.assertTrue((self.repo / "home" / "inbox.md.sealed").exists())
+        old = self.repo / "engine" / "kozlony" / "MK-1.pdf.sealed"  # an older pack's: never carried now
+        old.parent.mkdir(parents=True, exist_ok=True)
+        old.write_bytes(cloud.seal(self.key, "engine/kozlony/MK-1.pdf", b"%PDF"))
+        (self.h.root / "inbox.md").write_text("https://example.org\n")
+        self.assertEqual(cloud.pack(self.h, self.out, self.repo, self.key), {"written": [], "removed": []})  # left alone
+        (self.h.root / "inbox.md").unlink()
         done = cloud.pack(self.h, self.out, self.repo, self.key, prune=True)
-        self.assertEqual(done, {"written": [], "removed": ["home/inbox.md"]})
+        self.assertEqual(done, {"written": [], "removed": ["home/inbox.md", "engine/kozlony/MK-1.pdf"]})
         self.assertEqual((self.repo / "home" / "sections.md.sealed").read_bytes(), before)
 
     def test_pack_never_seals_over_another_codes_file(self):

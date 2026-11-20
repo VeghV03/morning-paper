@@ -927,7 +927,7 @@ step 3 would rewrite `outlets.json`, `sections.md`, `interests.md` and `paper.ya
 `~/paper`.
 
 ## Gap 1, stage one as built
-**Checked alone, 21 Nov:**
+**Checked alone, 20 Nov:**
 - The setup skill and the README read against the code.
 - In a sandbox, with a test code, a temporary home and a local bare repository: `paper init`, step
   3's files, `paper check`, and step 4's pack and push. `install.sh` did not run (CI covers it), nor
@@ -950,7 +950,7 @@ placeholder; the POST itself has not run.
 **Not run here:** the cloud run's start and finish. The run is always Linux, which CI covers, and
 running them here would rebuild this checkout's environment without its dev tools.
 
-**Still open, for the real walk** (`decisions/2026-11-21-setup-walk.md`):
+**Still open, for the real walk** (`decisions/2026-11-20-setup-walk.md`):
 - the install line in the app;
 - the app's environment screens;
 - the GitHub app's reach;
@@ -999,7 +999,7 @@ page. Setup lists the account's Pages sites and asks before going on when there 
 **Not chosen:** without the CLI; both.
 **Accepted cost:** the github.com/new path stays unwalked.
 
-**Checked, 21 Nov:** in the sandbox, a stale computer's pack is refused and writes nothing. The
+**Checked, 20 Nov:** in the sandbox, a stale computer's pack is refused and writes nothing. The
 repair path opens the paper, with the issue and the phone's edit, and a pack after it changes
 nothing. A new computer with a new code stops at the first file. Two new tests cover the guard; 102
 pass.

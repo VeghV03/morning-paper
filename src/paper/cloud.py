@@ -15,7 +15,7 @@ does not read and which would grow the repository by megabytes a day, nor the ga
 import base64
 import os
 import secrets
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives import hashes
@@ -76,30 +76,29 @@ def open_(key: bytes, rel: str, blob: bytes) -> bytes:
         raise Locked(f"{rel}: sealed with another key, or changed") from None
 
 
-def _home_files(root: Path):
-    for p in sorted(root.rglob("*")):
-        rel = p.relative_to(root)
-        if not p.is_file() or rel.parts[0] in HOME_SKIP_DIRS or rel.name in HOME_SKIP or p.suffix == ".tmp":
-            continue
-        yield rel.as_posix(), p
+def _home_skip(rel: PurePath) -> bool:
+    return rel.parts[0] in HOME_SKIP_DIRS or rel.name in HOME_SKIP or rel.suffix == ".tmp"
 
 
-def _engine_files(out: Path):
-    for p in sorted(out.rglob("*")):
-        rel = p.relative_to(out)
-        if not p.is_file():
-            continue
-        if rel.parts[0] == "feed-snapshots" and len(rel.parts) > 1 and rel.parts[1][:2] == "20":
-            continue  # a day's raw snapshots: read once, the same morning
-        if rel.parts[0] in ("discovery", "genealogy"):
-            continue  # made again from the snapshots
-        if p.suffix == ".pdf":
-            continue  # the gazette's raw bytes: its text stays, and acts.jsonl keeps acts from repeating
-        yield rel.as_posix(), p
+def _engine_skip(rel: PurePath) -> bool:
+    return ((rel.parts[0] == "feed-snapshots" and len(rel.parts) > 1 and rel.parts[1][:2] == "20")  # a day's raw snapshots: read once, the same morning
+            or rel.parts[0] in ("discovery", "genealogy")  # made again from the snapshots
+            or rel.suffix == ".pdf")  # the gazette's raw bytes: its text stays, and acts.jsonl keeps acts from repeating
+
+
+def _files(skip):
+    def files(root: Path):
+        for p in sorted(root.rglob("*")):
+            if p.is_file() and not skip(rel := p.relative_to(root)):
+                yield rel.as_posix(), p
+    return files
+
+
+_home_files, _engine_files = _files(_home_skip), _files(_engine_skip)
 
 
 def _areas(h: Home, engine_out: Path):
-    return {"home": (h.root, _home_files), "engine": (engine_out, _engine_files)}
+    return {"home": (h.root, _home_files, _home_skip), "engine": (engine_out, _engine_files, _engine_skip)}
 
 
 def pack(h: Home, engine_out: Path, repo: Path, key: bytes, prune: bool = False) -> dict:
@@ -111,7 +110,7 @@ def pack(h: Home, engine_out: Path, repo: Path, key: bytes, prune: bool = False)
     the repository, a computer's setup run again, and would delete what the run and the phone wrote
     (D115). A file this key cannot open is never sealed over: it is another code's paper (D115)."""
     plan, removed = [], []
-    for area, (root, files) in _areas(h, engine_out).items():
+    for area, (root, files, skip) in _areas(h, engine_out).items():
         keep = set()
         for rel, p in (files(root) if root.exists() else ()):
             name = f"{area}/{rel}"
@@ -122,7 +121,10 @@ def pack(h: Home, engine_out: Path, repo: Path, key: bytes, prune: bool = False)
                 continue
             plan.append((name, target, data))
         base = repo / area
-        removed += [t for t in sorted(base.rglob("*" + SUFFIX)) if t not in keep] if base.exists() else []
+        for t in sorted(base.rglob("*" + SUFFIX)) if base.exists() else ():
+            # a file pack never carries (an old version's .pdf) is not the reader's: it waits for the run's prune
+            if t not in keep and (prune or not skip(PurePath(t.relative_to(base).as_posix()[: -len(SUFFIX)]))):
+                removed.append(t)
     gone = [t.relative_to(repo).as_posix()[: -len(SUFFIX)] for t in removed]
     if gone and not prune:
         raise Locked(f"the repository has files this folder lacks ({', '.join(gone[:5])}"
