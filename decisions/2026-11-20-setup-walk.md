@@ -1,10 +1,10 @@
-# Setup walk: the checklist (gap 1, D109 to D117)
+# Setup walk: the checklist (gap 1, D109 to D118)
 
-In a new macOS user, signed into the Claude app and into `gh` as you (D117). Your GitHub account.
-It stops before the routine.
+In a new macOS user, signed into the Claude app, and into `gh` as a second GitHub account (D117,
+D118). It stops before the routine.
 
-Say first: "Name the repositories paper-data-walk and paper-reader-walk, the environment
-morning-paper-walk, and stop before the routine."
+Say first: "Name the environment morning-paper-walk, and stop before the routine." Setup's own
+repository names are used as written: the second account has none of them.
 
 At each step, note what you had to do that Claude didn't say, what stopped you, and the minutes.
 
@@ -13,18 +13,15 @@ At each step, note what you had to do that Claude didn't say, what stopped you, 
 2. Tools: how long, any password asked? Save the code from `~/paper/.tools/bin/paper cloud code`
    as a separate test entry, never over your real one.
 3. The three questions: did the choices fit you?
-4. `paper-data-walk`, made by Claude with `gh`. Did it ask before making it?
+4. `paper-data`, made by Claude with `gh` on the second account. Did it ask before making it?
 5. Environment `morning-paper-walk`: do "network access Full" and "one variable" match the
    screen? Its key comes from `paper cloud key | pbcopy` in that user's Terminal.
-6. Claude's GitHub app: add `paper-data-walk` only.
+6. Claude's GitHub app: install it on the second account, for `paper-data` only.
 7. Routine: skipped.
-8. `paper-reader-walk` on Pages (the command fixed in c446300 runs here for the first time), then a
-   token for `paper-data-walk` only. Open the page in that
-   user's browser, not on your phone: it shares veghv03.github.io with your real page, and the
-   phone keeps one store per address, so setting it up there replaces your real paper's
-   settings. Expected end: "No issue yet."
+8. `paper-reader` on Pages (the command fixed in c446300 runs here for the first time), then a
+   token for `paper-data` only. Open it on your phone: on the second account it has an address of
+   its own, so it can't touch your real page. Expected end: "No issue yet."
+9. Run `/paper:setup` again: it should find the paper, open it, and change nothing.
 
-9. Run `/paper:setup` again: it should find the paper and open it, and change nothing.
-
-Then remove: the environment, both repositories, the token, the app's reach to
-`paper-data-walk`, and the macOS user.
+Then remove: the environment, the Claude app's install on the second account, the token, the
+second account's two repositories (or the account), and the macOS user.

@@ -1011,3 +1011,12 @@ deleted `inbox.md` and the old PDFs. `gh repo view paper-data` was checked read-
 clone paper-data` by bare name was not run, since it would clone your real repository.
 Side effect: unpacking in the sandbox writes the engine's own record into this checkout's
 `engine/out` (untracked, unused since the run moved to the cloud).
+
+## D118 · The walk's GitHub account, again
+With `gh` signed in as you, setup's repair check (D114) finds your real `paper-data`, and the walk
+would restore your real code into the test user and clone your real data.
+**Taken:** a second GitHub account, the recommended option, since you gave no preference. This
+reverses D111. Setup then runs exactly as written, and the walk's page gets its own address, so it
+can be opened on your phone.
+**Not taken:** an opening instruction telling the walk to leave the real repositories alone.
+**Accepted cost:** you make an account and its email, about 5 min.
