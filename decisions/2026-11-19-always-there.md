@@ -650,3 +650,58 @@ README's commands, since on a computer it now only checks an issue.
 **Not yet checked:** a setup from nothing on a new account; the Claude app's screens for the
 environment; setup run a second time over an existing paper; the Windows time zone. The README's
 screenshots are of the Mac's pages, to be retaken after the redesign.
+
+## The redesign: the critique (D91)
+
+Walked through at phone width (375 px), light and dark, on a copy of the real issue of 20 November:
+every way out of the front page sits at its foot, four and a half screens down; a piece links home
+only at its top; a past issue looks like today's; Settings is one page of eight screens; the
+dateline takes a quarter of the first screen and the gaps between sections are tall; the why line
+comes before the title; a piece opens under the outlet's title, not the headline tapped; the
+Highlight bar is a see-through pill over the text; the front page never mentions the games; a
+byline repeats an accented name; footnote numbers stick to words. Numbered R, since step 4 numbers
+from D100.
+
+## R1 · Getting around
+**Chosen:** a slim bar at the top of every page: the date, which leads to today, then Kept and
+Settings. The foot keeps Save a link and the previous day.
+**Not chosen, for now:** a way home at a piece's end; past issues marked as past; Settings in parts.
+
+## R2 · The look
+**Chosen:** the date on one smaller line and tighter gaps between sections; a piece opens under the
+headline the reader tapped, the outlet's own title moving into the byline; the why line under the
+byline, smaller, with Less of this as a button.
+**Not chosen:** a solid Highlight bar on its own (R3 replaces it).
+
+## R3 · Highlighting
+**Chosen:** select any words and the bar offers Highlight and Question; a tap still marks the whole
+paragraph. The bar sits at the bottom, clear of the phone's own menu over a selection.
+**Not chosen:** selection only.
+
+## R4 · How a marked passage is kept
+**Chosen:** by its words, as a paragraph is now; the page lights the first place they appear.
+**Not chosen:** words plus position.
+**Accepted cost:** a phrase that appears twice in a piece lights the first.
+
+## R5 · A daily word game
+**Chosen:** a five-letter guess: six tries, letters marked right, misplaced or absent, in the
+paper's own look. The word is one Claude picks as central to a piece of the day's issue; solving
+shows that piece. Guesses must be real words, from a freely licensed list checked before use.
+**Not chosen:** a missing word from a headline; both alternating; any letters as guesses; any
+common word.
+**Accepted cost:** the genre's best-known mechanics; a word list shipped with the page.
+
+## R6 · Its language
+**Chosen:** the page's language; a page in Hungarian gets no five-letter game until a Hungarian list
+is found and checked.
+**Not chosen:** alternating by day; the piece's language; finding a Hungarian list now.
+
+## R7 · What the game logs
+**Chosen:** every guess in order, and whether it was solved.
+**Not chosen:** solved and the number of tries only.
+**Accepted cost:** up to six words a day in the record.
+
+## R8 · Also in
+**Chosen:** one line near the top of the front page naming the day's games, each a link; writer
+names that differ only by accents merged, and footnote numbers and return links dropped by the
+run's cleaner.
