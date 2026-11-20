@@ -569,3 +569,25 @@ undone, and a saved link folded into the inbox by the run's own code. On a test 
 paper: the edition of the 20th as it is opens as before; rebuilt with this code, it asks its three
 predictions and Settings shows all 8 sections, 44 feeds and 38 newsrooms. **Not yet checked:** a
 real iPhone (the Paste bubble, the crossword keyboard), and a real morning run writing games.
+
+## After step 3
+
+## D90 · What the page's redesign covers
+**Chosen:** navigation and getting around, and the look overall; and daily games beyond the
+three the issue asks now, of the word-game kind (the reader's example: a daily word puzzle).
+**Not chosen, for now:** the front page's first screen and the reading view as their own items
+(they come up in the critique if they need to).
+
+## D91 · How the redesign runs
+**Chosen:** a critique of every screen at phone width first, then a plan the reader picks from.
+**Not chosen:** fixing the named parts straight away; two directions side by side.
+**Accepted cost:** a round before any change.
+
+## D92 · Step 4 and the redesign
+**Chosen:** both at once: step 4 (D48, D52) in its own session, the redesign here.
+**Not chosen:** the redesign first; step 4 first.
+**Accepted cost:** two pieces of work in flight to review.
+
+## D93 · The Mac's local server
+**Chosen:** retired before the redesign (D73), so there is one page to redesign.
+**Not chosen:** keeping it while the phone page is redesigned.
