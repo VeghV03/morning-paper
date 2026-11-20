@@ -59,7 +59,7 @@ Claude's guesses, measured against nothing.
 ## As built
 `paper days --repo <a clone of the data repository> --from 2026-11-21` (`src/paper/days.py`) prints
 the table. It opens the month files with the run key and the devices' week files with the record
-key, both made in memory from the computer's recovery code, and writes nothing.
+key, both made in memory from the computer's recovery code, and writes nothing but the fetch into the clone.
 
 **Assumed, not asked:**
 - Outside a terminal (a session's shell, a pipe, a file) the command prints nothing and says why:
@@ -73,6 +73,10 @@ key, both made in memory from the computer's recovery code, and writes nothing.
 - A day belongs to the commit's local date, which for a reader in Europe is the date in its name.
 - The first day is given on the command line, not kept in the tool, which other readers also install.
 - Today's row shows as not delivered until the issue lands.
+- The reader runs it in a terminal outside the Claude app: a session can read the app's own terminal.
+- Taps made on the real phone while testing the page inside the window count as reading; nothing
+  tells them apart.
+- The clone must hold the whole history: a shallow one hides the commit times.
 
 **Checked (2026-11-20):** on a made-up repository (`tests/test_days.py`): a morning delivered,
 opened and finished; a late issue; a second run the same day; a rebuilt edition's commit; reading a

@@ -27,8 +27,9 @@ The Mac's own server is gone (D93): the phone page is the only reader.
 
 `paper days --repo <a clone of the data repository> --from <day>` counts the reader's own 30 days
 (`src/paper/days.py`, decisions/2026-11-20-thirty-days.md): delivered from the run's commit times,
-opened and finished from the record. It is the reader's alone (T2): never run it in a session, and
-never write its numbers anywhere; the reader says pass or fail.
+opened and finished from the record. It is the reader's alone (T2): never run it in a session, never read
+its output from a terminal a session can see (the reader runs it in a terminal outside the Claude
+app), and never write its numbers anywhere; the reader says pass or fail.
 
 When the user asks to set this up, follow `skills/setup/SKILL.md`.
 

@@ -241,6 +241,9 @@ def days_cmd(args) -> int:
         print("paper days shows the reader their own reading as numbers: they run it in their own terminal", file=sys.stderr)
         return 1
     repo = Path(args.repo).expanduser()
+    if not (repo / ".git").exists():
+        print(f"no data repository at {repo}: clone it there first (all of it: the run's commit times are the delivery record)", file=sys.stderr)
+        return 1
     if subprocess.run(["git", "-C", str(repo), "pull", "--quiet", "--ff-only"], capture_output=True).returncode:
         print("could not fetch the data repository: counting what is here", file=sys.stderr)
     code = vault.code()
