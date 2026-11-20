@@ -42,6 +42,11 @@ class SearchTest(unittest.TestCase):
         self.assertEqual([c["id"] for c in cover.met(SAVED["met_object"])], ["met-335809"])
         self.assertEqual(cover.met({**SAVED["met_object"], "isPublicDomain": False}), [])
 
+    def test_the_art_institutes_unrelated_matches_are_dropped(self):
+        # "road bridge" as answered: a painting by Fidelia Bridges, a silver piece by John Bridge, a chalice
+        found = [c["id"] for c in cover.aic(SAVED["art_institute_road_bridge"], "road bridge")]
+        self.assertEqual(found, ["aic-37741", "aic-58984", "aic-890"])
+
     def test_a_candidate_names_its_picture(self):
         c = cover.aic(SAVED["art_institute"])[0]
         self.assertEqual(c["image"], "https://www.artic.edu/iiif/2/3192ae4d-ffca-fe91-af12-2ca681f43e13/full/843,/0/default.jpg")

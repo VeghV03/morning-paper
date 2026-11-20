@@ -63,10 +63,15 @@ def met(o: dict) -> list[dict]:
              "image": o["primaryImageSmall"], "record": o.get("objectURL") or ""}]
 
 
-def aic(data: dict) -> list[dict]:
-    """The Art Institute's search or record answer as candidates, public domain only."""
+def aic(data: dict, words: str = "") -> list[dict]:
+    """The Art Institute's search or record answer as candidates, public domain only. With the
+    search's `words`, only works whose title or subjects name one of them: its search also matches
+    artists' names ("bridge" finds Fidelia Bridges) and pads a thin answer with unrelated works."""
     rows = data.get("data")
     rows = rows if isinstance(rows, list) else [rows] if isinstance(rows, dict) else []
+    wanted = [w.rstrip("s") for w in words.lower().split() if len(w) > 2 and w not in ("the", "and")]
+    if wanted:
+        rows = [o for o in rows if any(w in " ".join([o.get("title") or "", *(o.get("term_titles") or [])]).lower() for w in wanted)]
     return [{"id": f"aic-{o['id']}", "title": o.get("title") or "", "artist": o.get("artist_display") or "",
              "date": o.get("date_display") or "", "source": "Art Institute of Chicago",
              "image": f"https://www.artic.edu/iiif/2/{o['image_id']}/full/843,/0/default.jpg",
@@ -74,7 +79,7 @@ def aic(data: dict) -> list[dict]:
             for o in rows if o.get("is_public_domain") and o.get("image_id")]
 
 
-AIC_FIELDS = "id,title,image_id,is_public_domain,artist_display,date_display"
+AIC_FIELDS = "id,title,image_id,is_public_domain,artist_display,date_display,term_titles"
 
 
 def search(words: str, per: int = 6) -> tuple[list[dict], list[str]]:
@@ -99,8 +104,8 @@ def search(words: str, per: int = 6) -> tuple[list[dict], list[str]]:
     except (httpx.HTTPError, ValueError, KeyError) as e:
         errors.append(f"the Met: {e}")
     try:
-        out += aic(_get("https://api.artic.edu/api/v1/artworks/search", q=words, limit=per, fields=AIC_FIELDS,
-                        **{"query[term][is_public_domain]": "true"}).json())
+        out += aic(_get("https://api.artic.edu/api/v1/artworks/search", q=words, limit=per * 3, fields=AIC_FIELDS,
+                        **{"query[term][is_public_domain]": "true"}).json(), words)[:per]
     except (httpx.HTTPError, ValueError, KeyError) as e:
         errors.append(f"the Art Institute: {e}")
     return out, errors
