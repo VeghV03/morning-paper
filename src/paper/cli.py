@@ -10,8 +10,10 @@
   paper read URL   the article at URL as the reader will see it, as JSON
   paper install    keep `paper serve` running from login
   paper restore C  the recovery code C opens the reading record on this computer
+  paper model      download the local text encoder that groups stories and checks threads
 
-The tool never calls a language model; Claude does the choosing.
+The tool never calls a generative model or a model API; Claude does the choosing. It may run a
+local text encoder, which turns text into numbers and writes nothing (D107).
 """
 
 import argparse
@@ -29,10 +31,11 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 import feedparser
+import httpx
 import yaml
 
 from . import feed as feed_mod
-from . import brief, cloud, edition, issue, learn, net, reading, server, vault
+from . import brief, cloud, edition, embed, issue, learn, net, reading, server, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -186,6 +189,8 @@ def publish(args) -> int:
     day = args.date or date.today().isoformat()
     try:
         pieces = issue.validate(h, day)
+        if note := issue.restated(h, day):
+            print(note, file=sys.stderr)
     except issue.Invalid as e:
         print("\n".join(e.errors), file=sys.stderr)
         return 1
@@ -201,6 +206,15 @@ def publish(args) -> int:
     print(url if _up() else f"{url} (the server is not running: run `paper install` once, or `paper serve`)")
     if args.open:
         webbrowser.open(url)
+    return 0
+
+
+def model(args) -> int:
+    try:
+        print(f"the text encoder is in {embed.fetch()}")
+    except (embed.Unavailable, httpx.HTTPError, OSError) as e:
+        print(f"paper model: {e}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -394,12 +408,13 @@ def main(argv: list[str] | None = None) -> int:
     ins.add_argument("--stop", action="store_true", help=argparse.SUPPRESS)
     rs = sub.add_parser("restore")
     rs.add_argument("code", help="the 24-character recovery code from Settings")
+    sub.add_parser("model")
     cl = sub.add_parser("cloud")
     cl.add_argument("action", choices=["key", "unpack", "pack"])
     cl.add_argument("--repo", help="the data repository's folder (unpack, pack)")
     cl.add_argument("--code", help="a recovery code (key), instead of this computer's")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow, "restore": restore, "cloud": cloud_cmd}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow, "restore": restore, "model": model, "cloud": cloud_cmd}[args.cmd](args)
 
 
 if __name__ == "__main__":

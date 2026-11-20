@@ -2,7 +2,7 @@
 story rests on, so Claude can write the story from them rather than from the coverage.
 
 Where they come from, in order:
-- the engine's clusters: Közlöny (and other constitutive) items that discover put in the story;
+- the engine's clusters: Közlöny (and other constitutive) items the engine's claim clustering put in the story;
 - the source articles: links to official domains and to PDFs in the article body, and the
   acts the text cites by number (`345/2026. (X. 30.) Korm. rendelet`, `(EU) 2024/1689`);
 - the engine's Közlöny index (`scripts/kozlony.mjs`, out/kozlony/acts.jsonl): cited acts get

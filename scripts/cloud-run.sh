@@ -5,7 +5,9 @@
 #
 # The run needs PAPER_RUN_KEY in the cloud environment's variables (`paper cloud key` prints it
 # on the computer that ran setup) and the data repository cloned beside this one, or named in
-# PAPER_DATA.
+# PAPER_DATA. `start` also downloads the text encoder (D103) when it is not there yet; to keep it
+# in the environment's cache, the setup script can run `bash morning-paper/scripts/cloud-run.sh model`.
+# Without it the feed and publish fall back and say so.
 set -euo pipefail
 
 PLUGIN="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,14 +15,21 @@ DATA="${PAPER_DATA:-$PLUGIN/../paper-data}"
 export PAPER_HOME="${PAPER_HOME:-$HOME/paper}"
 BIN="$PAPER_HOME/.tools/bin"
 
+model() {
+  command -v uv >/dev/null || python3 -m pip install --quiet --user uv
+  export PATH="$HOME/.local/bin:$PATH"
+  uv sync --quiet --frozen --no-dev --project "$PLUGIN"
+  "$PLUGIN/.venv/bin/python" -m paper.cli model || echo "paper: no text encoder; stories are grouped by the engine alone" >&2
+}
+
+if [ "${1:-}" = model ]; then model; exit 0; fi
+
 [ -n "${PAPER_RUN_KEY:-}" ] || { echo "paper: set PAPER_RUN_KEY in the cloud environment's variables" >&2; exit 1; }
 [ -d "$DATA/.git" ] || { echo "paper: the data repository is not at $DATA; add it to the task, or set PAPER_DATA" >&2; exit 1; }
 
 case "${1:-}" in
   start)
-    command -v uv >/dev/null || python3 -m pip install --quiet --user uv
-    export PATH="$HOME/.local/bin:$PATH"
-    uv sync --quiet --frozen --no-dev --project "$PLUGIN"
+    model
     mkdir -p "$BIN"
     cat > "$BIN/paper" <<EOF
 #!/bin/bash
@@ -42,5 +51,5 @@ EOF
     git push --quiet origin HEAD:main
     echo "paper: sealed and pushed"
     ;;
-  *) echo "usage: cloud-run.sh start|finish" >&2; exit 1 ;;
+  *) echo "usage: cloud-run.sh start|finish|model" >&2; exit 1 ;;
 esac

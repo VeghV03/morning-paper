@@ -42,7 +42,10 @@ there are; read the file with Read. The candidates: `news` (stories since the la
 `primary` documents: the acts, rulings and statements they rest on), `follow` (new posts from
 their `feeds.yaml`), `inbox` (links they saved) and `interests`. It reports the same items
 until `paper publish` succeeds, so run it again freely. Its `warnings` are for your report,
-not for the reader. A story told in two languages, or split by its angles (a summit, and each leader at it), can arrive as several stories: count it once.
+not for the reader. `paper feed` already merges a story told in several languages, and the same
+story on several days, so its `sources` can mix languages and its `k` counts them all. A story
+split by its angles (a summit, and each leader at it) can still arrive as several: count it once.
+A merge can be wrong (two bridge strikes on one day); read the sources' titles before trusting `k`.
 
 `context` has every piece of the last two weeks (`seen`, `looked`, `opened`, `finished`,
 `kept`, `min`, and `topic` and `fit` in steered sections), minutes per section this week, the
@@ -240,7 +243,8 @@ each day it moved:
 
 - `text`: what happened that day, in the page's language (`paper.yaml`), 280 characters at
   most: one or two plain sentences a reader can follow without the article. Never what an
-  earlier entry already said.
+  earlier entry already said: `paper publish` refuses an entry that reads like an earlier one of
+  its story and adds no number or name. Drop it, or write the new fact it carries.
 - `piece`: the piece of an issue that carried that day's news, when one did. Leave it out for a
   development you found but put no piece on. It is how the page knows the reader opened the
   story.

@@ -10,7 +10,8 @@ repo is also the `paper` plugin and its own marketplace (`.claude-plugin/`): the
 `scripts/install.sh` puts uv, Node, Python and a copy of this repo in `~/paper/.tools` (macOS,
 Ubuntu or Debian, and Windows under Git Bash), run again by the session-start hook in `hooks/`
 when the plugin changes. The `paper` tool never calls
-a language model.
+a generative model or a model API; it may run a local text encoder (`src/paper/embed.py`), which
+turns text into numbers and writes nothing (D107).
 
 The reader's files live in `$PAPER_HOME` (default `~/paper`): `outlets.json`, `sections.md`,
 `interests.md`, `feeds.yaml`, `inbox.md`, `paper.yaml`, and `taste.md`, `seen.md` and `fields.md` when a section rests on them, are theirs; `issues/`, `digests/`,

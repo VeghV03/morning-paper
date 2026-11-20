@@ -1,10 +1,11 @@
 """`paper feed`: every candidate for the next issue in one object. It fetches; Claude chooses.
 
 - news: the news engine in ../../engine reads the outlets in $PAPER_HOME/outlets.json
-  (snapshot, then discover for each day since the last run) and ranks stories by `k`, the
-  number of independent outlets. Each source URL is reported once, so a story seen before
-  comes back only with new coverage. The top stories carry `primary`: the acts, rulings and
-  documents they rest on (primary.py).
+  (snapshot, then its claim clustering for each day since the last run), group.py merges what
+  is one story across languages and days, and the stories are ranked by `k`, the number of
+  independent outlets. Each source URL is reported once, so a story seen before comes back only
+  with new coverage. The top stories carry `primary`: the acts, rulings and documents they rest
+  on (primary.py).
 - follow: entries from $PAPER_HOME/feeds.yaml not reported before, a few per feed.
 - inbox: links saved in $PAPER_HOME/inbox.md.
 - interests: $PAPER_HOME/interests.md as written.
@@ -30,7 +31,7 @@ import lxml.html
 import yaml
 from lxml import etree
 
-from . import net, primary, settings
+from . import group, net, primary, settings
 from .home import Home, pending, read_json, write_json
 
 ENGINE = Path(__file__).resolve().parents[2] / "engine"
@@ -135,10 +136,23 @@ def _orgs(root: Path) -> dict[str, str]:
     return out
 
 
+NO_BODY = {"24", "24.hu"}  # discover.mjs's TILTOTT_TORZS: feeds whose articles refuse downloads
+
+
+def _score(c: dict) -> int:
+    """discover.mjs's triage points, which break ties in `k`: a constitutive source, outlets whose
+    text can be read, signs of a rule, a body or public money."""
+    brands = {str(m.get("brand") or "") for m in c.get("members") or []}
+    body = {b for b in brands if b not in NO_BODY and b not in primary.CONSTITUTIVE}
+    only = bool(brands) and brands <= primary.CONSTITUTIVE.keys()
+    official = 40 if brands & primary.CONSTITUTIVE.keys() and not only else 0
+    return official + min(len(body), 4) * 15 + min(len(c.get("mechanismHits") or []), 4) * 8
+
+
 def _candidates(data: dict, orgs: dict[str, str], day: str, facts: dict[str, dict]) -> list[dict]:
-    """The engine's ranked clusters as stories with deduplicated sources."""
+    """The engine's clusters as stories with deduplicated sources."""
     stories = []
-    for c in data.get("candidates") or []:
+    for c in data.get("clusters") or []:
         sources: dict[str, dict] = {}
         official: dict[str, dict] = {}  # the engine's constitutive members: the record itself, not coverage
         for m in c.get("members") or []:
@@ -162,7 +176,7 @@ def _candidates(data: dict, orgs: dict[str, str], day: str, facts: dict[str, dic
                 sources[url]["fetch"] = False
         if sources:
             stories.append({
-                "day": day, "claim": c.get("claimKey"), "score": c.get("pont") or 0,
+                "day": day, "claim": c.get("claimKey"), "score": _score(c),
                 "sources": list(sources.values()), "primary": list(official.values()),
             })  # fmt: skip
     return stories
@@ -220,35 +234,42 @@ def news(h: Home, state: dict, today: date) -> tuple[list[dict], list[str]]:
     for day in _days(state, today):
         if not (root / "out" / "feed-snapshots" / day).is_dir():
             continue
-        try:
-            run_node(root, "discover.mjs", [day])
-            data = json.loads((root / "out" / "discovery" / f"{day}.json").read_text(encoding="utf-8"))
+        try:  # every cluster, not discover's top 60: most of one story's other-language halves rank below it (D101)
+            run_node(root, "cluster-claims.mjs", [day])
+            data = json.loads((root / "out" / "genealogy" / f"{day}-claim-clusters.json").read_text(encoding="utf-8"))
         except EngineError as e:
             warnings.append(f"news: {e}")
             continue
         except (OSError, ValueError) as e:
-            warnings.append(f"news: out/discovery/{day}.json not readable ({e})")
+            warnings.append(f"news: out/genealogy/{day}-claim-clusters.json not readable ({e})")
             continue
         discovered = True
         raw += _candidates(data, orgs, day, facts)
     if not discovered:
         return [], warnings or [f"news: no snapshot for {today}; run the engine's snapshot-feeds.mjs to see why"]
 
-    # Each URL once: strongest cluster first, nothing reported by an earlier run.
+    raw, w_group = group.merge(raw, _k)
+    warnings += w_group
+
+    # Each URL once: strongest cluster first, nothing reported by an earlier run. Only the
+    # MAX_NEWS stories reported are remembered: the engine's every cluster would be ~1,300 URLs a day.
     seen: dict[str, str] = state.get("news_seen", {})
     cutoff = (today - timedelta(days=KEEP_DAYS)).isoformat()
     seen = {u: d for u, d in seen.items() if d >= cutoff}
     raw.sort(key=lambda s: (-_k(s["sources"]), -s["score"], s["day"]))
-    stories = []
+    stories, used = [], set()
     for s in raw:
-        s["sources"] = [x for x in s["sources"] if x["url"] not in seen]
-        for x in s["sources"]:
-            seen[x["url"]] = s["day"]
+        s["sources"] = [x for x in s["sources"] if x["url"] not in seen and x["url"] not in used]
+        used.update(x["url"] for x in s["sources"])
         if s["sources"]:
             stories.append(s)
+    stories.sort(key=lambda s: (-_k(s["sources"]), -s["score"]))
+    stories = stories[:MAX_NEWS]
+    for s in stories:
+        for x in s["sources"]:
+            seen[x["url"]] = s["day"]
     state["news_seen"] = seen
     state["news_day"] = today.isoformat()
-    stories.sort(key=lambda s: (-_k(s["sources"]), -s["score"]))
     return [_story(s) for s in stories], warnings
 
 
@@ -414,7 +435,6 @@ def feed(h: Home) -> dict:
     today = date.today()
     stories, w_news = news(h, state, today)
     entries, w_follow = follow(h, state)
-    stories = stories[:MAX_NEWS]
     w_primary = primary.attach(stories, engine_dir(), today, lambda *a: run_node(*a)) if stories else []
     fold_saved(h)
     links, w_inbox = inbox(h)

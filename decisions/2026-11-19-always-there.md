@@ -641,9 +641,10 @@ run.
 ## D104 · When an entry is not new
 **Chosen:** an entry of a running story restates an earlier one when they score 0.93 or more and
 it brings no number or name the earlier one lacks. On 17 pairs I wrote (no real `threads.jsonl`
-exists to test on), this caught 5 of 8 restatements and flagged none of 9 developments. Cosine
+exists to test on), this caught 5 of 7 restatements and flagged none of 10 developments
+(corrected: I said 8 and 9 when this was asked). Cosine
 alone put "the MNB cut its rate" at 0.938 against "the MNB held its rate".
-**Not chosen:** cosine alone; near-verbatim only (0.96, 3 of 8).
+**Not chosen:** cosine alone; near-verbatim only (0.96, 3 of 7).
 **Accepted cost:** a rewording that adds a name passes; the threshold rests on pairs I wrote.
 
 ## D105 · What happens to a restatement
@@ -660,3 +661,41 @@ alone put "the MNB cut its rate" at 0.938 against "the MNB held its rate".
 may run a local text encoder, which turns text into numbers and writes nothing.
 **Not chosen:** keeping the old line and reading it narrowly.
 **Accepted cost:** the line admits local models.
+
+## Step 4 as built
+
+`paper feed` now reads every one of the engine's claim clusters (`cluster-claims.mjs`, in place
+of `discover.mjs` and its top 60). `src/paper/group.py` merges them by D102's two rules with the
+encoder in `src/paper/embed.py`, and ranks by `k` as before. `paper publish` runs
+`issue.restated` on the thread entries written since the last issue (D104, D105). `paper model`
+downloads the encoder, pinned to one revision and checked against its hashes, into
+`~/.cache/paper/models`; `cloud-run.sh start` calls it, and `cloud-run.sh model` runs it alone,
+for a setup script. The morning skill says both.
+
+**Assumed, not asked:**
+- Only the 30 stories the feed reports are remembered as reported. Before, the 30 below them
+  were also marked and never came back; now a story cut today can return tomorrow. Marking every
+  cluster would have kept about 1,300 URLs a day in the sealed feed state.
+- discover's triage points (constitutive source, readable outlets, signs of a rule or public
+  money) are ported to Python, because they still break ties in `k`.
+- The engine's full cluster files are not sealed into the data repository: like discovery, they
+  are made again from the snapshots (0.75 to 2.9 MB a day).
+- A catch-up after many days embeds at most 6,000 headlines, the strongest stories first; the
+  rest are not merged, with a warning.
+- With no encoder, the feed gives the engine's groups and a warning, and publish prints a note
+  and publishes unchecked.
+- A group's language is the language most of its sources are in, so French and German outlets
+  merge with English by the same rule as Hungarian.
+
+**Checked (2026-11-20, on the Mac):** the encoder's vectors match the ones measured with
+(cosine 1.0 on all 1,332 headlines of 17 Nov). On 17 Nov 19 of the top 30 stories are merges, 10 of them across languages.
+The Crimean bridge strike rose from k 5 to 10 and to the top, the Hungary–Ukraine rail halt from
+4 to 8, the Iranian dirty-bomb report from 3 to 7, the Serbian parliament from 2 to 6. Two joins
+were wrong. Russia's strike on Kyiv's bridges went in with Ukraine's strike on the Crimean bridge:
+the encoder scores them 0.91 to 0.94, its limit, and k gained one. A French NATO piece went in with
+the APEC summit. On 18 Nov the summit took in its angles (k 9 to 17). Grouping added 20 s on the
+17th and 22 s on the 18th. The restatement rule, on the 17 pairs, gave D104's counts. `paper model`
+downloaded and checked both files in 47 s. 124 tests pass.
+**Not yet checked:** a real cloud run: the encoder's speed on its CPUs, the download time, and
+whether a routine gets the setup script's cache. Also real thread entries, which the 0.93 rests
+on only through pairs I wrote.

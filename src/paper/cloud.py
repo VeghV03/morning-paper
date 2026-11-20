@@ -91,7 +91,7 @@ def _engine_files(out: Path):
             continue
         if rel.parts[0] == "feed-snapshots" and len(rel.parts) > 1 and rel.parts[1][:2] == "20":
             continue  # a day's raw snapshots: read once, the same morning
-        if rel.parts[0] == "discovery":
+        if rel.parts[0] in ("discovery", "genealogy"):
             continue  # made again from the snapshots
         if p.suffix == ".pdf":
             continue  # the gazette's raw bytes: its text stays, and acts.jsonl keeps acts from repeating

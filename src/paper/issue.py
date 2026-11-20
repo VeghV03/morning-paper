@@ -10,7 +10,8 @@ with no section. Ids are `r-<date>-<n>`. A thread is `{"id", "title", "since", "
 running story: each entry `{"day", "text"}`, with `"piece": "r-…"` when an issue carried that
 day's news, oldest first. The reader sees the entries since they last opened the story (Since you
 left, at the top of the issue) and the rest folded under them. An older thread with one `body`
-paragraph reads as one entry dated `updated`.
+paragraph reads as one entry dated `updated`. An entry written since the last issue may not
+restate an earlier entry of its story (`restated`, D104).
 
 The issue also carries what the reader learns from:
 - an answer, `{"id": "a-<date>-<n>", "answer": "h-…", "text"}`: Claude's reply to a question the
@@ -36,6 +37,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from . import embed
 from .home import Home
 
 MAX_SECTIONS = 8
@@ -53,6 +55,7 @@ PREDICTS = 3
 CLUE_CHARS = 90
 FITS = ("fits", "tries")
 DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+RESTATES = 0.93  # with no new number or name; set on 17 pairs written for it (D104)
 
 
 class Invalid(Exception):
@@ -370,3 +373,42 @@ def validate(h: Home, day: str) -> list[dict]:
     pieces = load(h, day)
     check(h, secs, pieces, day)
     return pieces
+
+
+def _facts(text: str) -> set[str]:
+    """The numbers and names in a text: what makes an entry news. A name is a capitalised word
+    past a sentence's first, compared on its first five letters so that Hungarian endings
+    (Péter, Péternek) do not make it new."""
+    out = {n.replace(",", ".") for n in re.findall(r"\d+(?:[.,]\d+)*", text)}
+    for sentence in re.split(r"[.!?:;]\s+", text):
+        out |= {w.lower()[:5] for w in re.findall(r"[^\W\d_][\w-]*", sentence)[1:] if w[0].isupper()}
+    return out
+
+
+def restated(h: Home, day: str) -> str | None:
+    """Raises Invalid for each entry written since the last issue that says what an earlier entry
+    of its story said: they score RESTATES or more and it brings no number or name the earlier
+    one lacks. Returns a note when the text encoder is missing and nothing was checked."""
+    before = [d for d in days(h) if d < day]
+    since = before[-1] if before else ""
+    checks = []  # (thread id, entry number, earlier number, text, earlier text)
+    for tid, th in threads(h).items():
+        entries = [x for x in th.get("entries") or [] if isinstance(x, dict)]
+        for i, x in enumerate(entries):
+            if str(x.get("day") or "") > since and not x.get("old"):
+                checks += [(tid, i, j, str(x.get("text") or ""), str(y.get("text") or "")) for j, y in enumerate(entries[:i])]
+    if not checks:
+        return None
+    texts = sorted({t for c in checks for t in c[3:]})
+    try:
+        vecs = dict(zip(texts, embed.encode(texts)))
+    except embed.Unavailable as e:
+        return f"threads not checked for restated entries: {e}"
+    errors = [
+        f"{h.threads}: {tid}: entry {i + 1} says what entry {j + 1} said (\"{old[:80]}\"); drop it, or write what is new"
+        for tid, i, j, new, old in checks
+        if float(vecs[new] @ vecs[old]) >= RESTATES and not _facts(new) - _facts(old)
+    ]
+    if errors:
+        raise Invalid(errors)
+    return None
