@@ -1,17 +1,14 @@
 """The topic model of the steered sections, the morning draw, the why line and "less of this"
 (D25 to D32)."""
 
-import http.client
 import json
 import os
 import tempfile
-import threading
 import unittest
 from datetime import date, datetime, timedelta
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from paper import config, learn, reading, server, topics, vault
+from paper import config, learn, reading, topics, vault
 from paper.home import Home
 
 os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
@@ -178,41 +175,6 @@ class WhyTest(Base):
             for k in keys:
                 self.assertIn(k, config.LABELS[lang], f"{lang}: {k}")
                 config.LABELS[lang][k].format(topic="x", k=1, n=2, date=DAY)
-
-
-class PageTest(Base):
-    def setUp(self):
-        super().setUp()
-        os.environ["PAPER_HOME"] = str(self.h.root)
-        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
-
-    def tearDown(self):
-        self.httpd.shutdown()
-        self.httpd.server_close()
-        os.environ.pop("PAPER_HOME", None)
-
-    def call(self, method, path, body=None):
-        c = http.client.HTTPConnection("127.0.0.1", self.httpd.server_address[1])
-        c.request(method, path, body=json.dumps(body) if body is not None else None,
-                  headers={"Host": f"localhost:{self.httpd.server_address[1]}"})
-        r = c.getresponse()
-        return r.status, r.read().decode()
-
-    def test_the_line_sits_on_steered_pieces_and_less_is_logged_once(self):
-        steered, news = self.piece(DAY, 1, "power"), self.piece(DAY, 2, None, section="world")
-        page = self.call("GET", f"/read/{steered}")[1]
-        self.assertIn("<p class=why", page)
-        self.assertIn("Something new: you haven&#x27;t read about power here yet.", page)
-        self.assertNotIn("<p class=why", self.call("GET", f"/read/{news}")[1])
-        for _ in range(2):
-            self.assertEqual(self.call("POST", "/less", {"id": steered})[0], 204)
-        self.assertEqual(self.call("POST", "/less", {"id": news})[0], 404)
-        self.assertEqual([e["ev"] for e in reading.events(self.h) if e["ev"].startswith("less")], ["less"])
-        self.assertIn("Less of power here from now on.", self.call("GET", f"/read/{steered}")[1])
-        self.assertIn('"less": [{"id": "' + steered, self.call("GET", "/settings")[1])
-        self.call("POST", "/less", {"id": steered, "undo": True})
-        self.assertEqual(topics.pressed(reading.events(self.h)), {})
 
 
 class FitTest(unittest.TestCase):

@@ -592,6 +592,120 @@ three the issue asks now, of the word-game kind (the reader's example: a daily w
 **Chosen:** retired before the redesign (D73), so there is one page to redesign.
 **Not chosen:** keeping it while the phone page is redesigned.
 
+## D94 · Setting up a new reader
+**Chosen:** the setup skill and the README rewritten for the cloud now, as D45 planned: the GitHub
+token, the data repository, the routine and the phone page.
+**Not chosen:** marking them as not working and rewriting later.
+**Accepted cost:** the largest part of retiring the Mac server.
+
+## D95 · The learner in Python
+**Chosen:** kept as the reference the page's learner is tested against.
+**Not chosen:** dropped, with the page's learner tested against fixed numbers.
+**Accepted cost:** a change to the learner is made twice.
+
+## D93 as built
+The Mac no longer serves anything. `server.py`, `phone.py` and `tls.py` are gone with their fonts,
+icon and tests, and so are `paper serve` and `paper install` (the login service). What the morning
+run still needed from the server moved: the article cleaner and byline to `article.py`, the front
+page's order and the stories that moved to `reading.py`. `paper publish` on the Mac now only checks
+the issue; the cloud run builds the edition. The recovery code, which the Mac's Settings used to
+show, comes from `paper cloud code`, run by the reader in their own terminal. The tests that read
+the server's pages went with it (115 tests then, 81 now); the logic under them is still tested
+directly. The QR code library left the dependencies. The setup skill and the README still describe
+the Mac server until D94's rewrite.
+
+## D96 · Who makes a new reader's repositories
+**Chosen:** Claude, with the GitHub CLI when it is signed in, asking before each: the private data
+repository, and the public page repository with `reader/` copied in and Pages on. Without it,
+links the reader follows.
+**Not chosen:** the reader by hand every time.
+**Accepted cost:** two ways through one step; the CLI becomes a soft requirement.
+
+## D97 · The end of setup
+**Chosen:** setup runs the morning routine once, and the reader opens that issue on the phone.
+**Not chosen:** an empty paper until the next morning.
+**Accepted cost:** a full issue's worth of the plan, and about six minutes' wait.
+
+## D98 · Stories named at setup
+**Chosen:** dropped. A story joins Since you left when a piece of it is opened (D85).
+**Not chosen:** a file of named stories the run reads as follows.
+**Accepted cost:** the first issue has no Since you left.
+
+## D99 · The run's time zone
+**Chosen:** the reader's own, written into the schedule (`CRON_TZ=…`), so 5:07 stays 5:07 through
+summer time; the first reader's routine moved too. Revises D60's note.
+**Not chosen:** UTC; the reader's for new readers only.
+
+## D94 as built
+`skills/setup` sets up a reader for the cloud: the tools and files on a computer once, the recovery
+code saved by the reader from `paper cloud code` in their own terminal, `paper-data` made and sealed
+(with the GitHub CLI when it is signed in, D96), the environment and the GitHub app's reach as the
+reader's steps, the routine in the reader's time zone (D99) with no connectors, `paper-reader` on
+Pages, the phone's token as the reader's step, and one run while the phone is set up (D97). The
+README says the same, and what setup leaves behind.
+
+**Assumed, not asked:** new routines get no connectors, since the run reads untrusted pages; the
+permission rules for an unattended run on the computer went with that run; `/paper:today` left the
+README's commands, since on a computer it now only checks an issue.
+**Not yet checked:** a setup from nothing on a new account; the Claude app's screens for the
+environment; setup run a second time over an existing paper; the Windows time zone. The README's
+screenshots are of the Mac's pages, to be retaken after the redesign.
+
+## The redesign: the critique (D91)
+
+Walked through at phone width (375 px), light and dark, on a copy of the real issue of 20 November:
+every way out of the front page sits at its foot, four and a half screens down; a piece links home
+only at its top; a past issue looks like today's; Settings is one page of eight screens; the
+dateline takes a quarter of the first screen and the gaps between sections are tall; the why line
+comes before the title; a piece opens under the outlet's title, not the headline tapped; the
+Highlight bar is a see-through pill over the text; the front page never mentions the games; a
+byline repeats an accented name; footnote numbers stick to words. Numbered R, since step 4 numbers
+from D100.
+
+## R1 · Getting around
+**Chosen:** a slim bar at the top of every page: the date, which leads to today, then Kept and
+Settings. The foot keeps Save a link and the previous day.
+**Not chosen, for now:** a way home at a piece's end; past issues marked as past; Settings in parts.
+
+## R2 · The look
+**Chosen:** the date on one smaller line and tighter gaps between sections; a piece opens under the
+headline the reader tapped, the outlet's own title moving into the byline; the why line under the
+byline, smaller, with Less of this as a button.
+**Not chosen:** a solid Highlight bar on its own (R3 replaces it).
+
+## R3 · Highlighting
+**Chosen:** select any words and the bar offers Highlight and Question; a tap still marks the whole
+paragraph. The bar sits at the bottom, clear of the phone's own menu over a selection.
+**Not chosen:** selection only.
+
+## R4 · How a marked passage is kept
+**Chosen:** by its words, as a paragraph is now; the page lights the first place they appear.
+**Not chosen:** words plus position.
+**Accepted cost:** a phrase that appears twice in a piece lights the first.
+
+## R5 · A daily word game
+**Chosen:** a five-letter guess: six tries, letters marked right, misplaced or absent, in the
+paper's own look. The word is one Claude picks as central to a piece of the day's issue; solving
+shows that piece. Guesses must be real words, from a freely licensed list checked before use.
+**Not chosen:** a missing word from a headline; both alternating; any letters as guesses; any
+common word.
+**Accepted cost:** the genre's best-known mechanics; a word list shipped with the page.
+
+## R6 · Its language
+**Chosen:** the page's language; a page in Hungarian gets no five-letter game until a Hungarian list
+is found and checked.
+**Not chosen:** alternating by day; the piece's language; finding a Hungarian list now.
+
+## R7 · What the game logs
+**Chosen:** every guess in order, and whether it was solved.
+**Not chosen:** solved and the number of tries only.
+**Accepted cost:** up to six words a day in the record.
+
+## R8 · Also in
+**Chosen:** one line near the top of the front page naming the day's games, each a link; writer
+names that differ only by accents merged, and footnote numbers and return links dropped by the
+run's cleaner.
+
 ## Step 4
 
 Measured on 2026-11-20 on the Mac, on the real snapshots of 17 Nov: 1,332 headlines from the

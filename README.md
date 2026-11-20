@@ -29,8 +29,10 @@ ten days.
 </p>
 
 That is possible because the record of what you read is yours. What you opened, finished,
-marked and asked is kept in `~/paper` on your computer, encrypted, with the key in your keychain, and
-read only by your own Claude when it writes the issue. No service keeps it, and nothing is sold against it.
+marked and asked is sealed on your phone with a key only your devices hold, and kept in a private
+GitHub repository of yours. The cloud run that writes the issue never gets that key: your phone
+sends it a short brief of what to weigh, and nothing else. No service keeps your reading, and
+nothing is sold against it.
 
 The rest of the paper:
 
@@ -67,30 +69,21 @@ The rest of the paper:
 
 ## Set up
 
-The paper is moving to the cloud: Claude writes each issue in a scheduled cloud run, sealed into
-a private GitHub repository of yours, and your phone opens it from a page on GitHub with nothing
-to install. The cloud run works today; the page that reads it comes next. Until then, the setup
-below, which runs the paper from your computer, is the way to read it. The plan and its trade-offs
-are in [decisions/2026-11-19-always-there.md](decisions/2026-11-19-always-there.md).
-
-You need the [Claude app](https://claude.com/download) on a paid plan, on a Mac, on Windows
-with [Git for Windows](https://git-scm.com/downloads/win), or on Ubuntu or Debian (the app's Linux
-beta). In the app's Code tab, type:
+You need the [Claude app](https://claude.com/download) on a plan with cloud routines, a GitHub
+account, and once, for setup, a Mac, Windows with [Git for Windows](https://git-scm.com/downloads/win),
+or Ubuntu or Debian. In the app's Code tab, type:
 
 ```
 /plugin install paper --marketplace VeghV03/morning-paper
 ```
 
 Then `/paper:setup`. Claude asks three things: where you live, the languages you read, and what
-you want beyond the news. Then it asks which running stories you already follow, and your first
-issue opens with their last week. It installs the paper's own tools in `~/paper` (nothing system-wide,
-no password), starts the reader, writes a quick first issue while you watch, and schedules the
-full one for every morning.
-
-Open <http://localhost:4747> with your coffee, or read it on your phone: scan the code in
-Settings with the phone's camera, install and trust the paper's certificate as the page shows,
-then add the page to your home screen. The first time the icon opens, type the six digits shown
-under the code.
+you want beyond the news. It writes your files, makes a recovery code you save in your password
+manager, and puts your files, sealed, in a private repository of yours. Three steps are yours,
+because they hold your credentials: a cloud environment holding the run's key, which
+repositories Claude's GitHub app may reach, and a token for your phone. Claude then schedules the
+morning run, runs it once, and puts the phone page in a repository of your own on GitHub Pages.
+About six minutes later your first issue opens on your phone. Add it to your home screen.
 
 <p align="center">
   <picture>
@@ -99,51 +92,47 @@ under the code.
   </picture>
 </p>
 
-The morning run needs the Claude app open and the computer awake, or runs when you next open it.
 Each issue uses your Claude plan: Claude searches the web and opens every article it considers.
 
-### What setup changes on your computer
+### What setup leaves behind
 
-Setup says what each step does before it runs it, and asks first before touching your Claude
-settings.
+Setup says what each step does before it runs it, and asks before it makes anything on GitHub.
 
-- Installs uv, Node and Python for the paper alone in `~/paper/.tools`, about 240 MB. Nothing
-  system-wide, no password.
-- Adds allow rules for the paper's tool, web search and the `~/paper` folder to
-  `~/.claude/settings.json`, so the morning run never stops at a prompt.
-- Starts the reader from login, and schedules the morning run in the Claude app.
-- Keeps the reading record's key in the system keychain: Keychain on a Mac, Credential Manager
-  on Windows, GNOME Keyring or KWallet on Linux.
+- On your computer: uv, Node and Python for the paper alone in `~/paper/.tools`, about 240 MB,
+  nothing system-wide and no password; your files in `~/paper`; the recovery code in the system
+  keychain (Keychain on a Mac, Credential Manager on Windows, GNOME Keyring or KWallet on Linux).
+- On GitHub: `paper-data`, private, holding only sealed files, and `paper-reader`, public,
+  holding the phone page's code and nothing of yours.
+- In the Claude app: the `morning-paper` cloud environment and the Morning paper routine.
 
-To remove the paper, delete the paper's rules in that settings file, the morning task in the
-Claude app, `~/paper`, the `morning-paper` keychain entry, and what starts the reader:
-`~/Library/LaunchAgents/local.morning-paper.serve.plist` on a Mac, the "Morning paper" startup
-app on Windows, `~/.config/systemd/user/morning-paper.service` on Linux.
+To remove the paper, delete those: the routine and the environment in the Claude app, the two
+repositories, the phone's token in GitHub's settings, `~/paper`, and the `morning-paper`
+keychain entry.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-  A[Claude app, every morning] --> B["/paper:today"]
-  B --> C["paper context<br/>what you read"]
+  A[Cloud routine, every morning] --> B["/paper:today"]
   B --> D["paper feed<br/>your outlets → stories by k<br/>your feeds, saved links"]
-  C & D --> E[Claude chooses ≤3 a section<br/>answers your questions, writes cards]
-  E --> F[paper publish]
-  F --> G["localhost:4747<br/>issue · reader · cards · settings"]
-  G -->|looked, opened, finished, marked| C
+  H[brief from your phone] --> E
+  D --> E[Claude chooses ≤3 a section<br/>answers your questions, writes cards]
+  E --> F[paper publish<br/>sealed into paper-data]
+  F --> G["your phone page<br/>issue · reader · cards · games · settings"]
+  G -->|record, sealed with the phone's key| H
 ```
 
-Your files and your reading record live in `~/paper` on your computer. Each morning Claude reads
-them to choose the issue, as it reads anything in a conversation. The page answers your computer and
-the phones you paired by scanning that code, and no one else. To the phone it travels over
-HTTPS, with a certificate your computer made that can vouch only for its own `.local` name and
-home-network addresses. What you read and mark is encrypted on disk; Settings shows its recovery
-code once, and on a new computer `paper restore <code>` opens it again.
+Your files, issues and reading record live in `paper-data`, each file sealed with AES-256-GCM.
+The recovery code gives two keys. The run key opens your files and issues, and sits in the cloud
+environment. The record key opens what you read, and never leaves your devices. The phone page
+is served from your own `paper-reader` and never from this repository, so a change here reaches
+your phone only when you copy it over.
 
 ## Make it yours
 
-What you want from the paper is plain files in `~/paper`. Ask Claude to change it, edit
-it yourself, or open Settings at the foot of any issue.
+What you want from the paper is a handful of plain files, sealed in `paper-data`. Change them in
+Settings on your phone: your sections and their topics, interests, feeds, newsrooms and the
+page's language.
 
 <p align="center">
   <picture>
@@ -158,7 +147,7 @@ it yourself, or open Settings at the foot of any issue.
 | `sections.md` | One line per section, in page order: `Name: what belongs in it`, and topics after a `\|` for a section your reading steers. Eight at most. |
 | `interests.md` | What you care about and what you are tired of, in your own words. |
 | `feeds.yaml` | Blogs, journals and newsletters you follow; their best new posts go where they fit. |
-| `inbox.md` | A link a line; it arrives in the next issue under Saved. |
+| `inbox.md` | A link a line; it arrives in the next issue under Saved. Save a link on the phone adds to it. |
 | `paper.yaml` | The page's language, English or Hungarian. |
 
 ## Commands
@@ -166,12 +155,12 @@ it yourself, or open Settings at the foot of any issue.
 | | |
 |---|---|
 | `/paper:setup` | Set up, or set up again. |
-| `/paper:today` | Write today's issue now. |
 | `~/paper/.tools/bin/paper check` | Which outlets and feeds answer. |
+| `~/paper/.tools/bin/paper cloud code` | Show your recovery code, in your own terminal. |
 
 ## Where it comes from
 
 Morning paper is the newspaper of [x4r](https://github.com/VeghV03/x4r), a firmware for the
-Xteink X4 e-reader, brought to the Mac.
+Xteink X4 e-reader, brought to the phone.
 
 MIT licensed.

@@ -95,9 +95,6 @@ if [ "$("$TOOLS/node/bin/node$EXE" --version 2>/dev/null)" != "$NODE_VERSION" ];
 fi
 rm -rf "$TOOLS/downloads"
 
-# the server runs the copy, and on Windows a running server holds its files: stop it first
-[ -x "$TOOLS/bin/paper" ] && "$TOOLS/bin/paper" install --stop >/dev/null 2>&1 || true
-
 # a copy at a path that outlives the plugin's version folder; the engine keeps its record in
 # src/engine/out, which moves over to the new copy
 rm -rf "$TOOLS/src.new" && mkdir -p "$TOOLS/src.new"
@@ -118,7 +115,4 @@ exec "$PY" -m paper.cli "\$@"
 EOF
 chmod +x "$TOOLS/bin/paper"
 echo "$ROOT" > "$STAMP"
-
-# the server starts again on the new code, where it was set to run from login
-"$TOOLS/bin/paper" install --again >/dev/null 2>&1 || true
 echo "paper: tools ready in $TOOLS"

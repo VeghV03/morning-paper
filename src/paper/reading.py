@@ -30,7 +30,7 @@ from datetime import date, datetime, timedelta
 
 from . import crossword, learn, vault
 from .home import Home
-from .issue import all_pieces, all_rows, sections
+from .issue import Invalid, all_pieces, all_rows, kind, load, sections, threads
 
 FINISHED = 0.9
 WPM = 250
@@ -120,6 +120,55 @@ def followed(h: Home, threads: dict, before: str) -> dict[str, dict]:
         if left or tid in mine:
             out[tid] = {"follows": True, **({"left_off": left} if left else {}), "new": len(since(th, left, "9999-12-31"))}
     return out
+
+
+def stories(h: Home) -> dict[str, dict]:
+    """The running stories; none when threads.jsonl is broken, which `paper publish` reports."""
+    try:
+        return threads(h)
+    except Invalid:
+        return {}
+
+
+def moved(h: Home, day: str, pieces: list[dict]) -> list[dict]:
+    """Since you left, as the page shows it (learn.js `moved`): each running story the reader
+    follows that has news for them in the day's issue, newest first. `piece` is the issue's piece
+    on it, if any; `new` its updates since they last caught up on it, before the day."""
+    everything, st, mine, out = all_pieces(h), state(h), named(h, day), []
+    for tid, th in stories(h).items():
+        left = left_off(h, th, day, everything, st)
+        if not left and tid not in mine:
+            continue
+        piece = next((p for p in pieces if p.get("thread") == tid and not p.get("saved")), None)
+        new = since(th, left, day)
+        if new or piece:
+            out.append({"thread": th, "piece": piece, "new": new, "last": new[0]["day"] if new else day})
+    return sorted(out, key=lambda m: m["last"], reverse=True)
+
+
+def order(h: Home, day: str) -> list[dict]:
+    """The issue's pieces in page order: Since you left's, the sections in sections.md's order,
+    then saved links."""
+    secs = sections(h)
+    pieces = [r for r in load(h, day) if kind(r) == "piece"]
+    first = [m["piece"] for m in moved(h, day, pieces) if m["piece"]]
+    rank = {s.id: n for n, s in enumerate(secs)}
+    placed = [p for p in pieces if not p.get("saved") and p not in first]
+    placed.sort(key=lambda p: rank.get(p.get("section"), len(rank)))  # a renamed section's pieces last
+    return first + placed + [p for p in pieces if p.get("saved")]
+
+
+def story(h: Home, piece: dict) -> tuple[dict, str | None, list[dict], list[dict]] | None:
+    """The running story above a piece (learn.js `story`): the thread, where the reader left it,
+    the updates new to them and the rest, newest first. A reader who never opened the story sees
+    the newest three, the rest under Earlier. The piece's own update is the piece, so it is left out."""
+    th = stories(h).get(piece.get("thread"))
+    if not th:
+        return None
+    left = left_off(h, th, piece["day"])
+    mine = [x for x in reversed(th["entries"]) if x.get("piece") != piece["id"] and x["day"] <= piece["day"]]
+    new = [x for x in mine if left < x["day"]] if left else mine[:3]
+    return th, left, new, [x for x in mine if x not in new]
 
 
 def words(h: Home, pid: str) -> int:

@@ -1,7 +1,7 @@
 [project]
 name = "morning-paper"
 version = "0.1.0"
-description = "A morning paper your Claude writes for you: the day's stories ranked by independent outlets, read on localhost."
+description = "A morning paper your Claude writes for you: the day's stories ranked by independent outlets, read on your phone."
 requires-python = ">=3.12"
 dependencies = [
   "cryptography>=43",
@@ -14,7 +14,6 @@ dependencies = [
   "numpy>=2.5.5",
   "onnxruntime>=1.32.0",
   "pyyaml>=6.0",
-  "segno>=1.6.6",
   "tokenizers>=0.23.3",
   "trafilatura>=2.0",
 ]

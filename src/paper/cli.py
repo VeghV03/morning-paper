@@ -1,15 +1,15 @@
-"""paper: a morning paper for Claude to write and for the reader to read on their computer and phone.
+"""paper: a morning paper Claude writes in a cloud run, for the reader to read on any device.
 
   paper init       the home folder ($PAPER_HOME, default ~/paper) from the example
   paper check      which outlets and feeds answer, as JSON
   paper feed       every candidate since the last issue, written to candidates.json
   paper context    what the reader did and marked, written to context.json
   paper follow     make running stories the reader's, by thread id (setup)
-  paper publish    check issues/<date>.jsonl, move the feed cursor, open the issue
-  paper serve      the issue, the reader and settings on http://localhost:4747 and a paired phone
+  paper publish    check issues/<date>.jsonl, move the feed cursor, build the phone's edition (the run)
   paper read URL   the article at URL as the reader will see it, as JSON
-  paper install    keep `paper serve` running from login
-  paper restore C  the recovery code C opens the reading record on this computer
+  paper restore C  keep the recovery code C on this computer
+  paper cloud      code: the recovery code, for the reader to save; key: the run key; pack, unpack
+  paper days       the reader's own 30 days, counted in their own terminal (never in a session)
   paper model      download the local text encoder that groups stories and checks threads
 
 The tool never calls a generative model or a model API; Claude does the choosing. It may run a
@@ -18,13 +18,9 @@ local text encoder, which turns text into numbers and writes nothing (D107).
 
 import argparse
 import json
-import os
-import plistlib
 import shutil
 import subprocess
 import sys
-import urllib.request
-import webbrowser
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -35,16 +31,12 @@ import httpx
 import yaml
 
 from . import feed as feed_mod
-from . import brief, cloud, edition, embed, issue, learn, net, reading, server, vault
+from . import article, brief, cloud, days, edition, embed, issue, learn, net, reading, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
 EXAMPLE = REPO / "example"
 PRESETS = REPO / "presets"
-LABEL = "local.morning-paper.serve"
-AGENT = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"  # macOS
-UNIT = Path.home() / ".config" / "systemd" / "user" / "morning-paper.service"  # Linux
-RUN_KEY, RUN_NAME = r"Software\Microsoft\Windows\CurrentVersion\Run", "Morning paper"  # Windows
 
 
 def _print(data) -> None:
@@ -64,7 +56,7 @@ def init(args) -> int:
         print(f"wrote {h.outlets} (presets/world.json)")
     try:
         if vault.ensure(h):
-            print("made the reading record's key: its recovery code is in Settings on this computer")
+            print("made the recovery code: the reader saves it from `paper cloud code`, run in their own terminal")
         vault.migrate(h)
     except vault.Locked as e:
         print(e, file=sys.stderr)
@@ -86,7 +78,7 @@ def feed(args) -> int:
 
 def read(args) -> int:
     """The article at a URL as the reader view will show it, or why there is none."""
-    found = server.extract(args.url)
+    found = article.extract(args.url)
     if not found:
         _print({"url": args.url, "error": "no article: the site refused, or the page is a wall or a teaser"})
         return 1
@@ -176,14 +168,6 @@ def follow(args) -> int:
     return 0
 
 
-def _up() -> bool:
-    try:
-        urllib.request.urlopen(f"http://localhost:{server.PORT}/kept", timeout=2)
-        return True
-    except OSError:
-        return False
-
-
 def publish(args) -> int:
     h = home()
     day = args.date or date.today().isoformat()
@@ -202,10 +186,7 @@ def publish(args) -> int:
         print(f"published {day}: {built['texts']} of {built['pieces']} pieces with text for the phone; "
               "`paper cloud pack` seals it into the data repository")
         return 0
-    url = f"http://localhost:{server.PORT}/{day}"
-    print(url if _up() else f"{url} (the server is not running: run `paper install` once, or `paper serve`)")
-    if args.open:
-        webbrowser.open(url)
+    print(f"checked {day}: the morning run builds the phone's edition when it publishes")
     return 0
 
 
@@ -229,137 +210,17 @@ def restore(args) -> int:
     return 0
 
 
-def serve(args) -> int:
-    h = home()
-    h.root.mkdir(parents=True, exist_ok=True)
-    (h.root / ".serve.pid").write_text(str(os.getpid()), encoding="utf-8")  # for `paper install --stop`
-    try:
-        vault.ensure(h)
-        vault.migrate(h)
-    except vault.Locked as e:
-        print(e, file=sys.stderr)  # the pages say so too, until `paper restore`
-    print(f"http://localhost:{server.PORT}", flush=True)
-    server.serve()
-    return 0
-
-
-def _env(h) -> dict:
-    """What the server needs from the shell the wrapper set up: the home, and Node on the PATH."""
-    return {"PAPER_HOME": str(h.root), "PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONUTF8": "1"}
-
-
-def _install_mac(h, again: bool) -> int:
-    uid = os.getuid()
-    if again:
-        if AGENT.exists():
-            subprocess.run(["launchctl", "kickstart", "-k", f"gui/{uid}/{LABEL}"], capture_output=True)
-        return 0
-    AGENT.parent.mkdir(parents=True, exist_ok=True)
-    AGENT.write_bytes(plistlib.dumps({
-        "Label": LABEL,
-        "ProgramArguments": [sys.executable, "-m", "paper.cli", "serve"],
-        "EnvironmentVariables": _env(h),
-        "RunAtLoad": True,
-        "KeepAlive": True,
-        "StandardErrorPath": str(h.root / "serve.log"),
-    }))
-    subprocess.run(["launchctl", "bootout", f"gui/{uid}", str(AGENT)], capture_output=True)
-    r = subprocess.run(["launchctl", "bootstrap", f"gui/{uid}", str(AGENT)], capture_output=True, text=True)
-    if r.returncode:
-        print(r.stderr.strip(), file=sys.stderr)
-        return 1
-    print(f"serving http://localhost:{server.PORT} from login ({AGENT})")
-    return 0
-
-
-def _install_linux(h, again: bool) -> int:
-    ctl = ["systemctl", "--user"]
-    if again:
-        if UNIT.exists():
-            subprocess.run([*ctl, "restart", UNIT.name], capture_output=True)
-        return 0
-    if not shutil.which("systemctl"):
-        print("install needs systemd; run `paper serve` yourself", file=sys.stderr)
-        return 1
-    env = "".join(f'Environment="{k}={v}"\n' for k, v in _env(h).items())
-    UNIT.parent.mkdir(parents=True, exist_ok=True)
-    UNIT.write_text(f"""[Unit]
-Description=Morning paper
-
-[Service]
-{env}ExecStart="{sys.executable}" -m paper.cli serve
-Restart=on-failure
-StandardError=append:{h.root / "serve.log"}
-
-[Install]
-WantedBy=default.target
-""", encoding="utf-8")
-    for step in (["daemon-reload"], ["enable", UNIT.name], ["restart", UNIT.name]):
-        r = subprocess.run([*ctl, *step], capture_output=True, text=True)
-        if r.returncode:
-            print(r.stderr.strip(), file=sys.stderr)
-            return 1
-    print(f"serving http://localhost:{server.PORT} from login ({UNIT})")
-    return 0
-
-
-def _windows_pid(h) -> int | None:
-    """The running server's process, when the pid file still names one of the paper's Pythons."""
-    try:
-        pid = int((h.root / ".serve.pid").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    r = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True, text=True)
-    return pid if "python" in r.stdout.lower() else None
-
-
-def _install_windows(h, stop: bool, again: bool) -> int:
-    import winreg
-    pid = _windows_pid(h)
-    if pid:
-        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
-    if stop:
-        return 0
-    launcher = Path(sys.executable).parents[2] / "serve.pyw"  # .tools/venv/Scripts/python.exe
-    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:  # absent on a new account
-        if again:
-            try:
-                winreg.QueryValueEx(key, RUN_NAME)
-            except FileNotFoundError:
-                return 0  # never installed: nothing to start again
-        env = "".join(f"os.environ[{k!r}] = {v!r}\n" for k, v in _env(h).items())
-        launcher.write_text(f"""import os, sys
-{env}sys.stdout = sys.stderr = open({str(h.root / "serve.log")!r}, "a", encoding="utf-8", buffering=1)
-from paper.cli import main
-sys.exit(main(["serve"]))
-""", encoding="utf-8")
-        windowless = Path(sys.executable).with_name("pythonw.exe")
-        command = [str(windowless), "-X", "utf8", str(launcher)]
-        winreg.SetValueEx(key, RUN_NAME, 0, winreg.REG_SZ, subprocess.list2cmdline(command))
-    subprocess.Popen(command, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-                     close_fds=True)
-    if not again:
-        print(f"serving http://localhost:{server.PORT} from login (the {RUN_NAME!r} entry in your startup apps)")
-    return 0
-
-
-def install(args) -> int:
-    """Keeps `paper serve` running from login. --again starts it on new code where it was installed;
-    --stop stops it while the tools are replaced (Windows locks a running program's files)."""
-    h = home()
-    if sys.platform == "win32":
-        return _install_windows(h, args.stop, args.again)
-    if args.stop:
-        return 0
-    if sys.platform == "darwin":
-        return _install_mac(h, args.again)
-    return _install_linux(h, args.again)
-
-
 def cloud_cmd(args) -> int:
-    """The data repository: `key` prints the run key for the cloud environment, from this
-    computer's recovery code; `unpack` and `pack` open and seal the repository in the run."""
+    """`code` prints the recovery code for the reader to save; `key` the run key for the cloud
+    environment, from it; `unpack` and `pack` open and seal the data repository in the run."""
     h = home()
+    if args.action == "code":  # for the reader's own eyes: never run it where its output is logged
+        code = vault.code()
+        if not code:
+            print("no recovery code on this computer: run `paper init`", file=sys.stderr)
+            return 1
+        print(code)
+        return 0
     if args.action == "key":
         try:
             code = vault.normal(args.code) if args.code else vault.code()
@@ -388,6 +249,29 @@ def cloud_cmd(args) -> int:
     return 0
 
 
+def days_cmd(args) -> int:
+    """The 30 days as a table, from a clone of the data repository (days.py)."""
+    if not sys.stdout.isatty():  # a session's shell, a pipe or a file: the counts are the reader's alone (T2)
+        print("paper days shows the reader their own reading as numbers: they run it in their own terminal", file=sys.stderr)
+        return 1
+    repo = Path(args.repo).expanduser()
+    if not (repo / ".git").exists():
+        print(f"no data repository at {repo}: clone it there first (all of it: the run's commit times are the delivery record)", file=sys.stderr)
+        return 1
+    if subprocess.run(["git", "-C", str(repo), "pull", "--quiet", "--ff-only"], capture_output=True).returncode:
+        print("could not fetch the data repository: counting what is here", file=sys.stderr)
+    code = vault.code()
+    if not code:
+        print("no recovery code on this computer: run `paper restore <recovery code>`", file=sys.stderr)
+        return 1
+    try:
+        print(days.table(days.tally(repo, args.first, date.today(), code)))
+    except (cloud.Locked, subprocess.CalledProcessError) as e:
+        print(e, file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="paper", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -401,20 +285,18 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("ids", nargs="+", metavar="t-<slug>")
     pub = sub.add_parser("publish")
     pub.add_argument("--date", help="YYYY-MM-DD, default today")
-    pub.add_argument("--open", action="store_true", help="open the issue in the browser")
-    sub.add_parser("serve")
-    ins = sub.add_parser("install")
-    ins.add_argument("--again", action="store_true", help=argparse.SUPPRESS)
-    ins.add_argument("--stop", action="store_true", help=argparse.SUPPRESS)
     rs = sub.add_parser("restore")
-    rs.add_argument("code", help="the 24-character recovery code from Settings")
+    rs.add_argument("code", help="the 24-character recovery code")
     sub.add_parser("model")
     cl = sub.add_parser("cloud")
-    cl.add_argument("action", choices=["key", "unpack", "pack"])
+    cl.add_argument("action", choices=["code", "key", "unpack", "pack"])
     cl.add_argument("--repo", help="the data repository's folder (unpack, pack)")
     cl.add_argument("--code", help="a recovery code (key), instead of this computer's")
+    dy = sub.add_parser("days")
+    dy.add_argument("--repo", required=True, help="a clone of the data repository")
+    dy.add_argument("--from", dest="first", required=True, type=date.fromisoformat, help="the first morning, YYYY-MM-DD")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "serve": serve, "install": install, "check": check, "read": read, "follow": follow, "restore": restore, "model": model, "cloud": cloud_cmd}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "check": check, "read": read, "follow": follow, "restore": restore, "model": model, "cloud": cloud_cmd, "days": days_cmd}[args.cmd](args)
 
 
 if __name__ == "__main__":
