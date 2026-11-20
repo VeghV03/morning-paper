@@ -55,3 +55,28 @@ days in a row that pass.
 Claude's guesses, measured against nothing.
 **Not chosen:** 30, 26, 20; a mark for delivery only; a mark set after 10 days.
 **Accepted cost:** a morning read on the X4 shows as unopened; changing the mark later weakens the test.
+
+## As built
+`paper days --repo <a clone of the data repository> --from 2026-11-21` (`src/paper/days.py`) prints
+the table. It opens the month files with the run key and the devices' week files with the record
+key, both made in memory from the computer's recovery code, and writes nothing.
+
+**Assumed, not asked:**
+- Outside a terminal (a session's shell, a pipe, a file) the command prints nothing and says why:
+  T2 as a guard against a slip, not a lock.
+- It fetches the clone first; when that fails it says so and counts what is there.
+- "The front page shown" is read as any first showing, look, open or read of one of the day's
+  pieces, made that day. The page logs a piece as shown only the first time, so on the issue's own
+  day this is the same thing.
+- Days are cut in the time zone of the computer the tally runs on. Run from another time zone, the
+  06:00 line and the day's edges move.
+- A day belongs to the commit's local date, which for a reader in Europe is the date in its name.
+- The first day is given on the command line, not kept in the tool, which other readers also install.
+- Today's row shows as not delivered until the issue lands.
+
+**Checked (2026-11-20):** on a made-up repository (`tests/test_days.py`): a morning delivered,
+opened and finished; a late issue; a second run the same day; a rebuilt edition's commit; reading a
+day late; a quick scroll; the 30-day edge; the pass mark at 27 and 26; another code; no output
+outside a terminal. The table read in a terminal on the same made-up repository.
+**Not yet checked:** the real data repository; whether this computer's code opens the phone's
+record; Windows and Linux.
