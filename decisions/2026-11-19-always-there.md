@@ -591,3 +591,72 @@ three the issue asks now, of the word-game kind (the reader's example: a daily w
 ## D93 · The Mac's local server
 **Chosen:** retired before the redesign (D73), so there is one page to redesign.
 **Not chosen:** keeping it while the phone page is redesigned.
+
+## Step 4
+
+Measured on 2026-11-20 on the Mac, on the real snapshots of 17 Nov: 1,332 headlines from the
+reader's 38 outlets, which the engine grouped into 1,103 stories by shared title words. To
+compare models, 185 pairs of a Hungarian headline and its closest foreign one were labelled by
+hand (63 the same story). The labels are mine and come from titles alone. Each model's score is
+the share of same-story pairs it catches while 9 in 10 of its merges are right. multilingual-e5-base
+catches 62%, e5-large 44%, its 8-bit build 43%, mpnet 32%, e5-small 16%, MiniLM and the static
+model2vec model about 0. EmbeddingGemma ranked worse than chance on these titles. Overall
+(AUC) e5-base and e5-large tie at 0.90 and 0.91. Only 10 of the 63 pairs had both sides inside the
+60 stories `discover.mjs` hands on each day. Cloud facts (code.claude.com, cloud-environments,
+read 2026-11-20): about 4 vCPU, 16 GB and 30 GB of disk a session; a setup script's result is cached about
+seven days. That scheduled runs get the cache is my inference: the page says only that they use the
+same environments.
+
+## D100 · The model
+**Chosen:** multilingual-e5-base (MIT, Hungarian among its languages), the full ONNX file,
+1.1 GB; a day's headlines in about 25 s on the Mac.
+**Not chosen:** its 8-bit build (279 MB, catches 43%, built for one family of Intel CPUs);
+e5-large (2.2 GB, 77 s, no better); the small and static models (miss most cross-language
+pairs).
+**Accepted cost:** the largest download of the options. The cloud's speed is unmeasured.
+
+## D101 · Replace or sit on top (settles D48's open question)
+**Chosen:** on top. The engine's word groups are the building blocks, read in full (every group,
+not discover's top 60), and the embeddings merge them. With no model the feed falls back to the
+engine's groups, with a warning.
+**Not chosen:** replacing the word matching (its precise same-language matches would become
+threshold guesses); merging only inside the top 60 (misses 53 of the 63 pairs).
+**Accepted cost:** Python now ranks what discover's top-60 cut used to.
+
+## D102 · What may be merged
+**Chosen:** two strict rules. Within a language, only near-identical groups (0.91 on every pair).
+Across languages, a group and one in another language when each is the other's closest match
+and they score 0.84 or more (17 of 18 right on 17 Nov).
+**Not chosen:** across languages only (two days of one story stay apart); a looser cut that
+merges a story's angles (about a third of its merges wrong, each one inflating `k`).
+**Accepted cost:** a story split by its angles mostly stays split; Claude still counts it once.
+
+## D103 · How the model reaches the run
+**Chosen:** `cloud-run.sh start` downloads it into a cache folder when it is missing; one line in
+the environment's setup script can put it in the seven-day cache.
+**Not chosen:** the setup script alone (no model once the cache lapses); a fresh download every
+run.
+**Accepted cost:** a morning without the cache spends the download's time (unmeasured).
+
+## D104 · When an entry is not new
+**Chosen:** an entry of a running story restates an earlier one when they score 0.93 or more and
+it brings no number or name the earlier one lacks. On 17 pairs I wrote (no real `threads.jsonl`
+exists to test on), this caught 5 of 8 restatements and flagged none of 9 developments. Cosine
+alone put "the MNB cut its rate" at 0.938 against "the MNB held its rate".
+**Not chosen:** cosine alone; near-verbatim only (0.96, 3 of 8).
+**Accepted cost:** a rewording that adds a name passes; the threshold rests on pairs I wrote.
+
+## D105 · What happens to a restatement
+**Chosen:** `paper publish` refuses it, naming both entries; Claude drops it or writes the new fact.
+**Not chosen:** a warning nobody reads in the morning; a hint in the feed only.
+**Accepted cost:** a wrong flag costs Claude a rewrite.
+
+## D106 · Matching stories to threads in the feed
+**Chosen:** not now; Claude matches them as before.
+**Not chosen:** a `thread` hint on news stories, untested without real threads.
+
+## D107 · The rule on language models
+**Chosen:** CLAUDE.md now says the `paper` tool never calls a generative model or a model API. It
+may run a local text encoder, which turns text into numbers and writes nothing.
+**Not chosen:** keeping the old line and reading it narrowly.
+**Accepted cost:** the line admits local models.
