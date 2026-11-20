@@ -1,6 +1,7 @@
 # The tests and the installer on each system a reader may have; then, on Linux, where the cloud
-# run happens, its start and finish against a data repository made here. The phone page, the
-# keychain prompt and a real morning run still need a real phone and the cloud.
+# run happens, its start and finish against a data repository made here. The unit tests walk the
+# phone page in the runner's Chrome (tests/test_page.py); the page on a real phone, the keychain
+# prompt and a real morning run still need a real phone and the cloud.
 name: test
 on: [push, pull_request]
 
