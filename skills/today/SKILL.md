@@ -293,11 +293,14 @@ claim. Draw it after the issue and the threads, before you publish.
 
 The lead claim is the issue's most important fact in one sentence of the paper's language,
 dry and exact (BR16): a number where there is one, no adjectives doing the work, under 110
-characters. It comes from the first news piece you chose, never from a saved link. It goes to
+characters. It comes from the day's lead: of the news pieces in the issue, whatever their
+section, the story that most changes the reader's life, shifts power or reaches furthest, with
+`k` breaking a tie. Never a saved link or a followed feed's post. It goes to
 the command in single quotes, so a `$` or a `"` arrives as written: write an apostrophe as ’.
 The command prints the claim back; when it differs from yours, fix the quoting and draw again.
 
-When the lead is grim (deaths, a disaster, an attack, abuse), there is no photo (BR37):
+When the lead is grim (deaths, a disaster, an attack, abuse), there is no photo (BR37). A
+cover without a photo means a grim lead and nothing else, so the reader can trust it:
 
 ```bash
 ~/paper/.tools/bin/paper cover --date <today> --claim '<the claim>' --grim
@@ -313,8 +316,9 @@ institution), whatever the paper's language: the museums catalogue in English.
 It prints CC0 pictures from the Met, Cleveland and the Art Institute. The match is loose by
 design (BR11): a harbour for shipping, a bank for a bank. Pick one whose title says it fits;
 prefer architecture, places and objects; never a portrait or a scene that seems to show today's
-people or events. Try other words when nothing fits; after three searches, call the day grim.
-Then draw it:
+people or events. Try other words when nothing fits; after three searches, take the closest
+of what they found. Never call a day grim because no picture fits. When every search comes back
+empty (the museums did not answer), draw no cover: the phone opens on the front page. Then draw it:
 
 ```bash
 ~/paper/.tools/bin/paper cover --date <today> --claim '<the claim>' --photo <id>
