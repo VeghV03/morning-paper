@@ -1,5 +1,6 @@
-# The tests and the installer on each system a reader may have; then the server over HTTP and
-# HTTPS. The phone, the keychain prompt and the morning run still need a real machine.
+# The tests and the installer on each system a reader may have; then, on Linux, where the cloud
+# run happens, its start and finish against a data repository made here. The phone page, the
+# keychain prompt and a real morning run still need a real phone and the cloud.
 name: test
 on: [push, pull_request]
 
@@ -45,28 +46,21 @@ jobs:
             Windows) [ $ok = 1 ] ;;                                              # Credential Manager
           esac
 
-      - name: The server over HTTP and HTTPS
+      - name: The morning run's start and finish
+        if: runner.os == 'Linux'  # the run happens only there (D45)
         run: |
-          paper=~/paper/.tools/bin/paper
-          if [ "$RUNNER_OS" = Windows ]; then
-            py=~/paper/.tools/venv/Scripts/python.exe
-            $paper install                       # the startup entry, started now
-          else
-            py=~/paper/.tools/venv/bin/python
-            nohup $paper serve > serve.out 2>&1 &
-          fi
-          for i in $(seq 60); do curl -fsS -o /dev/null http://localhost:4747/kept && break; sleep 1; done
-          curl -fsS -o /dev/null http://localhost:4747/kept
-          curl -fsS -o ca.der http://localhost:4747/authority.cer
-          openssl x509 -inform der -in ca.der -out ca.pem
-          name=$(PYTHONPATH= "$py" -c "from paper import tls; print(tls.name().lower())")
-          # Windows' TLS library asks for revocation status, which a private authority does not publish
-          extra=""; [ "$RUNNER_OS" = Windows ] && extra=--ssl-no-revoke
-          code=$(curl -sS $extra --cacert ca.pem --resolve "$name.local:4748:127.0.0.1" -o /dev/null -w "%{http_code}" \
-                 "https://$name.local:4748/")
-          echo "https://$name.local:4748/ answered $code"
-          [ "$code" = 403 ]                      # trusted, and an unpaired device is asked for the code
-
-      - name: The server's log
-        if: always()
-        run: cat serve.out ~/paper/serve.log 2>/dev/null || true
+          export PATH="$HOME/paper/.tools/bin:$PATH"
+          data="$RUNNER_TEMP/paper-data"
+          git init -q --bare -b main "$RUNNER_TEMP/origin.git"
+          git clone -q "$RUNNER_TEMP/origin.git" "$data"
+          export PAPER_DATA="$data" PAPER_RUN_KEY="$(paper cloud key)"
+          paper cloud pack --repo "$data"        # as setup seals a new reader's files
+          git -C "$data" add -A
+          git -C "$data" -c user.name=setup -c user.email=setup@localhost commit -qm "The reader's files"
+          git -C "$data" push -q origin HEAD:main
+          export PAPER_HOME="$RUNNER_TEMP/run-home"
+          scripts/cloud-run.sh start
+          cmp ~/paper/sections.md "$PAPER_HOME/sections.md"
+          echo "- https://example.com/" >> "$PAPER_HOME/inbox.md"  # what a run changes
+          scripts/cloud-run.sh finish
+          git -C "$RUNNER_TEMP/origin.git" log -1 --format=%s main | grep -qx "Issue 20[0-9-]*"
