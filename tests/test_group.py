@@ -54,6 +54,13 @@ class MergeTest(unittest.TestCase):
         stories = [story("hu1", "telex", "hu"), story("hu2", "hvg", "hu"), story("en", "bbc", "en")]
         self.assertEqual(self.merged(stories, vectors), [1, 2])
 
+    def test_three_languages_end_as_one_story(self):
+        # English and French are each closest to the Hungarian story; neither may take the
+        # other's place, so all three end in one story.
+        vectors = {"hu": unit(1, 1), "en": unit(0.9, 2), "fr": unit(0.88, 3)}
+        stories = [story("hu", "telex", "hu"), story("en", "bbc", "en"), story("fr", "lefigaro", "fr")]
+        self.assertEqual(self.merged(stories, vectors), [3])
+
     def test_same_language_only_near_identical(self):
         a, b, c = story("a", "telex", "hu"), story("b", "hvg", "hu"), story("c", "444", "hu")
         self.assertEqual(self.merged([a, b, c], {"a": unit(1, 1), "b": unit(0.95, 2), "c": unit(0.88, 3)}), [1, 2])

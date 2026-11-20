@@ -662,6 +662,13 @@ may run a local text encoder, which turns text into numbers and writes nothing.
 **Not chosen:** keeping the old line and reading it narrowly.
 **Accepted cost:** the line admits local models.
 
+## D108 · What the feed remembers as reported
+**Chosen:** only the 30 stories it reports. A story cut today can come back tomorrow while the feeds
+still carry it, with its new coverage counted.
+**Not chosen:** the top 60, as before (ranks 31 to 60 dropped for good); every group (about 1,300
+URLs a day in a state file sealed whole each morning, a few MB a day of repository).
+**Accepted cost:** Claude may see yesterday's runner-up again and judges whether it moved.
+
 ## Step 4 as built
 
 `paper feed` now reads every one of the engine's claim clusters (`cluster-claims.mjs`, in place
@@ -673,9 +680,10 @@ downloads the encoder, pinned to one revision and checked against its hashes, in
 for a setup script. The morning skill says both.
 
 **Assumed, not asked:**
-- Only the 30 stories the feed reports are remembered as reported. Before, the 30 below them
-  were also marked and never came back; now a story cut today can return tomorrow. Marking every
-  cluster would have kept about 1,300 URLs a day in the sealed feed state.
+- Headlines are decoded (`&apos;`, CDATA wrappers) before they are compared and shown, as they
+  were when the thresholds were measured.
+- Across languages, each pair of languages finds its matches on its own, then they are joined:
+  a French match never takes the place of a Hungarian one.
 - discover's triage points (constitutive source, readable outlets, signs of a rule or public
   money) are ported to Python, because they still break ties in `k`.
 - The engine's full cluster files are not sealed into the data repository: like discovery, they
@@ -684,18 +692,22 @@ for a setup script. The morning skill says both.
   rest are not merged, with a warning.
 - With no encoder, the feed gives the engine's groups and a warning, and publish prints a note
   and publishes unchecked.
-- A group's language is the language most of its sources are in, so French and German outlets
-  merge with English by the same rule as Hungarian.
+- A group's language is the language most of its sources are in.
+- `start` downloads the encoder after the reader's files are open, so a failed download costs the
+  merging, never the run.
 
 **Checked (2026-11-20, on the Mac):** the encoder's vectors match the ones measured with
-(cosine 1.0 on all 1,332 headlines of 17 Nov). On 17 Nov 19 of the top 30 stories are merges, 10 of them across languages.
-The Crimean bridge strike rose from k 5 to 10 and to the top, the Hungary–Ukraine rail halt from
-4 to 8, the Iranian dirty-bomb report from 3 to 7, the Serbian parliament from 2 to 6. Two joins
-were wrong. Russia's strike on Kyiv's bridges went in with Ukraine's strike on the Crimean bridge:
-the encoder scores them 0.91 to 0.94, its limit, and k gained one. A French NATO piece went in with
-the APEC summit. On 18 Nov the summit took in its angles (k 9 to 17). Grouping added 20 s on the
-17th and 22 s on the 18th. The restatement rule, on the 17 pairs, gave D104's counts. `paper model`
-downloaded and checked both files in 47 s. 124 tests pass.
+(cosine 1.0 on all 1,332 headlines of 17 Nov). On 17 Nov 19 of the top 30 stories are merges, 10 of them across languages, and all 10
+cross-language joins are right. The Crimean bridge strike rose from k 5 to 12 and to the top, with
+two Hungarian and one French account; the Hungary–Ukraine rail halt went from 4 to 8, the Iranian
+dirty-bomb report from 3 to 7, the Rwanda return hubs from 3 to 7, the Serbian parliament from 2
+to 6. One join inside a language was wrong: Russia's strike on Kyiv's bridges went in with
+Ukraine's strike on the Crimean bridge. The encoder scores them 0.91 to 0.94, its limit, and k
+gained one. A first build let a French match take the Hungarian one's place (the Crimean bridge
+came out with no Hungarian source); a test now holds a story told in three languages together.
+On 18 Nov the summit took in its angles (k 9 to 17). Grouping added 19 s on the 17th and 23 s on
+the 18th. The restatement rule, on the 17 pairs, gave D104's counts. `paper model`
+downloaded and checked both files in 47 s. 125 tests pass.
 **Not yet checked:** a real cloud run: the encoder's speed on its CPUs, the download time, and
 whether a routine gets the setup script's cache. Also real thread entries, which the 0.93 rests
 on only through pairs I wrote.

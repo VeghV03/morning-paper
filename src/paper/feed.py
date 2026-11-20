@@ -136,6 +136,12 @@ def _orgs(root: Path) -> dict[str, str]:
     return out
 
 
+def _title(raw) -> str:
+    """A headline as the outlet meant it: entities decoded, a feed's CDATA wrapper dropped."""
+    t = html.unescape(str(raw or "")).strip()
+    return re.sub(r"^<!\[CDATA\[(.*)\]\]>$", r"\1", t, flags=re.S).strip()
+
+
 NO_BODY = {"24", "24.hu"}  # discover.mjs's TILTOTT_TORZS: feeds whose articles refuse downloads
 
 
@@ -160,7 +166,7 @@ def _candidates(data: dict, orgs: dict[str, str], day: str, facts: dict[str, dic
             if not url.startswith(("http://", "https://")) or url in sources or url in official:
                 continue
             brand = str(m.get("brand") or "")
-            title = str(m.get("title") or "").strip()
+            title = _title(m.get("title"))
             if brand in primary.CONSTITUTIVE:
                 official[url] = {"title": title, "url": url, "kind": primary.CONSTITUTIVE[brand], "date": day}
                 continue

@@ -4,12 +4,15 @@ The engine groups headlines that share title words, which is precise inside one 
 blind across them. Here its groups are the building blocks, and the text encoder merges them by
 two strict rules:
 - near-identical groups, in any language: every pair of their headlines' centres scores SAME;
-- a group and one in another language that are each other's closest match there, at ACROSS.
+- a group and one in another language that are each other's closest match between those two
+  languages, at ACROSS; each pair of languages on its own, so a French match does not take the
+  place of a Hungarian one.
 A wrong merge pushes a non-story up the ranking by `k`; a missed one is what Claude saw before,
 so both thresholds favour precision. Measured on the snapshots of 2026-11-17 (decision log).
 """
 
 from collections import Counter
+from itertools import combinations
 
 import numpy as np
 
@@ -72,27 +75,32 @@ def merge(stories: list[dict], k) -> tuple[list[dict], list[str]]:
     members = {g: [g] for g in group}
 
     def join(a, b):
-        for m in members[b]:
-            group[m] = a
-        members[a] += members.pop(b)
+        a, b = group[a], group[b]
+        if a != b:
+            for m in members[b]:
+                group[m] = a
+            members[a] += members.pop(b)
 
     # near-identical: complete linkage, strongest pairs first
     a_, b_ = np.nonzero(np.triu(S >= SAME, 1))
     for a, b in sorted(zip(a_, b_), key=lambda p: -S[p]):
         ga, gb = group[a], group[b]
         if ga != gb and S[np.ix_(members[ga], members[gb])].min() >= SAME:
-            join(ga, gb)
+            join(a, b)
 
-    # across languages: mutual closest match between groups
+    # across languages: mutual closest match between the groups as they stand, language pair by pair
     gs = list(members)
     G = np.array([centre([titles[s["title"]] for u in members[g] for s in stories[units[u]]["sources"] if s["title"]]) for g in gs])
     lang = np.array([Counter(_lang(stories[units[u]]) for u in members[g]).most_common(1)[0][0] for g in gs])
     T = G @ G.T
-    T[lang[:, None] == lang[None, :]] = -1
-    best = T.argmax(1)
-    for x, y in enumerate(best):
-        if x < y and best[y] == x and T[x, y] >= ACROSS:
-            join(gs[x], gs[y])
+    pairs = []
+    for l1, l2 in combinations(sorted(set(lang)), 2):
+        x, y = np.flatnonzero(lang == l1), np.flatnonzero(lang == l2)
+        sub = T[np.ix_(x, y)]
+        best_y, best_x = sub.argmax(1), sub.argmax(0)
+        pairs += [(x[i], y[j]) for i, j in enumerate(best_y) if best_x[j] == i and sub[i, j] >= ACROSS]
+    for a, b in pairs:
+        join(gs[a], gs[b])
 
     out = [_merge([stories[units[u]] for u in sorted(m)]) for m in members.values()]  # units are in rank order
     rest = set(order) - set(units)

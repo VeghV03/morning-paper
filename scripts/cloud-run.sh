@@ -15,21 +15,23 @@ DATA="${PAPER_DATA:-$PLUGIN/../paper-data}"
 export PAPER_HOME="${PAPER_HOME:-$HOME/paper}"
 BIN="$PAPER_HOME/.tools/bin"
 
-model() {
+tools() {
   command -v uv >/dev/null || python3 -m pip install --quiet --user uv
   export PATH="$HOME/.local/bin:$PATH"
   uv sync --quiet --frozen --no-dev --project "$PLUGIN"
+}
+model() {
   "$PLUGIN/.venv/bin/python" -m paper.cli model || echo "paper: no text encoder; stories are grouped by the engine alone" >&2
 }
 
-if [ "${1:-}" = model ]; then model; exit 0; fi
+if [ "${1:-}" = model ]; then tools; model; exit 0; fi
 
 [ -n "${PAPER_RUN_KEY:-}" ] || { echo "paper: set PAPER_RUN_KEY in the cloud environment's variables" >&2; exit 1; }
 [ -d "$DATA/.git" ] || { echo "paper: the data repository is not at $DATA; add it to the task, or set PAPER_DATA" >&2; exit 1; }
 
 case "${1:-}" in
   start)
-    model
+    tools
     mkdir -p "$BIN"
     cat > "$BIN/paper" <<EOF
 #!/bin/bash
@@ -38,6 +40,7 @@ exec "$PLUGIN/.venv/bin/python" -m paper.cli "\$@"
 EOF
     chmod +x "$BIN/paper"
     "$BIN/paper" cloud unpack --repo "$DATA"
+    model  # after the reader's files are open: a failed download costs the merging, never the run
     ;;
   finish)
     "$BIN/paper" cloud pack --repo "$DATA"
