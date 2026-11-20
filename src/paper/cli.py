@@ -305,7 +305,7 @@ def cover_cmd(args) -> int:
         out = Path(args.out).expanduser()
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(cover.png(cover.draw(day, args.claim, img, size, args.theme, lang, crop)))
-        _print({"ok": True, "files": [str(out)]})
+        _print({"ok": True, "claim": args.claim, "files": [str(out)]})
         return 0
     folder = home().root / "edition" / day
     folder.mkdir(parents=True, exist_ok=True)
@@ -315,7 +315,7 @@ def cover_cmd(args) -> int:
         cover.draw(day, args.claim, img, (size[0] * 2, size[1] * 2), theme, lang, crop).save(path, "JPEG", quality=90)
         files.append(str(path))
     (folder / "cover.json").write_text(json.dumps({"claim": args.claim, "photo": rec}, ensure_ascii=False), encoding="utf-8")
-    _print({"ok": True, "files": files})
+    _print({"ok": True, "claim": args.claim, "files": files})
     return 0
 
 

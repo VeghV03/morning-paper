@@ -293,15 +293,18 @@ claim. Draw it after the issue and the threads, before you publish.
 
 The lead claim is the issue's most important fact in one sentence of the paper's language,
 dry and exact (BR16): a number where there is one, no adjectives doing the work, under 110
-characters. It comes from the first news piece you chose, never from a saved link.
+characters. It comes from the first news piece you chose, never from a saved link. It goes to
+the command in single quotes, so a `$` or a `"` arrives as written: write an apostrophe as ’.
+The command prints the claim back; when it differs from yours, fix the quoting and draw again.
 
 When the lead is grim (deaths, a disaster, an attack, abuse), there is no photo (BR37):
 
 ```bash
-~/paper/.tools/bin/paper cover --date <today> --claim "<the claim>" --grim
+~/paper/.tools/bin/paper cover --date <today> --claim '<the claim>' --grim
 ```
 
-Otherwise search two or three plain words from the lead (a place, a thing, an institution):
+Otherwise search two or three plain English words from the lead (a place, a thing, an
+institution), whatever the paper's language: the museums catalogue in English.
 
 ```bash
 ~/paper/.tools/bin/paper cover search <words>
@@ -314,7 +317,7 @@ people or events. Try other words when nothing fits; after three searches, call 
 Then draw it:
 
 ```bash
-~/paper/.tools/bin/paper cover --date <today> --claim "<the claim>" --photo <id>
+~/paper/.tools/bin/paper cover --date <today> --claim '<the claim>' --photo <id>
 ```
 
 Read `$PAPER_HOME/edition/<today>/cover-light.jpg` and look at it. When a mount, a plate's

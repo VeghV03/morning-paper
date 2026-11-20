@@ -148,11 +148,13 @@ def treat(img: Image.Image, w: int, h: int, day: str, dim: float, crop: tuple[fl
 
 # the layout
 
+HU_MONTHS = "jan. febr. márc. ápr. máj. jún. júl. aug. szept. okt. nov. dec.".split()  # the standard abbreviations
+
 def stamp(day: str, lang: str) -> str:
     """"Fri 20 Nov", "nov. 20., péntek"."""
     d, t = date.fromisoformat(day), config.LABELS[lang]
     month, weekday = t["months"].split()[d.month - 1], t["days"].split()[d.weekday()]
-    return f"{month[:3]}. {d.day}., {weekday}" if lang == "hu" else f"{weekday[:3]} {d.day} {month[:3]}"
+    return f"{HU_MONTHS[d.month - 1]} {d.day}., {weekday}" if lang == "hu" else f"{weekday[:3]} {d.day} {month[:3]}"
 
 
 def _serif(px: float, opsz: float) -> ImageFont.FreeTypeFont:
