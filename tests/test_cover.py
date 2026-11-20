@@ -4,6 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
+import httpx
 import numpy as np
 from PIL import Image
 
@@ -51,6 +52,12 @@ class SearchTest(unittest.TestCase):
         c = cover.aic(SAVED["art_institute"])[0]
         self.assertEqual(c["image"], "https://www.artic.edu/iiif/2/3192ae4d-ffca-fe91-af12-2ca681f43e13/full/843,/0/default.jpg")
         self.assertEqual(cover.cma(SAVED["cleveland"])[0]["artist"], "Fitz Henry Lane (American, 1804–1865)")
+
+    def test_a_page_where_the_picture_should_be_is_not_drawable(self):
+        wall = SAVED["met_image"]  # the Met's image server since Nov 2026: a bot check, 200, text/html
+        sent = httpx.Response(wall["status"], headers={"content-type": wall["content_type"]}, text=wall["body_start"])
+        self.assertFalse(cover.is_image(sent))
+        self.assertTrue(cover.is_image(httpx.Response(200, headers={"content-type": "image/jpeg"}, content=b"\xff\xd8")))
 
     def test_an_id_that_is_not_a_museums_is_refused_before_any_request(self):
         with self.assertRaises(cover.Refused):

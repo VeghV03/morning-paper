@@ -13,6 +13,7 @@ and refuses anything else, whatever the search said.
 """
 
 import io
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 
@@ -108,7 +109,24 @@ def search(words: str, per: int = 6) -> tuple[list[dict], list[str]]:
                         **{"query[term][is_public_domain]": "true"}).json(), words)[:per]
     except (httpx.HTTPError, ValueError, KeyError) as e:
         errors.append(f"the Art Institute: {e}")
-    return out, errors
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        ok = list(pool.map(drawable, [c["image"] for c in out]))
+    for source in sorted({c["source"] for c, fine in zip(out, ok) if not fine}):
+        errors.append(f"{source}: pictures left out, its image server sent a page instead")
+    return [c for c, fine in zip(out, ok) if fine], errors
+
+
+def is_image(r: httpx.Response) -> bool:
+    """A picture, not the bot-check page the Met's image server has sent since Nov 2026 (200, text/html)."""
+    return r.status_code == 200 and r.headers.get("content-type", "").startswith("image/")
+
+
+def drawable(url: str) -> bool:
+    """Whether the picture behind a candidate can be fetched, asked with HEAD so nothing is downloaded."""
+    try:
+        return is_image(httpx.head(url, headers=HEADERS, timeout=30, follow_redirects=True))
+    except httpx.HTTPError:
+        return False
 
 
 def record(pid: str) -> dict:
@@ -132,7 +150,10 @@ def record(pid: str) -> dict:
 
 def photo(rec: dict) -> Image.Image:
     try:
-        return Image.open(io.BytesIO(_get(rec["image"]).content))
+        r = _get(rec["image"])
+        if not is_image(r):
+            raise Refused(f"{rec['id']}: the museum sent a page, not a picture; take another")
+        return Image.open(io.BytesIO(r.content))
     except (httpx.HTTPError, OSError) as e:
         raise Refused(f"{rec['id']}: the image did not load ({e})") from None
 

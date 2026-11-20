@@ -1,5 +1,5 @@
 {
- "_note": "Trimmed answers saved 2026-11-20; the second Cleveland and Art Institute records were edited to be not CC0. art_institute_road_bridge is the search for \"road bridge\" as answered, junk included.",
+ "_note": "Trimmed answers saved 2026-11-20; the second Cleveland and Art Institute records were edited to be not CC0. art_institute_road_bridge is the search for \"road bridge\" as answered, junk included. met_image is what the Met's image server answered on 2026-11-20, cut to its first characters.",
  "cleveland": {
   "data": [
    {
@@ -270,5 +270,11 @@
     "image_id": "e0d8a305-15b0-bdcd-1e83-06d8594a2f7e"
    }
   ]
+ },
+ "met_image": {
+  "url": "https://images.metmuseum.org/CRDImages/dp/web-large/DP804388.jpg",
+  "status": 200,
+  "content_type": "text/html",
+  "body_start": "<html style=\"height:100%\"><head><META NAME=\"ROBOTS\" CONTENT=\"NOINDEX, NOFOLLOW\"><meta name=\"format-detection\" content=\"telephone=n"
  }
 }
