@@ -431,3 +431,60 @@ writing during a run cannot collide with it. Python's and the page's evidence, e
 lines match on the same events (a test). The page writes and reads week files.
 **Not yet checked:** a real iPhone, GitHub taking writes from a token that can write, and a cloud
 run reading a brief.
+
+## Step 3's second part
+
+## D80 · Its order
+**Chosen:** two rounds. First cards and running stories (Since you left); then games, Settings and
+Save a link.
+**Not chosen:** all four at once; Settings first.
+**Accepted cost:** until the second round, settings and saved links go through Claude, and the run
+writes no games.
+
+## D81 · Card scheduling on the phone
+**Chosen:** the standard FSRS scheduler with its default parameters. D31's fit to the reader's own
+reviews is paused until there are enough reviews for a fit to beat the defaults.
+**Not chosen:** fitting on the phone now (a WebAssembly optimizer of about a megabyte, and a page
+policy that allows WebAssembly); the run fitting from review history in the brief (against D47).
+**Accepted cost:** D31 waits, likely months.
+
+## D82 · What the brief adds
+**Chosen:** decisions and answers: the finished pieces still to card, each game's pick or skip, the
+crossword words left unsolved, and the day the reader left each running story. No times, no counts.
+**Not chosen:** card counts as well (against D47); only the pieces to card.
+**Accepted cost:** the run's report no longer says how many cards were reviewed in the week.
+
+## D83 · Where a bad settings edit is caught
+**Chosen:** on the phone, before saving, with the same checks as the Mac's settings.
+**Not chosen:** by the next run, which would keep the old file.
+**Accepted cost:** the checks exist in Python and in the page, kept alike by a test.
+
+## D84 · The edition's lists of pieces and cards
+**Chosen:** one file a month; the run rewrites only the current month's.
+**Not chosen:** one file rewritten whole each morning (a guessed 200 MB in the first year and 600 MB
+in the second); one file trimmed to 180 days (the phone's learner would drift from the Mac's).
+**Accepted cost:** the phone fetches one more file a month of history, kept offline after the first read.
+
+## Step 3's second part, first round, as built
+
+The run writes the edition's lists a file a month, cards included (`edition/months/`), and keeps
+`index.json` to the steered sections and the months. The page reads running stories from
+`threads.jsonl` itself. It shows Since you left after the answers, a story's updates above a piece
+that continues it, a story's own page, and one due card below a piece once it is finished, all as
+the Mac's server does. Reviews and story catch-ups go into the record as the Mac logged them. The
+brief adds `to_card` and `stories` (D82), which `paper context` passes on.
+
+**Assumed, not asked:**
+- Stories are followed only by reading them. The Mac's "follow" at setup has no phone equivalent
+  yet, so a story the reader never opened stays out of Since you left.
+- In the cloud `cards` in `paper context` says only how many there are (D82).
+- A card's piece is found through the reader's own marks; through games once games exist.
+
+**Checked (2026-11-20):** on the same reviews (60, random), stories and reads, the page and Python
+give the same due dates to the millisecond, the same card after a piece, the same day each story
+was left off, the same Since you left, and the same pieces to card (a test). In a browser against
+a fake paper-data: Since you left with a story's piece moved up and a story with no piece, the
+story page, the story above a piece, a card after a finished piece and its answer in the record,
+and a brief carrying `to_card` and `stories`. A past month's file stays as written; the one index
+from before is split on the first run (a test). **Not yet checked:** a real morning run writing
+cards and stories, and a real iPhone.

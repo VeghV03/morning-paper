@@ -8,12 +8,14 @@ with the run key, holding only decisions:
 - `steer`: per steered section, the topic order, the try, the topics from least evidence up
   (`tries`) and whether it is silent;
 - `marks`: the reader's live highlights and questions of the last RECENT days, `{id, piece, kind, text}`;
-- `opened`: the pieces of the last RECENT days the reader opened.
+- `opened`: the pieces of the last RECENT days the reader opened;
+- `to_card`: the finished pieces of the last RECENT days with no mark and no card;
+- `stories`: per running story the reader follows, the day they last caught up on it.
 
 No reading times, no counts. `context` turns it into what `paper context` gives the morning
 skill, with the same keys as on a computer that holds the record. When the reader has been away,
-the run works from the last brief (D47). Cards, games and Since you left come with step 3's
-second part; until then `to_card` and `games` are empty.
+the run works from the last brief (D47). Games come with step 3's second round (D80); until
+then `games` is empty. `cards` says only how many there are (D82).
 """
 
 import json
@@ -58,20 +60,21 @@ def context(h: Home, today: date | None = None) -> dict:
     for d in steer.values():
         d.setdefault("silent", False)
         d.pop("topics", None)  # estimates are counts; the run gets the decisions (D47)
-    return {"pieces": rows, "minutes": {}, "marks": marks, "to_card": [], "cards": learn.summary(h, []), "games": [],
+    marked = {m["piece"] for m in marks}
+    to_card = [pid for pid in b.get("to_card") or [] if isinstance(pid, str) and pid in everything
+               and everything[pid]["day"] >= first and pid not in marked and pid not in carded]
+    return {"pieces": rows, "minutes": {}, "marks": marks, "to_card": to_card,
+            "cards": {"cards": len(learn.cards(h))}, "games": [],
             "steer": steer, "brief": {"day": b.get("day"), "made": b.get("made")}}
 
 
 def followed(h: Home, threads: dict, before: str) -> dict[str, dict]:
-    """reading.followed, from the brief's opened pieces: the day of the newest piece of a story
-    the reader opened is where they left it."""
-    opened = set((load(h) or {}).get("opened") or [])
-    pieces, out = all_pieces(h), {}
+    """reading.followed, from the brief: the phone works out where the reader left each story, as
+    reading.left_off does, and the brief carries the day."""
+    stories = (load(h) or {}).get("stories") or {}
+    out = {}
     for tid, th in threads.items():
-        mine = {x.get("piece") for x in th.get("entries") or [] if isinstance(x, dict)}
-        mine |= {pid for pid, p in pieces.items() if p.get("thread") == tid}
-        days = [pieces[pid]["day"] for pid in mine if pid in pieces and pid in opened and pieces[pid]["day"] < before]
-        if days:
-            left = max(days)
+        left = stories.get(tid)
+        if isinstance(left, str) and left < before:
             out[tid] = {"follows": True, "left_off": left, "new": len(reading.since(th, left, "9999-12-31"))}
     return out

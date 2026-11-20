@@ -37,7 +37,7 @@ class BriefTest(unittest.TestCase):
                                                     "tries": ["judgement", "sleep", "memory"], "silent": True}},
                           "marks": [{"id": "h-q1", "piece": "r-2", "kind": "question", "text": "Why?"},
                                     {"id": "h-q2", "piece": "r-2", "kind": "question", "text": "How?"}],
-                          "opened": ["r-1"]})
+                          "opened": ["r-1"], "to_card": ["r-1", "r-2", "r-gone"], "stories": {"t-budget": "2026-11-19"}})
         c = brief.context(self.h, DAY)
         self.assertEqual(c["steer"]["mind"], {"order": ["sleep", "memory", "judgement"], "try": "judgement",
                                                "tries": ["judgement", "sleep", "memory"], "silent": True})
@@ -45,6 +45,8 @@ class BriefTest(unittest.TestCase):
         self.assertEqual({p["id"]: p["opened"] for p in c["pieces"]}, {"r-1": True, "r-2": False})
         self.assertEqual(c["minutes"], {})
         self.assertNotIn("min", c["pieces"][0])
+        self.assertEqual(c["to_card"], ["r-1"])  # r-2 is marked; r-gone is in no issue
+        self.assertEqual(c["cards"], {"cards": 0})  # how many, nothing more (D82)
         self.assertEqual(brief.followed(self.h, {"t-budget": json.loads(self.h.threads.read_text())}, "2026-11-21"),
                          {"t-budget": {"follows": True, "left_off": "2026-11-19", "new": 1}})
 

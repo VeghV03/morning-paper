@@ -40,6 +40,22 @@ class EditionTest(unittest.TestCase):
     def read(self, rel):
         return json.loads((self.h.root / "edition" / rel).read_text(encoding="utf-8"))
 
+    def test_a_file_a_month_and_a_past_month_left_alone(self):
+        self.write("2026-10-30", [{"id": "r-o", "section": "world", "url": "https://daily.com/o", "head": "Old", "lead": "L."},
+                                  {"id": "c-o", "card": "flip", "front": "Q?", "back": "A.", "from": "r-o"}])
+        (self.h.root / "edition").mkdir()
+        (self.h.root / "edition" / "index.json").write_text(json.dumps({"pieces": {"r-o": {"words": 321}}}))  # before D84
+        edition.build(self.h, DAY, fake_extract)
+        october = self.read("months/2026-10.json")
+        self.assertEqual(october["pieces"]["r-o"]["words"], 321)  # carried over from the one index
+        self.assertEqual(october["cards"]["c-o"], {"day": "2026-10-30", "card": "flip", "front": "Q?", "back": "A.", "from": "r-o"})
+        self.assertEqual(sorted(self.read("months/2026-11.json")["pieces"]), ["r-1", "r-2", "r-3", "r-4"])
+        self.assertEqual(self.read("index.json"), {"steered": {}, "months": ["2026-10", "2026-11"]})
+        (self.h.root / "edition" / "months" / "2026-10.json").write_text('{"pieces": {}, "cards": {}}')
+        edition.build(self.h, DAY, fake_extract)
+        self.assertEqual(self.read("months/2026-10.json"), {"pieces": {}, "cards": {}})  # a past month is final
+        self.assertTrue((self.h.root / "edition" / "months").is_dir())  # not taken for an old day's texts
+
     def test_front_page_follows_sections_md_and_leaves_games_out(self):
         built = edition.build(self.h, DAY, fake_extract)
         self.assertEqual(built, {"pieces": 4, "texts": 3, "dropped": []})

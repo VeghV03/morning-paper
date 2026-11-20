@@ -53,8 +53,9 @@ and the crossword words they did not solve) and `steer`, the morning's topic dra
 
 In the cloud run, `context` comes from the brief the reader's phone leaves in the data
 repository, and `context.brief` says which day it was made for. It holds decisions, not counts:
-pieces carry `opened` but not `finished`, `kept` or `min`; `minutes`, `to_card` and `games` are
-empty; `steer` has no `topics` estimates. With no brief yet, `steer` is the flat draw.
+pieces carry `opened` but not `finished`, `kept` or `min`; `to_card` comes from the phone;
+`minutes` and `games` are empty; `cards` says only how many there are; `steer` has no `topics`
+estimates. With no brief yet, `steer` is the flat draw and nobody follows a story.
 
 The reader's folder is `$PAPER_HOME` (default `~/paper`). `interests.md`, `sections.md`,
 `feeds.yaml`, `inbox.md`, `outlets.json`, `paper.yaml`, `taste.md`, `seen.md` and `fields.md` are

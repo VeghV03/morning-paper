@@ -71,7 +71,9 @@ class LearnParityTest(unittest.TestCase):
         for e in events:
             vault.append(h.reads, e)
         vault.append(h.marks, mark)
-        index = edition.index(h, {})
+        small = edition.index(h, {}, "2026-11-20")
+        months = [json.loads((h.root / "edition" / "months" / f"{m}.json").read_text()) for m in small["months"]]
+        index = {"steered": small["steered"], "pieces": {k: v for m in months for k, v in m["pieces"].items()}}
         labels = config.LABELS["en"]
         at = "2026-11-20"
         py_est, now = {}, topics.start_of(at)
