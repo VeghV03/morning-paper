@@ -9,6 +9,7 @@
   paper read URL   the article at URL as the reader will see it, as JSON
   paper restore C  keep the recovery code C on this computer
   paper cloud      code: the recovery code, for the reader to save; key: the run key; pack, unpack
+  paper days       the reader's own 30 days, counted in their own terminal (never in a session)
 
 The tool never calls a language model; Claude does the choosing.
 """
@@ -16,6 +17,7 @@ The tool never calls a language model; Claude does the choosing.
 import argparse
 import json
 import shutil
+import subprocess
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -26,7 +28,7 @@ import feedparser
 import yaml
 
 from . import feed as feed_mod
-from . import article, brief, cloud, edition, issue, learn, net, reading, vault
+from . import article, brief, cloud, days, edition, issue, learn, net, reading, vault
 from .home import commit_pending, home, pending
 
 REPO = Path(__file__).resolve().parents[2]
@@ -233,6 +235,26 @@ def cloud_cmd(args) -> int:
     return 0
 
 
+def days_cmd(args) -> int:
+    """The 30 days as a table, from a clone of the data repository (days.py)."""
+    if not sys.stdout.isatty():  # a session's shell, a pipe or a file: the counts are the reader's alone (T2)
+        print("paper days shows the reader their own reading as numbers: they run it in their own terminal", file=sys.stderr)
+        return 1
+    repo = Path(args.repo).expanduser()
+    if subprocess.run(["git", "-C", str(repo), "pull", "--quiet", "--ff-only"], capture_output=True).returncode:
+        print("could not fetch the data repository: counting what is here", file=sys.stderr)
+    code = vault.code()
+    if not code:
+        print("no recovery code on this computer: run `paper restore <recovery code>`", file=sys.stderr)
+        return 1
+    try:
+        print(days.table(days.tally(repo, args.first, date.today(), code)))
+    except (cloud.Locked, subprocess.CalledProcessError) as e:
+        print(e, file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="paper", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -252,8 +274,11 @@ def main(argv: list[str] | None = None) -> int:
     cl.add_argument("action", choices=["code", "key", "unpack", "pack"])
     cl.add_argument("--repo", help="the data repository's folder (unpack, pack)")
     cl.add_argument("--code", help="a recovery code (key), instead of this computer's")
+    dy = sub.add_parser("days")
+    dy.add_argument("--repo", required=True, help="a clone of the data repository")
+    dy.add_argument("--from", dest="first", required=True, type=date.fromisoformat, help="the first morning, YYYY-MM-DD")
     args = p.parse_args(argv)
-    return {"init": init, "feed": feed, "context": context, "publish": publish, "check": check, "read": read, "follow": follow, "restore": restore, "cloud": cloud_cmd}[args.cmd](args)
+    return {"init": init, "feed": feed, "context": context, "publish": publish, "check": check, "read": read, "follow": follow, "restore": restore, "cloud": cloud_cmd, "days": days_cmd}[args.cmd](args)
 
 
 if __name__ == "__main__":
