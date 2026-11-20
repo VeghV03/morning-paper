@@ -1003,3 +1003,11 @@ page. Setup lists the account's Pages sites and asks before going on when there 
 repair path opens the paper, with the issue and the phone's edit, and a pack after it changes
 nothing. A new computer with a new code stops at the first file. Two new tests cover the guard; 102
 pass.
+Then on a full test paper (the cloud run's copy, sealed with the test code), the repair path first
+dead-ended. After a complete unpack, pack still refused over three gazette `.pdf` files an older
+pack had sealed, files pack no longer carries. They now wait for the run's `--prune` (569e93d).
+After that, opening and packing changed nothing, and `--prune` from the command line removed a
+deleted `inbox.md` and the old PDFs. `gh repo view paper-data` was checked read-only. `gh repo
+clone paper-data` by bare name was not run, since it would clone your real repository.
+Side effect: unpacking in the sandbox writes the engine's own record into this checkout's
+`engine/out` (untracked, unused since the run moved to the cloud).
