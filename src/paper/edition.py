@@ -22,7 +22,7 @@ import shutil
 from datetime import date, timedelta
 from typing import Callable
 
-from . import config, crossword
+from . import article, config, crossword
 from .home import Home
 from .issue import DAY, all_pieces, all_rows, kind, load, sections
 
@@ -43,13 +43,11 @@ def _dir(h: Home):
 def front(h: Home, day: str) -> dict:
     """The day's front page: sections in sections.md's order, then saved links, as the issue
     file lists them within each."""
-    from .server import _host  # noqa: PLC0415 - the server pulls in much the run does not need
-
     pieces = [r for r in load(h, day) if kind(r) == "piece"]
     named = {s.id: s.name for s in sections(h)}
     rank = {sid: n for n, sid in enumerate(named)}
     def item(p: dict) -> dict:
-        return {"id": p["id"], "head": p["head"], "lead": p.get("lead", ""), "url": p["url"], "host": _host(p["url"]),
+        return {"id": p["id"], "head": p["head"], "lead": p.get("lead", ""), "url": p["url"], "host": article.host(p["url"]),
                 **{k: p[k] for k in STEER_KEYS if p.get(k)}}
 
     out = []
@@ -104,8 +102,6 @@ def index(h: Home, words: dict[str, int], day: str) -> dict:
     every piece and card of its issues, for the phone's learner, cards and Kept page; `words` adds
     the lengths measured today, and older pieces keep what their month file measured. A past
     month's file is written once and then left alone."""
-    from .server import _host  # noqa: PLC0415
-
     root = _dir(h) / "months"
     root.mkdir(parents=True, exist_ok=True)
     before = _read(_dir(h) / "index.json").get("pieces", {})  # the one index before D84
@@ -124,7 +120,7 @@ def index(h: Home, words: dict[str, int], day: str) -> dict:
         if month != day[:7] and path.exists():
             continue
         old = {**before, **_read(path).get("pieces", {})}
-        out = {"pieces": {pid: {"day": p["day"], "head": p["head"], "url": p["url"], "host": _host(p["url"]),
+        out = {"pieces": {pid: {"day": p["day"], "head": p["head"], "url": p["url"], "host": article.host(p["url"]),
                                 "words": words.get(pid, old.get(pid, {}).get("words", 0)),
                                 **{k: p[k] for k in (*STEER_KEYS, "saved", "thread") if p.get(k)}}
                           for pid, p in pieces.get(month, {}).items()},
@@ -138,25 +134,22 @@ def index(h: Home, words: dict[str, int], day: str) -> dict:
 
 def piece(h: Home, p: dict, day: str, extract: Callable[[str], dict]) -> dict:
     """One piece for the reader view: {url, title, byline, html}, or {url} when there is no text."""
-    from . import server  # noqa: PLC0415
-
-    t, host = config.labels(h), server._host(p["url"])
+    t, host = config.labels(h), article.host(p["url"])
     if (h.digests / f"{p['id']}.md").exists():
-        d = server.digest(h, p)
+        d = article.digest(h, p)
         return {"url": p["url"], "title": p["head"], "byline": f"{t['digest']} {host}", "html": d["html"]}
     art = extract(p["url"])
     if not art.get("html"):
         return {"url": p["url"]}
     title = re.sub(r"\s+[|–—]\s+[^|–—]+$", "", art.get("title") or "") or p["head"]  # "Title | Site"
-    byline = " · ".join(x for x in (host, server._authors(art.get("author"), p["url"]),
-                                     server._when(h, art.get("date"), day)) if x)
-    return {"url": p["url"], "title": title, "byline": byline, "html": server._body(art["html"], title)}
+    byline = " · ".join(x for x in (host, article.authors(art.get("author"), p["url"]),
+                                     article.when(h, art.get("date"), day)) if x)
+    return {"url": p["url"], "title": title, "byline": byline, "html": article.body(art["html"], title)}
 
 
 def build(h: Home, day: str, extract: Callable[[str], dict] | None = None) -> dict:
     """Writes the day's edition and drops texts older than KEEP_DAYS. Returns what it wrote."""
-    if extract is None:
-        from .server import extract  # noqa: PLC0415
+    extract = extract or article.extract
     root = _dir(h)
     (root / day).mkdir(parents=True, exist_ok=True)
     page = front(h, day)

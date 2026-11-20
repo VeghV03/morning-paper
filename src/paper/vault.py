@@ -175,7 +175,7 @@ def ensure(h: Home) -> str | None:
 
 def migrate(h: Home) -> int:
     """Seals the plain lines left from before encryption; returns how many. Run while nothing
-    else writes the record: at `paper serve` start and at `paper init`."""
+    else writes the record: at `paper init`."""
     n = 0
     for path in record(h):
         if not path.exists():

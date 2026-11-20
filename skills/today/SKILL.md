@@ -1,6 +1,6 @@
 ---
 name: today
-description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, answer the reader's questions and write cards from what they marked and finished, set the day's games, keep the running stories' threads, and publish the page on localhost. Use when the user says paper, news, today's issue, or when the morning run starts.
+description: Write today's issue of the reader's morning paper. Fetch and rank the news from their outlets, read what they did with past issues, choose up to three original articles for each section in sections.md, write a headline and a lead for each, answer the reader's questions and write cards from what they marked and finished, set the day's games, keep the running stories' threads, and publish the edition the phone reads. Use when the user says paper, news, today's issue, or when the morning run starts.
 ---
 
 # paper
@@ -28,7 +28,7 @@ file with Read. The record behind it is encrypted, and this file is its only pla
 `paper publish` deletes it, so never copy it anywhere else. When it fails because the record is
 locked, stop: line 3 of the report tells the reader to run
 `~/paper/.tools/bin/paper restore <recovery code>`. When `recovery_unsaved` is true, line 3 asks
-them to open Settings on the computer and save the recovery code. When `published_today` is true, today's issue is out: say so and stop. One
+them to run `~/paper/.tools/bin/paper cloud code` in their own terminal and save the recovery code. When `published_today` is true, today's issue is out: say so and stop. One
 issue a day.
 
 ```bash
@@ -277,9 +277,8 @@ reads as one entry; rewrite it as entries when its story next moves.
 ```
 
 It checks the issue and the threads, moves the feed cursor, takes the saved links out of
-`inbox.md`, and prints the page's address. When it refuses, fix what it names and run it
-again. Once it succeeds the issue is out: never change it. When it says the server is not running, line 3 of the report tells the reader to run
-`~/paper/.tools/bin/paper install` once.
+`inbox.md`, and in the cloud builds the phone's edition. When it refuses, fix what it names and
+run it again. Once it succeeds the issue is out: never change it.
 
 ## 6. Report
 
@@ -287,7 +286,7 @@ Your last message is the report: three lines, nothing before or after them.
 
 1. The pieces by section, then answers, cards and games: `World 3 · Science 1 · Saved 2 · 1 answer · 4 cards · 2 games`.
 2. Each steering rule that changed a choice and each steered section with no try, or `no change`.
-3. What the reader has to do, such as starting the server, in one sentence; else `nothing to do`.
+3. What the reader has to do, in one sentence; else `nothing to do`.
 
 Each line is one sentence of 30 words at most. Feed warnings, stories left out and the choices
 you made stay out of the report: the issue shows them. When nobody is watching (the morning

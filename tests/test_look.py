@@ -1,10 +1,9 @@
 import os
-import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from paper import config, server
+from paper import article, config
 from paper.home import Home
 
 os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
@@ -15,7 +14,7 @@ SENT = "<p>The minister said on Tuesday that the plan would go ahead, whatever t
 def blocks(html: str) -> list[str]:
     import lxml.html
 
-    return [server._plain(el) for el in lxml.html.fragment_fromstring(server._body(html, "The plan"), create_parent="div")]
+    return [article._plain(el) for el in lxml.html.fragment_fromstring(article.body(html, "The plan"), create_parent="div")]
 
 
 class CleanTest(unittest.TestCase):
@@ -69,37 +68,23 @@ class BylineTest(unittest.TestCase):
         self.h = Home(Path(tempfile.mkdtemp()))
 
     def test_authors(self):
-        self.assertEqual(server._authors("Charlie Wood November", "https://a.org/x"), "Charlie Wood")
-        self.assertEqual(server._authors("Szerzo; Weiler-Vilmos; Weiler Vilmos", "https://b.hu/x"), "Weiler Vilmos")
-        self.assertEqual(server._authors("HVG", "https://hvg.hu/x"), "")
-        self.assertEqual(server._authors("April Rubin; Theresa May", "https://a.org"), "April Rubin, Theresa May")
-        self.assertEqual(server._authors("A One; B Two; C Three; D Four", "https://a.org"), "A One, B Two, C Three")
+        self.assertEqual(article.authors("Charlie Wood November", "https://a.org/x"), "Charlie Wood")
+        self.assertEqual(article.authors("Szerzo; Weiler-Vilmos; Weiler Vilmos", "https://b.hu/x"), "Weiler Vilmos")
+        self.assertEqual(article.authors("HVG", "https://hvg.hu/x"), "")
+        self.assertEqual(article.authors("April Rubin; Theresa May", "https://a.org"), "April Rubin, Theresa May")
+        self.assertEqual(article.authors("A One; B Two; C Three; D Four", "https://a.org"), "A One, B Two, C Three")
 
     def test_dates(self):
-        self.assertEqual(server._when(self.h, "2026-11-17", "2026-11-19"), "17 November")
-        self.assertEqual(server._when(self.h, "2024-03-02", "2026-11-19"), "2 March 2024")
-        self.assertEqual(server._when(self.h, None, "2026-11-19"), "")
+        self.assertEqual(article.when(self.h, "2026-11-17", "2026-11-19"), "17 November")
+        self.assertEqual(article.when(self.h, "2024-03-02", "2026-11-19"), "2 March 2024")
+        self.assertEqual(article.when(self.h, None, "2026-11-19"), "")
         self.h.config.write_text("language: hu\n", encoding="utf-8")
-        self.assertEqual(server._when(self.h, "2024-03-02", "2026-11-19"), "2024. március 2.")
+        self.assertEqual(article.when(self.h, "2024-03-02", "2026-11-19"), "2024. március 2.")
 
     def test_morning(self):
         self.assertEqual(config.morning(self.h), "5:07")
         self.h.config.write_text('morning: "06:30"\n', encoding="utf-8")
         self.assertEqual(config.morning(self.h), "6:30")
-
-
-class EndTest(unittest.TestCase):
-    def test_the_latest_says_when_the_next_comes(self):
-        h = Home(Path(tempfile.mkdtemp()))
-        h.issues.mkdir()
-        (h.root / "sections.md").write_text("World: news\n", encoding="utf-8")
-        for day in ("2026-11-18", "2026-11-19"):
-            row = {"id": f"r-{day}-1", "section": "world", "url": "https://a.org/1", "head": "Head", "lead": "Lead."}
-            (h.issues / f"{day}.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
-        self.assertIn("The next one comes at 5:07.", server.done_page(h, "2026-11-19"))
-        old = server.done_page(h, "2026-11-18")
-        self.assertNotIn("The next one", old)
-        self.assertIn('href="/2026-11-19"', old)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 """The page's cards and running stories (reader/learn.js) agree with the Mac's: FSRS gives the same
 due dates, the same card comes after a finished piece, and a story is left off, caught up on and
-shown under Since you left on the same days (learn.py, reading.py, server.py)."""
+shown under Since you left on the same days (learn.py, reading.py)."""
 
 import json
 import os
@@ -12,7 +12,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from paper import brief, edition, learn, reading, server, vault
+from paper import brief, edition, learn, reading, vault
 from paper.home import Home
 
 os.environ.setdefault("PAPER_RECOVERY_CODE", "TEST-TEST-TEST-TEST-TEST-TEST")  # tests never touch the keychain
@@ -119,7 +119,7 @@ class CardsAndStoriesParityTest(unittest.TestCase):
         py_left = {th["id"]: reading.left_off(h, th, day) for th in threads}
         pieces = [p for p in edition.load(h, day) if p["id"].startswith("r-")]
         py_moved = [[m["thread"]["id"], m["piece"]["id"] if m["piece"] else None, [x["day"] for x in m["new"]]]
-                    for m in server.moved(h, day, [{**p, "day": day} for p in pieces])]
+                    for m in reading.moved(h, day, [{**p, "day": day} for p in pieces])]
         py_to_card = reading.context(h, datetime.fromisoformat(day).date())["to_card"]
 
         tmp = Path(tempfile.mkdtemp())

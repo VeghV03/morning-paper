@@ -591,3 +591,25 @@ three the issue asks now, of the word-game kind (the reader's example: a daily w
 ## D93 · The Mac's local server
 **Chosen:** retired before the redesign (D73), so there is one page to redesign.
 **Not chosen:** keeping it while the phone page is redesigned.
+
+## D94 · Setting up a new reader
+**Chosen:** the setup skill and the README rewritten for the cloud now, as D45 planned: the GitHub
+token, the data repository, the routine and the phone page.
+**Not chosen:** marking them as not working and rewriting later.
+**Accepted cost:** the largest part of retiring the Mac server.
+
+## D95 · The learner in Python
+**Chosen:** kept as the reference the page's learner is tested against.
+**Not chosen:** dropped, with the page's learner tested against fixed numbers.
+**Accepted cost:** a change to the learner is made twice.
+
+## D93 as built
+The Mac no longer serves anything. `server.py`, `phone.py` and `tls.py` are gone with their fonts,
+icon and tests, and so are `paper serve` and `paper install` (the login service). What the morning
+run still needed from the server moved: the article cleaner and byline to `article.py`, the front
+page's order and the stories that moved to `reading.py`. `paper publish` on the Mac now only checks
+the issue; the cloud run builds the edition. The recovery code, which the Mac's Settings used to
+show, comes from `paper cloud code`, run by the reader in their own terminal. The tests that read
+the server's pages went with it (115 tests then, 81 now); the logic under them is still tested
+directly. The QR code library left the dependencies. The setup skill and the README still describe
+the Mac server until D94's rewrite.
