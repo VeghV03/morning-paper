@@ -199,6 +199,9 @@ one after each finished piece, on a schedule the reader's answers set.
 Three games, each a line of the issue file. They ask the reader to recall or guess before
 reading, which is what makes the reading stick; a game on a detail is worse than none.
 
+In the cloud run, write no games: the phone cannot play them yet (D80), and a predicted piece's
+headline would hide its finding for a question nobody is asked.
+
 - **Predictions.** On up to three pieces with one clear finding (a study's result, a vote's
   outcome, a number), ask what it is before the piece opens. The reader picks, reads, and sees
   the answer at the end. Until then the reader sees your headline, not the article's own

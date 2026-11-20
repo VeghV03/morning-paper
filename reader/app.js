@@ -178,35 +178,36 @@ let othersP = null;
 function others(c) {
   othersP = othersP || (async () => {
     const out = [];
-    for (const dir of await listing(c, "record").catch(() => [])) {
+    for (const dir of await listing(c, "record")) {
       if (dir.type !== "dir" || dir.name === c.device) continue;
-      for (const f of await listing(c, `record/${dir.name}`).catch(() => [])) {
+      for (const f of await listing(c, `record/${dir.name}`)) {
         const wk = (f.name.match(/^(\d{4}-\d{2}-\d{2})\.jsonl\.sealed$/) || [])[1];
         if (!wk) continue;
-        const text = await sealed(c, recordRel(dir.name, wk), c.rkey, true).catch(() => "");
+        const text = await sealed(c, recordRel(dir.name, wk), c.rkey, true);
         for (const line of text.split("\n")) if (line.trim()) try { out.push(JSON.parse(line)); } catch { /* a torn line */ }
       }
     }
     return out;
-  })();
+  })().catch((e) => { othersP = null; throw e; });
   return othersP;
 }
 let indexP = null, threadsP = null, latest = null;
 // the edition's lists: the small index, then a file a month of pieces and cards (D84)
+const none = (empty) => (e) => { if (e.status === 404) return empty; throw e; }; // only a missing file is nothing
 const index = (c) => (indexP = indexP || (async () => {
-  const small = await sealed(c, INDEX).catch(() => ({ steered: {}, months: [] }));
+  const small = await sealed(c, INDEX).catch(none({ steered: {}, months: [] }));
   if (small.pieces) return { cards: {}, ...small }; // an edition from before D84
   const out = { steered: small.steered || {}, pieces: {}, cards: {} };
-  for (const m of await Promise.all((small.months || []).map((month) => sealed(c, monthRel(month)).catch(() => ({}))))) {
+  for (const m of await Promise.all((small.months || []).map((month) => sealed(c, monthRel(month))))) {
     Object.assign(out.pieces, m.pieces || {});
     Object.assign(out.cards, m.cards || {});
   }
   return out;
-})());
+})().catch((e) => { indexP = null; throw e; }));
 // the running stories the run keeps; none until it writes one
 const threads = (c) => (threadsP = threadsP || sealed(c, THREADS, c.key, true).then((text) => text.split("\n")
   .filter((l) => l.trim()).map((l) => { try { return JSON.parse(l); } catch { return null; } })
-  .filter((th) => th && th.id && Array.isArray(th.entries)), () => []));
+  .filter((th) => th && th.id && Array.isArray(th.entries)), none([])).catch((e) => { threadsP = null; throw e; }));
 async function record(c) { return [...(await others(c)), ...own]; }
 
 // writing back: this phone's weeks that changed, then the brief (D71)
@@ -368,7 +369,9 @@ function reader(page, art, id, idx, evs, ths = []) {
   const t = page.labels;
   if (!art.html) { log({ ev: "open", id, external: true }); sync(); location.replace(art.url); return; } // the site refused: read it there
   log({ ev: "open", id });
-  const seq = [...page.sections.flatMap((x) => x.pieces), ...page.saved];
+  const listed = [...page.sections.flatMap((x) => x.pieces), ...page.saved];
+  const lifted = t.since ? moved(idx, evs, ths, page.day, listed.map((p) => p.id)).map((m) => m.piece).filter(Boolean) : [];
+  const seq = [...listed.filter((p) => lifted.includes(p.id)), ...listed.filter((p) => !lifted.includes(p.id))];
   const piece = seq.find((p) => p.id === id) || {};
   const nxt = seq[seq.indexOf(piece) + 1];
   const after = nxt ? `<a class=next href="#${page.day}/${esc(nxt.id)}"><span>${esc(t.next)}</span>${esc(nxt.head)}</a>`
@@ -433,7 +436,7 @@ function reader(page, art, id, idx, evs, ths = []) {
   const finishedNow = () => {
     if (asked || !visit || Math.max(before, visit.progress) < FINISHED || had + visit.ms < ((words || 0) / WPM) * 60000 / 3) return;
     asked = true;
-    record(cfg).then((all) => showCard(t, due(idx.cards, all, id)));
+    record(cfg).catch(() => [...own]).then((all) => showCard(t, due(idx.cards, all, id)));
   };
   const onAct = () => { tick(); active = Date.now(); measure(); finishedNow(); };
   for (const ev of ["scroll", "keydown", "pointermove", "touchstart"]) addEventListener(ev, onAct, { passive: true });
@@ -570,7 +573,8 @@ async function route() {
     const [day, id] = where.split("/");
     const want = list.includes(day) ? day : list.at(-1);
     const [page, newest, idx, evs, ths] = await Promise.all([sealed(cfg, frontRel(want)),
-      want === list.at(-1) ? null : sealed(cfg, frontRel(list.at(-1))).catch(() => null), index(cfg), record(cfg), threads(cfg)]);
+      want === list.at(-1) ? null : sealed(cfg, frontRel(list.at(-1))).catch(() => null), // reading goes on when a list cannot be read; only the brief needs them whole (sync)
+      index(cfg).catch(() => ({ steered: {}, pieces: {}, cards: {} })), record(cfg).catch(() => [...own]), threads(cfg).catch(() => [])]);
     if (newest && newest.lang === page.lang) page.labels = { ...page.labels, ...newest.labels }; // the page's words are the newest edition's
     lang = page.lang in SETUP ? page.lang : lang;
     morning = page.morning || morning;

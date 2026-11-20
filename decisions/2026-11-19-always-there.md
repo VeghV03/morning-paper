@@ -464,6 +464,8 @@ crossword words left unsolved, and the day the reader left each running story. N
 **Not chosen:** one file rewritten whole each morning (a guessed 200 MB in the first year and 600 MB
 in the second); one file trimmed to 180 days (the phone's learner would drift from the Mac's).
 **Accepted cost:** the phone fetches one more file a month of history, kept offline after the first read.
+The current month's file is still saved whole each morning: a guessed 30 MB a year (corrected from
+"a few MB", said when this was asked).
 
 ## Step 3's second part, first round, as built
 
@@ -479,12 +481,21 @@ brief adds `to_card` and `stories` (D82), which `paper context` passes on.
   yet, so a story the reader never opened stays out of Since you left.
 - In the cloud `cards` in `paper context` says only how many there are (D82).
 - A card's piece is found through the reader's own marks; through games once games exist.
+- The cloud run writes no games until the phone can play them (D80), said in the morning skill.
+- Only a missing file counts as nothing. When the index, a month, the stories or another device's
+  record fails to load, the page still opens from what it has, but no brief is written until they
+  load: a brief from half the record would steer the run wrong.
+- Next follows the front page: Since you left's pieces first, as the Mac's order.
 
 **Checked (2026-11-20):** on the same reviews (60, random), stories and reads, the page and Python
 give the same due dates to the millisecond, the same card after a piece, the same day each story
 was left off, the same Since you left, and the same pieces to card (a test). In a browser against
 a fake paper-data: Since you left with a story's piece moved up and a story with no piece, the
 story page, the story above a piece, a card after a finished piece and its answer in the record,
-and a brief carrying `to_card` and `stories`. A past month's file stays as written; the one index
+and a brief carrying `to_card` and `stories`. A month file that fails to load stops the brief and not
+the reading, and the next sync writes it. The new page on a copy of the real edition of the 20th
+(the old index, no stories, the old labels) opens the issue, a piece and Kept, and writes a brief.
+The page live before this one cannot read the new index, so the page ships before the run that
+writes it. A past month's file stays as written; the one index
 from before is split on the first run (a test). **Not yet checked:** a real morning run writing
 cards and stories, and a real iPhone.
